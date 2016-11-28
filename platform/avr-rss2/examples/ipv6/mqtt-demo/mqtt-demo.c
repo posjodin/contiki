@@ -143,7 +143,7 @@ static uint8_t state;
 #define DEFAULT_EVENT_TYPE_ID       "status"
 #define DEFAULT_SUBSCRIBE_CMD_TYPE  "+"
 #define DEFAULT_BROKER_PORT         1883
-#define DEFAULT_PUBLISH_INTERVAL    (5 * CLOCK_SECOND)
+#define DEFAULT_PUBLISH_INTERVAL    (30 * CLOCK_SECOND)
 #define DEFAULT_KEEP_ALIVE_TIMER    60
 #define DEFAULT_RSSI_MEAS_INTERVAL  (CLOCK_SECOND * 30)
 /*---------------------------------------------------------------------------*/
@@ -542,7 +542,7 @@ publish(void)
   buf_ptr += len;
 #endif
 
-  len = snprintf(buf_ptr, remaining, ",\"Particles (ug/m3)\": {\"PM1\":%d, \"PM2.5\":%d, \"PM10\":%d}",
+  len = snprintf(buf_ptr, remaining, ",\"Particles (ug/m3)\": {\"PM1\":%d, \"PM2_5\":%d, \"PM10\":%d}",
                  pms5003_sensor.value(PMS5003_SENSOR_PM1),
                  pms5003_sensor.value(PMS5003_SENSOR_PM2_5), 
 		 pms5003_sensor.value(PMS5003_SENSOR_PM10));
