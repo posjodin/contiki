@@ -58,11 +58,13 @@
 /*#include "time.h"*/
 /*#include "mip.h"*/
 
-#if 1
-#define DEBUG1(x)
-#else
+#define DEBUG 1
+
+#if DEBUG
 #include <stdio.h>
-#define DEBUG1(x) debug_printf x
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
 #endif
 
 /*
@@ -154,10 +156,10 @@ ppp_reject_protocol(uint16_t protocol, uint8_t *buffer, uint16_t count)
   /* first copy rejected packet back, start from end and work forward,
      +++ Pay attention to buffer managment when updated. Assumes fixed
      PPP blocks. */
-  DEBUG1(("Rejecting Protocol\n"));
+  PRINTF("Rejecting Protocol\n");
   if((count + 6) > PPP_RX_BUFFER_SIZE) {
     /* This is a fatal error +++ do somthing about it. */
-    DEBUG1(("Cannot Reject Protocol, PKT to big\n"));
+    PRINTF("Cannot Reject Protocol, PKT to big\n");
     return;
   }
   dptr = buffer + count + 6;
@@ -181,14 +183,14 @@ dump_ppp_packet(uint8_t *buffer, uint16_t len)
 {
   int i;
 
-  DEBUG1(("\n"));
+  PRINTF("\n");
   for(i = 0;i < len; ++i) {
     if((i & 0x1f) == 0x10) {
-      DEBUG1(("\n"));
+      PRINTF("\n");
     }
-    DEBUG1(("0x%02x ",buffer[i]));
+    PRINTF("0x%02x ",buffer[i]);
   }
-  DEBUG1(("\n\n"));
+  PRINTF("\n\n");
 }
 #endif
 /*---------------------------------------------------------------------------*/
@@ -347,30 +349,30 @@ ppp_upcall(uint16_t protocol, uint8_t *buffer, uint16_t len)
     /* demux on protocol field */
     switch(protocol) {
     case LCP:	/* We must support some level of LCP */
-      DEBUG1(("LCP Packet - "));
+      PRINTF("LCP Packet - ");
       lcp_rx(buffer, len);
-      DEBUG1(("\n"));
+      PRINTF("\n");
       break;
     case PAP:	/* PAP should be compile in optional */
-      DEBUG1(("PAP Packet - "));
+      PRINTF("PAP Packet - ");
       pap_rx(buffer, len);
-      DEBUG1(("\n"));
+      PRINTF("\n");
       break;
     case IPCP:	/* IPCP should be compile in optional. */
-      DEBUG1(("IPCP Packet - "));
+      PRINTF("IPCP Packet - ");
       ipcp_rx(buffer, len);
-      DEBUG1(("\n"));
+      PRINTF("\n");
       break;
     case IPV4:	/* We must support IPV4 */
-      DEBUG1(("IPV4 Packet---\n"));
+      PRINTF("IPV4 Packet---\n");
       memcpy(uip_buf, buffer, len);
       uip_len = len;
-      DEBUG1(("\n"));
+      PRINTF("\n");
       break;
     default:
-      DEBUG1(("Unknown PPP Packet Type 0x%04x - ",protocol));
+      PRINTF("Unknown PPP Packet Type 0x%04x - ",protocol);
       ppp_reject_protocol(protocol, buffer, len);
-      DEBUG1(("\n"));
+      PRINTF("\n");
       break;
     }
   }
@@ -409,7 +411,7 @@ scan_packet(uint16_t protocol, uint8_t *list, uint8_t *buffer, uint8_t *options,
       }
       if(!good) {
 	/* we don't understand it, write it back */
-	DEBUG1(("We don't understand option 0x%02x\n",i));
+	PRINTF("We don't understand option 0x%02x\n",i);
 	bad = 1;
 	*tptr++ = i;
 	j = *tptr++ = *bptr++;
@@ -433,9 +435,9 @@ scan_packet(uint16_t protocol, uint8_t *list, uint8_t *buffer, uint8_t *options,
     /* length right here? */
 		
     /* write the reject frame */
-    DEBUG1(("Writing Reject frame --\n"));
+    PRINTF("Writing Reject frame --\n");
     ahdlc_tx(protocol, buffer, 0, (uint16_t)(tptr - buffer), 0);
-    DEBUG1(("\nEnd writing reject \n"));
+    PRINTF("\nEnd writing reject \n");
     
   }		
   return bad;

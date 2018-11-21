@@ -54,11 +54,14 @@
 #include	"pap.h"
 #include	"lcp.h"
 
-#if 1
-#define DEBUG1(x)
-#else
+
+#define DEBUG 1
+
+#if DEBUG
 #include <stdio.h>
-#define DEBUG1(x) debug_printf x
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
 #endif
 
 /*#include	"time.h"*/
@@ -94,25 +97,25 @@ pap_rx(uint8_t *buffer, uint16_t count)
 
   switch(*bptr++) {
   case CONF_REQ:	
-    DEBUG1(("CONF ACK - only for server, no support\n"));
+    PRINTF("CONF ACK - only for server, no support\n");
     break;
   case CONF_ACK:			/* config Ack */
-    DEBUG1(("CONF ACK - PAP good - "));
+    PRINTF("CONF ACK - PAP good - ");
     /* Display message if debug */
     len = *bptr++;
     *(bptr + len) = 0;
-    DEBUG1((" %s \n",bptr));
+    PRINTF(" %s \n",bptr);
     pap_state |= PAP_TX_UP;
     /* expire the timer to make things happen after a state change */
     TIMER_expire();
     break;
   case CONF_NAK:
-    DEBUG1(("CONF NAK - Failed Auth - "));
+    PRINTF("CONF NAK - Failed Auth - ");
     pap_state |= PAP_TX_AUTH_FAIL;
     /* display message if debug */
     len = *bptr++;
     *(bptr + len)=0;
-    DEBUG1((" %s \n",bptr));
+    PRINTF(" %s \n",bptr);
     break;
   }
 }
@@ -139,7 +142,7 @@ pap_task(uint8_t *buffer)
       {
       */
       /* We need to send a PAP authentication request */
-      DEBUG1(("\nSending PAP Request packet - "));
+      PRINTF("\nSending PAP Request packet - ");
 
       /* Build a PAP request packet */
       pkt = (PAPPKT *)buffer;		
@@ -164,7 +167,7 @@ pap_task(uint8_t *buffer)
       /* length here -  code and ID +  */
       pkt->len = uip_htons(t);	
       
-      DEBUG1((" Len %d\n",t));
+      PRINTF(" Len %d\n",t);
       
       /* Send packet */
       ahdlc_tx(PAP, buffer, 0, t, 0);
@@ -176,7 +179,7 @@ pap_task(uint8_t *buffer)
 
       /* Have we failed? */
       if(ppp_retry > 3) {
-	DEBUG1(("PAP - timout\n"));
+	PRINTF("PAP - timout\n");
 	pap_state &= PAP_TX_TIMEOUT;
 	
       }

@@ -58,11 +58,13 @@
 #include "uip.h"
 
 
-#if 1
-#define DEBUG1(x)
-#else
+#define DEBUG 1
+
+#if DEBUG
 #include <stdio.h>
-#define DEBUG1(x) debug_printf x
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
 #endif
 
 #define	PACKET_TX_DEBUG	1
@@ -182,7 +184,7 @@ ahdlc_rx(uint8_t c)
     if((c < 0x20) &&
        ((ahdlc_flags & AHDLC_RX_ASYNC_MAP) == 0)) {
       /* discard character */
-      DEBUG1(("Discard because char is < 0x20 hex and asysnc map is 0\n"));
+      PRINTF("Discard because char is < 0x20 hex and asysnc map is 0\n");
       return 0;
     }
     /* are we in escaped mode? */
@@ -200,7 +202,7 @@ ahdlc_rx(uint8_t c)
     } else if(c == 0x7e) {
       /* handle frame end */
       if(ahdlc_rx_crc == CRC_GOOD_VALUE) {
-	DEBUG1(("\nReceiving packet with good crc value, len %d\n",ahdlc_rx_count));
+	PRINTF("\nReceiving packet with good crc value, len %d\n",ahdlc_rx_count);
 	/* we hae a good packet, turn off CTS until we are done with
 	   this packet */
 	/*CTS_OFF();*/
@@ -226,7 +228,7 @@ ahdlc_rx(uint8_t c)
 	ahdlc_rx_ready();
 	return 0;
       } else if(ahdlc_rx_count > 3) {	
-	DEBUG1(("\nReceiving packet with bad crc value, was 0x%04x len %d\n",ahdlc_rx_crc, ahdlc_rx_count));
+	PRINTF("\nReceiving packet with bad crc value, was 0x%04x len %d\n",ahdlc_rx_crc, ahdlc_rx_count);
 #ifdef AHDLC_COUNTERS
 	++ahdlc_crc_error;
 #endif
@@ -263,7 +265,7 @@ ahdlc_rx(uint8_t c)
     }		
   } else {
     /* we are busy and didn't process the character. */
-    DEBUG1(("Busy/not active\n"));
+    PRINTF("Busy/not active\n");
     return 1;
   }
   return 0;
@@ -312,17 +314,17 @@ ahdlc_tx(uint16_t protocol, uint8_t *header, uint8_t *buffer,
   uint16_t i;
   uint8_t c;
 
-  DEBUG1(("\nAHDLC_TX - transmit frame, protocol 0x%04x, length %d\n",protocol,datalen+headerlen));
+  PRINTF("\nAHDLC_TX - transmit frame, protocol 0x%04x, length %d\n",protocol,datalen+headerlen);
   
 #if PACKET_TX_DEBUG
-  DEBUG1(("\n"));
+  PRINTF("\n");
   for(i = 0; i < headerlen; ++i) {
-    DEBUG1(("0x%02x ", header[i]));
+    PRINTF("0x%02x ", header[i]);
   }
   for(i = 0; i < datalen; ++i) {
-    DEBUG1(("0x%02x ", buffer[i]));
+    PRINTF("0x%02x ", buffer[i]);
   }
-  DEBUG1(("\n\n"));
+  PRINTF("\n\n");
 #endif
 
   /* Check to see that physical layer is up, we can assume is some

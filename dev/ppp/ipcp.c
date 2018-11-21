@@ -55,11 +55,13 @@
 /* include files 	*/
 /*			*/ 
 
-#if 1
-#define DEBUG1(x)
-#else
+#define DEBUG 1
+
+#if DEBUG
 #include <stdio.h>
-#define DEBUG1(x) debug_printf x
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
 #endif
 
 #include "ppp.h"
@@ -98,14 +100,14 @@ uint8_t ipcplist[] = {0x3, 0};
 /*void
 printip(uip_ip4addr_t ip)
 {
-DEBUG1((" %d.%d.%d.%d ",ip.ipb1,ip.u8[1],ip.u8[2],ip.u8[3]));
+PRINTF(" %d.%d.%d.%d ",ip.ipb1,ip.u8[1],ip.u8[2],ip.u8[3]);
     }*/
 #define printip(x)
 /*---------------------------------------------------------------------------*/
 void
 ipcp_init(void)
 {
-  DEBUG1(("ipcp init\n"));
+  PRINTF("ipcp init\n");
   ipcp_state = 0;
   ppp_retry = 0;
   our_ipaddr.u16[0] = our_ipaddr.u16[1] = 0;
@@ -121,7 +123,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
   IPCPPKT *pkt=(IPCPPKT *)buffer;
   uint16_t len;
 
-  DEBUG1(("IPCP len %d\n",count));
+  PRINTF("IPCP len %d\n",count);
 	
   switch(*bptr++) {
   case CONF_REQ:
@@ -131,11 +133,11 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     len |= *bptr++;
     /* len-=2; */
 
-    DEBUG1(("check lcplist\n"));
+    PRINTF("check lcplist\n");
     if(scan_packet(IPCP, ipcplist, buffer, bptr, (uint16_t)(len - 4))) {
-      DEBUG1(("option was bad\n"));
+      PRINTF("option was bad\n");
     } else {
-      DEBUG1(("IPCP options are good\n"));
+      PRINTF("IPCP options are good\n");
       /*
        * Parse out the results
        */
@@ -152,14 +154,14 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	peer_ip_addr.u8[1] = *bptr++;
 	peer_ip_addr.u8[2] = *bptr++;
 	peer_ip_addr.u8[3] = *bptr++;
-	DEBUG1(("Peer IP "));
+	PRINTF("Peer IP ");
 	/*	printip(peer_ip_addr);*/
-	DEBUG1(("\n"));
+	PRINTF("\n");
 #else
 	bptr += 4;
 #endif
       } else {
-	DEBUG1(("HMMMM this shouldn't happen IPCP1\n"));
+	PRINTF("HMMMM this shouldn't happen IPCP1\n");
       }
       
 #if 0			
@@ -175,9 +177,9 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	*bptr = tptr - buffer;
 	
 	/* write the reject frame */
-	DEBUG1(("Writing NAK frame \n"));
+	PRINTF("Writing NAK frame \n");
 	ahdlc_tx(IPCP, buffer, (uint16_t)(tptr - buffer));
-	DEBUG1(("- End NAK Write frame\n"));
+	PRINTF("- End NAK Write frame\n");
 	
       } else {
       }
@@ -187,7 +189,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
        * of our modules our negotiated config.
        */
       ipcp_state |= IPCP_RX_UP;
-      DEBUG1(("Send IPCP ACK!\n"));
+      PRINTF("Send IPCP ACK!\n");
       bptr = buffer;
       *bptr++ = CONF_ACK;		/* Write Conf_ACK */
       bptr++;				/* Skip ID (send same one) */
@@ -195,13 +197,13 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
        * Set stuff
        */
       /* ppp_flags |= tflag; */
-      DEBUG1(("SET- stuff -- are we up? c=%d dif=%d \n", count, (uint16_t)(bptr-buffer)));
+      PRINTF("SET- stuff -- are we up? c=%d dif=%d \n", count, (uint16_t)(bptr-buffer));
 	
       /* write the ACK frame */
-      DEBUG1(("Writing ACK frame \n"));
+      PRINTF("Writing ACK frame \n");
       /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen);	*/
       ahdlc_tx(IPCP, 0, buffer, 0, count /*bptr-buffer*/);
-      DEBUG1(("- End ACK Write frame\n"));
+      PRINTF("- End ACK Write frame\n");
 	
       /* expire the timer to make things happen after a state change */
       /*timer_expire(); */
@@ -210,7 +212,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     }
     break;
   case CONF_ACK:			/* config Ack */
-    DEBUG1(("CONF ACK\n"));
+    PRINTF("CONF ACK\n");
     /*
      * Parse out the results
      *
@@ -249,13 +251,13 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	sec_dns_addr.u8[3] = *bptr++;
 	break;
       default:
-	DEBUG1(("IPCP CONFIG_ACK problem1\n"));
+	PRINTF("IPCP CONFIG_ACK problem1\n");
       }
     }
 #endif
     ipcp_state |= IPCP_TX_UP;
     /*ipcp_state &= ~IPCP_RX_UP;*/
-    DEBUG1(("were up! \n"));
+    PRINTF("were up! \n");
     printip(our_ipaddr);
 #ifdef IPCP_GET_PRI_DNS
     printip(pri_dns_addr);
@@ -263,13 +265,13 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 #ifdef IPCP_GET_SEC_DNS
     printip(sec_dns_addr);
 #endif
-    DEBUG1(("\n"));
+    PRINTF("\n");
 		
     /* expire the timer to make things happen after a state change */
     TIMER_expire();
     break;
   case CONF_NAK:			/* Config Nack */
-    DEBUG1(("CONF NAK\n"));
+    PRINTF("CONF NAK\n");
     /* dump the ID */
     bptr++;
     /* get the length */
@@ -306,7 +308,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	break;
 #endif
       default:
-	DEBUG1(("IPCP CONFIG_ACK problem 2\n"));
+	PRINTF("IPCP CONFIG_ACK problem 2\n");
       }
     }
     ppp_id++;
@@ -317,12 +319,12 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 #ifdef IPCP_GET_PRI_DNS
     printip(sec_dns_addr);
 #endif
-    DEBUG1(("\n"));
+    PRINTF("\n");
     /* expire the timer to make things happen after a state change */
     TIMER_expire();
     break;
   case CONF_REJ:			/* Config Reject */
-    DEBUG1(("CONF REJ\n"));
+    PRINTF("CONF REJ\n");
     /* Remove the offending options*/
     ppp_id++;
     /* dump the ID */
@@ -351,14 +353,14 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	break;
 #endif
       default:
-	DEBUG1(("IPCP this shoudln't happen 3\n"));
+	PRINTF("IPCP this shoudln't happen 3\n");
       }
     }
     /* expire the timer to make things happen after a state change */
     /*timer_expire(); */
     break;
   default:
-    DEBUG1(("-Unknown 4\n"));
+    PRINTF("-Unknown 4\n");
   }
 }
   
@@ -426,7 +428,7 @@ ipcp_task(uint8_t *buffer)
       /* length here -  code and ID + */
       pkt->len = uip_htons(t);	
       
-      DEBUG1(("\n**Sending IPCP Request packet\n"));
+      PRINTF("\n**Sending IPCP Request packet\n");
       
       /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen); */
       ahdlc_tx(IPCP, 0, buffer, 0, t);
