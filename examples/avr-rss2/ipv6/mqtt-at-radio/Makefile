@@ -15,8 +15,11 @@ PRINTF_LIB_MIN  = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB      = $(PRINTF_LIB_FLT)
 CLIBS           = $(PRINTF_LIB) 
 
+# Use a radio module for mobile data?
 #RADIO_MODULE=sim7020
 RADIO_MODULE=a6
+
+# Use TCP/IP stack on radio module? 
 RADIO_SOCKETS=true
 
 ifdef RADIO_MODULE
