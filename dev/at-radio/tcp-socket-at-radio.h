@@ -242,19 +242,6 @@ int tcp_socket_at_radio_send(struct tcp_socket_at_radio *s,
                     const uint8_t *dataptr,
                     int datalen);
 
-/**
- * \brief      Send a string on a connected TCP socket
- * \param s    A pointer to a TCP socket that must have been previously registered with tcp_socket_at_radio_register()
- * \param strptr A pointer to the string to be sent
- * \retval -1  If an error occurs
- * \return     The number of bytes that were successfully sent
- *
- *             This is a convenience function for sending strings on a
- *             TCP socket. The function calls tcp_socket_at_radio_send() to
- *             send the string.
- */
-int tcp_socket_at_radio_send_str(struct tcp_socket_at_radio *s,
-                        const char *strptr);
 
 /**
  * \brief      Close a connected TCP socket
@@ -267,6 +254,21 @@ int tcp_socket_at_radio_send_str(struct tcp_socket_at_radio *s,
  *             is called with the TCP_SOCKET_CLOSED event.
  *
  */
+int tcp_socket_at_radio_send_str(struct tcp_socket_at_radio *s,
+                        const char *strptr);
+
+/**
+ * \brief      Close a connected TCP socket
+ * \param s    A pointer to a TCP socket that must have been previously registered with tcp_socket_register()
+ * \retval -1  If an error occurs
+ * \retval 1   If the operation succeeds.
+ *
+ *             This function closes a connected TCP socket. When the
+ *             socket has been successfully closed, the event callback
+ *             is called with the TCP_SOCKET_CLOSED event.
+ *
+ */
+
 int tcp_socket_at_radio_close(struct tcp_socket_at_radio *s);
 
 /**

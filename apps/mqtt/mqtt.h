@@ -94,13 +94,13 @@
 #include "net/ipv6/uip-ds6.h"
 #include "dev/leds.h"
 
-#ifdef MQTT_GPRS
-#include "gprs-a6.h" 
-#include "tcp-socket-gprs.h"
-#include "tcp-socket-gprs-compat.h"
+#ifdef AT_RADIO_SOCKETS
+#include "at-radio.h" 
+#include "tcp-socket-at-radio.h"
+#include "tcp-socket-at-radio-compat.h"
 #else
 #include "tcp-socket.h"
-#endif /* MQTT_GPRS */
+#endif /* AT_RADIO_SOCKETS */
 #include "udp-socket.h"
 
 #ifdef CONTIKI_TARGET_AVR_RSS2

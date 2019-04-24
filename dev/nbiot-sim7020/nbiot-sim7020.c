@@ -47,70 +47,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include "uip.h"
-#include "i2c.h"
-#include "dev/leds.h"
 #include "at-radio.h"
 #include "at-wait.h"
 
-#include "dev/rs232.h"
-#include "lib/ringbuf.h"
+#include "nbiot-sim7020-arch.h"
 
 #define APN GPRS_CONF_APN
 #define PDPTYPE "IP"
 //#define PDPTYPE "IPV6"
 
-uint32_t baud;
-
-uint8_t uart = RS232_PORT_1;
-
-process_event_t uart_input_event;
 
 struct at_radio_context at_radio_context;
 
 static void
 wait_init();
 
-/*---------------------------------------------------------------------------*/
-PROCESS(uart_reader, "UART input process");
-
-#define END 0x0a
-
-#define BUFSIZE 128
-static struct ringbuf rxbuf;
-static uint8_t rxbuf_data[BUFSIZE];
-
-int
-uart_input_byte(unsigned char c)
-{
-  static uint8_t overflow = 0; /* Buffer overflow: ignore until END */
-
-  //printf("%02x ", c);
-  //printf("%c", c);
-  
-  if(!overflow) {
-    /* Add character */
-    if(ringbuf_put(&rxbuf, c) == 0) {
-      /* Buffer overflow: ignore the rest of the line */
-      overflow = 1;
-    }
-  } else {
-    printf("OVERFLOW±n");
-    /* Buffer overflowed:
-     * Only (try to) add terminator characters, otherwise skip */
-    if(c == END && ringbuf_put(&rxbuf, c) != 0) {
-      overflow = 0;
-    }
-  }
-  return 1;
-}
+PROCESS(sim7020_reader, "Sim7020 UART input process");
 
 /*---------------------------------------------------------------------------*/
 void
 at_radio_module_init() {
 
   at_radio_set_context(&at_radio_context, PDPTYPE, APN);
+  nbiot_sim7020_init();
   wait_init();
-  process_start(&uart_reader, NULL);
+  process_start(&sim7020_reader, NULL);
 }
 /*---------------------------------------------------------------------------*/
 static
@@ -269,27 +230,28 @@ dumpchar(int c) {
 }
 
  
-PROCESS_THREAD(uart_reader, ev, data)
+PROCESS_THREAD(sim7020_reader, ev, data)
 {
   static struct pt wait_pt;
-  int c;
-  
+  static int len;
+  static uint8_t buf[200];
+
   PROCESS_BEGIN();
 
-  ringbuf_init(&rxbuf, rxbuf_data, sizeof(rxbuf_data));
-  rs232_set_input(uart, uart_input_byte);
-  
   PT_INIT(&wait_pt);
   
   while(1) {
     PROCESS_PAUSE();
-    
-    c = ringbuf_get(&rxbuf);
-    if (c == -1)
-      continue;
-    //PROCESS_WAIT_UNTIL((c = ringbuf_get(&rxbuf)) != -1);
-    dumpchar(c);
-    wait_fsm_pt(&wait_pt, c);
+    len = nbiot_sim7020_rx(buf, sizeof(buf));
+    if (len) {
+      static int i;
+      uint8_t c;
+      for (i = 0; i < len; i++) {
+        c = buf[i];
+	dumpchar(c);
+	wait_fsm_pt(&wait_pt, c);
+      }
+    }
   }
   PROCESS_END();
 }
@@ -300,9 +262,7 @@ PROCESS_THREAD(uart_reader, ev, data)
  */
 size_t
 at_radio_sendbuf(uint8_t *buf, size_t len) {
-  uint8_t p = *buf;
-  rs232_send(uart, p);
-  return 1;
+  return nbiot_sim7020_tx(buf, len);
 }
 /*---------------------------------------------------------------------------*/
 /* read_csq

@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "uip.h"
 #include "i2c.h"
 #include "dev/leds.h"
 #include "dev/sc16is/sc16is.h"
@@ -71,18 +72,6 @@ event_init() {
   sc16is_input_event = process_alloc_event();
 }
 
-char *eventstr(process_event_t ev) {
-  static char buf[64]; 
-    if (ev == a6at_at_radio_init) sprintf(buf, " a6at_at_radio_init (%d)", ev); 
-    else if (ev == a6at_at_radio_connection) sprintf(buf, "a6at_at_radio_connection (%d)", ev); 
-    else if (ev == a6at_at_radio_send) sprintf(buf, "a6at_at_radio_send (%d)", ev); 
-    else if (ev == a6at_at_radio_close) sprintf(buf, "a6at_at_radio_close (%d)", ev); 
-    else if (ev == at_match_event) sprintf(buf, "at_match_event (%d)", ev); 
-    else if (ev == sc16is_input_event) sprintf(buf, "sc16is_input_event (%d)", ev); 
-    else sprintf(buf, "unknown)(%d)", ev); 
-  return buf;
-}
-
 #define AT_RADIO_MAX_NEVENTS 8
 struct at_radio_event {
   process_event_t ev;
@@ -91,25 +80,44 @@ struct at_radio_event {
 static int at_radio_nevents;
 static int at_radio_firstevent;
 
+/*---------------------------------------------------------------------------*/
 static void
 event_queue_init() {
   at_radio_nevents = 0;
   at_radio_firstevent = 0;
 }
+/*---------------------------------------------------------------------------*/
+#ifdef AT_RADIO_DEBUG
+char *eventstr(process_event_t ev) {
+  static char buf[64]; 
 
+  if (ev == a6at_at_radio_init) sprintf(buf, " a6at_at_radio_init (%d)", ev); 
+  else if (ev == a6at_at_radio_connection) sprintf(buf, "a6at_at_radio_connection (%d)", ev); 
+  else if (ev == a6at_at_radio_send) sprintf(buf, "a6at_at_radio_send (%d)", ev); 
+  else if (ev == a6at_at_radio_close) sprintf(buf, "a6at_at_radio_close (%d)", ev); 
+  else if (ev == at_match_event) sprintf(buf, "at_match_event (%d)", ev); 
+  else if (ev == sc16is_input_event) sprintf(buf, "sc16is_input_event (%d)", ev); 
+  else sprintf(buf, "unknown)(%d)", ev); 
+  return buf;
+}
+#endif /* AT_RADIO_DEBUG */
+/*---------------------------------------------------------------------------*/
 void
 enqueue_event(process_event_t ev, void *data) {
   int index;
+
+#ifdef AT_RADIO_DEBUG
+  printf("AT-RADIO: Enqueue event %s\n", eventstr(ev));
+#endif /* AT_RADIO_DEBUG */
   if (at_radio_nevents >= AT_RADIO_MAX_NEVENTS) {
-    printf("Fatal error: AT_RADIO event queue full adding ev %d\n", ev);
+    printf("AT-RADIO: event queue full: %d\n", ev);
     return;
   }
   index = (at_radio_firstevent+at_radio_nevents) % AT_RADIO_MAX_NEVENTS;
   at_radio_event_queue[index].ev = ev; at_radio_event_queue[index].data = data;
   at_radio_nevents++;
-  printf("ENqueue event %s\n", eventstr(ev));
 }
-
+/*---------------------------------------------------------------------------*/
 struct at_radio_event *
 dequeue_event() {
   struct at_radio_event *at_radio_event;
@@ -118,15 +126,13 @@ dequeue_event() {
   at_radio_event = &at_radio_event_queue[at_radio_firstevent];
   at_radio_nevents--;
   at_radio_firstevent = (at_radio_firstevent + 1) % AT_RADIO_MAX_NEVENTS;
-  printf("Dequeue event %s\n", eventstr(at_radio_event->ev));
+#ifdef AT_RADIO_DEBUG
+  printf("AT-RADIO: Dequeue event %s\n", eventstr(at_radio_event->ev));
+#endif /* AT_RADIO_DEBUG */
   return at_radio_event;
 }
 /*---------------------------------------------------------------------------*/
-
-#define min(A, B) ((A) <= (B) ? (A) : (B))
-/*---------------------------------------------------------------------------*/
-PROCESS(at_radio, "AT_RADIO module");
-
+PROCESS(at_radio, "AT-RADIO module");
 /*---------------------------------------------------------------------------*/
 void
 at_radio_init() {
@@ -137,6 +143,7 @@ at_radio_init() {
     AT_RADIO_CONNECTION_RELEASE(&at_radio_connections[i]);
   }
   memset(&at_radio_statistics, 0, sizeof(at_radio_statistics));
+  status.state = AT_RADIO_STATE_NONE;
   process_start(&at_radio, NULL);
 }
 /*---------------------------------------------------------------------------*/
@@ -147,19 +154,17 @@ alloc_at_radio_connection() {
   for (i = 0; i < AT_RADIO_MAX_CONNECTION; i++) {
     at_radioconn = &at_radio_connections[i];
     if (!AT_RADIO_CONNECTION_RESERVED(at_radioconn)) {
-        printf("alloc_at_radio_connection -> 0x%x\n", (unsigned) at_radioconn);
         AT_RADIO_CONNECTION_RESERVE(at_radioconn);
         return at_radioconn;
     }
   }
-  printf("Cannot alloc at_radio connection\n");
+  printf("AT-RADIO: Out of connections\n");
   return NULL;
 }
 /*---------------------------------------------------------------------------*/
 static void
 free_at_radio_connection(struct at_radio_connection *at_radioconn) {
   AT_RADIO_CONNECTION_RELEASE(at_radioconn);
-  printf("free_at_radio_connection(0x%x)\n", (unsigned) at_radioconn);  
   return;
 }
 /*---------------------------------------------------------------------------*/
@@ -171,14 +176,14 @@ find_at_radio_connection(char connectionid) {
   for (i = 0; i < AT_RADIO_MAX_CONNECTION; i++) {
     at_radioconn = &at_radio_connections[i];
     if (at_radioconn->connectionid == connectionid) {
-      printf("find_at_radio_connection -> 0x%x\n", (unsigned) at_radioconn);
       return at_radioconn;
     }
   }
-  printf("Cannot find at_radioconn %d\n", connectionid);
+  printf("AT-RADIO: No such connection: %d\n", connectionid);
   return NULL;
 }
 /*---------------------------------------------------------------------------*/
+#ifdef AT_RADIO_DEBUG
 static char *atradio_event_str( at_radio_conn_event_t event) {
   switch (event) {
   case AT_RADIO_CONN_CONNECTED: return("AT_RADIO_CONN_CONNECTED");
@@ -189,17 +194,21 @@ static char *atradio_event_str( at_radio_conn_event_t event) {
   default: return("Unknown ");
   }
 }
-
-
+#endif /* AT_RADIO_DEBUG */
+/*---------------------------------------------------------------------------*/
 void
 at_radio_call_event(struct at_radio_connection *at_radioconn, at_radio_conn_event_t event)
 {
   if(at_radioconn != NULL && at_radioconn->event_callback != NULL) {
-    printf("at_radio_call_event(%s)\n", atradio_event_str(event));
+#ifdef AT_RADIO_DEBUG
+    printf("AT-RADIO: callback %s\n", atradio_event_str(event));
+#endif /* AT_RADIO_DEBUG */
     at_radioconn->event_callback(at_radioconn->callback_arg, event);
   }
+#ifdef AT_RADIO_DEBUG
   else
-    printf("No at_radio_call_event for %d\n", event);
+    printf("No radio callback for event %d\n", event);
+#endif /* AT_RADIO_DEBUG */
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -216,25 +225,21 @@ at_radio_set_context(struct at_radio_context *gcontext, char *pdptype, char *apn
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-/* Do we need this */
 int
 at_radio_register(struct at_radio_connection *gconn,
               void *callback_arg,
               at_radio_data_callback_t input_callback,
               at_radio_event_callback_t event_callback) {
 
-  printf("at_radio_register(0x%x)\n", (unsigned)gconn);
   gconn->callback_arg = callback_arg;
   gconn->input_callback = input_callback;
   gconn->event_callback = event_callback;  
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-/* Do we need this */
 int
 at_radio_unregister(struct at_radio_connection *gconn) {
 
-  printf("at_radio_unregister(0x%x)\n", (unsigned)gconn);
   free_at_radio_connection(gconn);
   return 0;
 }
@@ -243,39 +248,24 @@ struct at_radio_connection *
 at_radio_connection(struct at_radio_connection *at_radioconn,
                     const char *proto, const uip_ipaddr_t *ipaddr, uint16_t port) {
 
-  printf("at_radio_connection(0x%x)\n", (unsigned)at_radioconn);
   if (at_radioconn == NULL) {
     return NULL;
   }
   at_radioconn->context = &at_radio_context;
   at_radioconn->proto = proto;
-  //at_radioconn->ipaddr = ipaddr;
   memcpy(&at_radioconn->ipaddr, ipaddr, sizeof(uip_ipaddr_t));
   at_radioconn->port = port;
   enqueue_event(a6at_at_radio_connection, at_radioconn);
   return at_radioconn;
-
-#if 0
-  if (process_post(&a6at, a6at_at_radio_connection, at_radioconn) != PROCESS_ERR_OK) {
-    free_at_radio_connection(at_radioconn);
-    return NULL;
-  }
-  else {
-    return at_radioconn;
-  }
-#endif
 }
 /*---------------------------------------------------------------------------*/
 void
 at_radio_send(struct at_radio_connection *at_radioconn) {
-  //(void) process_post(&at_radio, a6at_at_radio_send, at_radioconn);
-  printf("at_radio_send(0x%x)\n", (unsigned) at_radioconn);
   enqueue_event(a6at_at_radio_send, at_radioconn);
 }
 /*---------------------------------------------------------------------------*/
 void
 at_radio_close(struct at_radio_connection *at_radioconn) {
-  printf("at_radio_close(0x%x)\n", (unsigned) at_radioconn);
   enqueue_event(a6at_at_radio_close, at_radioconn);
 }
 /*---------------------------------------------------------------------------*/
@@ -317,14 +307,9 @@ PROCESS_THREAD(at_radio, ev, data) {
       PROCESS_PAUSE();
       goto again;
     }
-    else
-      printf("dequeed eveny %d %s\n", at_radio_event->ev, eventstr(at_radio_event->ev));
 
     at_radioconn = (struct at_radio_connection *) at_radio_event->data;
     if (at_radio_event->ev == a6at_at_radio_connection) {
-#ifdef AT_RADIO_DEBUG
-      printf("A6AT AT_RADIO Connection\n");
-#endif /* AT_RADIO_DEBUG */
       ATSPAWN(at_radio_connect_pt, at_radioconn);
     } /* ev == a6at_at_radio_connection */
     else if (at_radio_event->ev == a6at_at_radio_send) {
