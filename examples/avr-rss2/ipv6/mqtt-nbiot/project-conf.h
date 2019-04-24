@@ -55,9 +55,6 @@
 //#define NB_IOT_TELE2 1
 //#define URBAN_ICT_CONF  1
 #define NB_IOT_TELIA 1
-#define NBIOT 1
-
-
 #ifdef MQTT_GPRS
 //#define MQTT_CONF_PUBLISH_INTERVAL    (30 * CLOCK_SECOND)
 #define MQTT_CONF_PUBLISH_INTERVAL    (10 * CLOCK_SECOND)
@@ -115,6 +112,7 @@
 #define MQTT_DEMO_TOPIC_BASE 	"RO/nuppland/avr-rss2"
 #endif
 #define MQTT_DEMO_BROKER_IP_ADDR "192.16.125.234" /* 192.16.125.234 */
+//#define MQTT_DEMO_BROKER_IP_ADDR "2001:6b0:32:13:221:5aff:fe17:662e"
 #define RPL_CONF_DEFAULT_INSTANCE 0x1d
 #define IEEE802154_CONF_PANID 0xFEED
 #define CHANNEL_CONF_802_15_4 25
@@ -133,11 +131,6 @@
 #ifdef NBIOT
 #define HW_FLOW_NONE 1
 #endif
-
-#ifdef MQTT_GPRS
-#define GPRS_CONF_STATS 1
-//#define GPRS_CONF_FORCE_A6 1 /* force to A6 avoids GPS on A7 to save current */
-#endif /* MQTT_GPRS */
 
 /* PMSx003 sensors -- I2C and/or UART*/
 #define PMS5003_CONF_SERIAL_I2C 1

@@ -826,7 +826,6 @@ publish_stats(void)
   /* Circle through different statistics -- one for each publish */
   enum {
     STATS_DEVICE,
-#define AT_RADIO_CONF_STATS 1
 #if AT_RADIO_CONF_STATS
     STATS_AT_RADIO,
 #endif /* AT_RADIO_CONF_STATS */
@@ -929,7 +928,6 @@ publish_stats(void)
     remaining -= len;
     buf_ptr += len;
     break;
-#define AT_RADIO_CONF_STATS 1
 #if AT_RADIO_CONF_STATS
   case STATS_AT_RADIO:
     PUTFMT(",{\"n\":\"at_radio;at_timeouts\",\"v\":%u}", at_radio_statistics.at_timeouts);
@@ -1274,9 +1272,8 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
 
 #ifdef MQTT_AT_RADIO
   at_radio_init();
-#else
-  PROCESS_WAIT_EVENT_UNTIL(ev == a6at_at_radio_init);
-  printf("Here is MQTT with AT_RADIO again\n");
+  PROCESS_WAIT_EVENT_UNTIL(ev == at_radio_ev_init);
+  printf("MQTT: AT_RADIO initialized\n");
   /* Schedule next publication ASAP, to get state machinery going */
   etimer_set(&publish_periodic_timer, 0);
 #endif /* MQTT_AT_RADIO */  

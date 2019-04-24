@@ -83,7 +83,7 @@ PT_THREAD(wait_readlines_pt(struct pt *pt, struct at_wait *at, int c)) {
   atpos = 0;
   while (1) {
     if (c == '\n' || c == '\r') {
-      /* Do nothing???*/;
+      /* Do nothing */;
     }
     else {
       at_line[atpos++] = (char ) c;
@@ -216,11 +216,12 @@ PT_THREAD(wait_fsm_pt(struct pt *pt, int c)) {
             PT_YIELD(pt);
           }
         }
-        if (i >= at_numwait_permanent)
+        if (i >= at_numwait_permanent) {
           /* We have a match for a dynamic (non-permanent) event. Set
            * at_wait_match to non-NULL to signal the match
            */
           at_wait_match = at;
+        }
 
         atwait_matching = 0;
       }

@@ -45,7 +45,7 @@
 #include "dev/leds.h"
 #include "dev/sc16is/sc16is.h"
 #include "sc16is-common.h"
-#include "at-wait.h"
+#include "dev/at-radio/at-wait.h"
 
 PT_THREAD(gprs_a6_module_init(struct pt *pt, uint32_t baud)) {
   uint8_t s;

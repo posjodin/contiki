@@ -48,13 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "uip.h"
-#include "i2c.h"
-#include "dev/leds.h"
-#include "dev/sc16is/sc16is.h"
-#include "sc16is-common.h"
-#include "tcp-socket-at-radio.h"
 #include "at-radio.h"
-//#include "gprs-a6.h"
 #include "at-wait.h"
 
 
@@ -64,12 +58,10 @@ struct at_radio_context at_radio_context;
 
 static void
 event_init() {
-  a6at_at_radio_init = process_alloc_event();
-  a6at_at_radio_connection = process_alloc_event();
-  a6at_at_radio_send = process_alloc_event();
-  a6at_at_radio_close = process_alloc_event();  
-  
-  sc16is_input_event = process_alloc_event();
+  at_radio_ev_init = process_alloc_event();
+  at_radio_ev_connection = process_alloc_event();
+  at_radio_ev_send = process_alloc_event();
+  at_radio_ev_close = process_alloc_event();  
 }
 
 #define AT_RADIO_MAX_NEVENTS 8
@@ -91,12 +83,12 @@ event_queue_init() {
 char *eventstr(process_event_t ev) {
   static char buf[64]; 
 
-  if (ev == a6at_at_radio_init) sprintf(buf, " a6at_at_radio_init (%d)", ev); 
-  else if (ev == a6at_at_radio_connection) sprintf(buf, "a6at_at_radio_connection (%d)", ev); 
-  else if (ev == a6at_at_radio_send) sprintf(buf, "a6at_at_radio_send (%d)", ev); 
-  else if (ev == a6at_at_radio_close) sprintf(buf, "a6at_at_radio_close (%d)", ev); 
+  if (ev == at_radio_ev_init) sprintf(buf, " at_radio_ev_init (%d)", ev); 
+  else if (ev == at_radio_ev_connection) sprintf(buf, "at_radio_ev_connection (%d)", ev); 
+  else if (ev == at_radio_ev_send) sprintf(buf, "at_radio_ev_send (%d)", ev); 
+  else if (ev == at_radio_ev_close) sprintf(buf, "at_radio_ev_close (%d)", ev); 
   else if (ev == at_match_event) sprintf(buf, "at_match_event (%d)", ev); 
-  else if (ev == sc16is_input_event) sprintf(buf, "sc16is_input_event (%d)", ev); 
+
   else sprintf(buf, "unknown)(%d)", ev); 
   return buf;
 }
@@ -255,18 +247,18 @@ at_radio_connection(struct at_radio_connection *at_radioconn,
   at_radioconn->proto = proto;
   memcpy(&at_radioconn->ipaddr, ipaddr, sizeof(uip_ipaddr_t));
   at_radioconn->port = port;
-  enqueue_event(a6at_at_radio_connection, at_radioconn);
+  enqueue_event(at_radio_ev_connection, at_radioconn);
   return at_radioconn;
 }
 /*---------------------------------------------------------------------------*/
 void
 at_radio_send(struct at_radio_connection *at_radioconn) {
-  enqueue_event(a6at_at_radio_send, at_radioconn);
+  enqueue_event(at_radio_ev_send, at_radioconn);
 }
 /*---------------------------------------------------------------------------*/
 void
 at_radio_close(struct at_radio_connection *at_radioconn) {
-  enqueue_event(a6at_at_radio_close, at_radioconn);
+  enqueue_event(at_radio_ev_close, at_radioconn);
 }
 /*---------------------------------------------------------------------------*/
 struct at_radio_status *
@@ -298,7 +290,7 @@ PROCESS_THREAD(at_radio, ev, data) {
     ATSPAWN(get_ipconfig);
     if (status.state != AT_RADIO_STATE_ACTIVE)
       goto again;
-    process_post(PROCESS_BROADCAST, a6at_at_radio_init, NULL);
+    process_post(PROCESS_BROADCAST, at_radio_ev_init, NULL);
     goto again;
   }
   if (status.state == AT_RADIO_STATE_ACTIVE) {
@@ -309,15 +301,15 @@ PROCESS_THREAD(at_radio, ev, data) {
     }
 
     at_radioconn = (struct at_radio_connection *) at_radio_event->data;
-    if (at_radio_event->ev == a6at_at_radio_connection) {
+    if (at_radio_event->ev == at_radio_ev_connection) {
       ATSPAWN(at_radio_connect_pt, at_radioconn);
-    } /* ev == a6at_at_radio_connection */
-    else if (at_radio_event->ev == a6at_at_radio_send) {
+    } /* ev == at_radio_ev_connection */
+    else if (at_radio_event->ev == at_radio_ev_send) {
       ATSPAWN(at_radio_send_pt, at_radioconn);
-    } /* ev == a6at_at_radio_send */
-    else if (at_radio_event->ev == a6at_at_radio_close) {
+    } /* ev == at_radio_ev_send */
+    else if (at_radio_event->ev == at_radio_ev_close) {
       ATSPAWN(at_radio_close_pt, at_radioconn);
-    } /* ev == a6at_at_radio_close */
+    } /* ev == at_radio_ev_close */
 #ifdef AT_RADIO_DEBUG
     else {
       printf("A6AT AT_RADIO Unknown event %d\n", at_radio_event->ev);

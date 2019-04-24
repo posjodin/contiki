@@ -21,10 +21,6 @@ typedef enum {
   AT_RADIO_CONN_DATA_SENT
 } at_radio_conn_event_t;
 
-process_event_t a6at_at_radio_init;
-process_event_t a6at_at_radio_activate;
-process_event_t a6at_at_radio_connection;
-
 #define AT_RADIO_MAX_APN_LEN 32
 struct at_radio_context {
   uint8_t active; /* Context active? */
@@ -102,16 +98,10 @@ struct at_radio_statistics {
   unsigned int connfailed;      /* Connections failed */
 } at_radio_statistics;
 
-process_event_t sc16is_input_event;
-process_event_t at_match_event;
-
-process_event_t a6at_at_radio_init;
-//process_event_t a6at_at_radio_activate;
-process_event_t a6at_at_radio_connect;
-process_event_t a6at_at_radio_send;
-process_event_t a6at_at_radio_close;
-
-
+process_event_t at_radio_ev_init;
+process_event_t at_radio_ev_connection;
+process_event_t at_radio_ev_send;
+process_event_t at_radio_ev_close;
 
 void
 at_radio_enqueue_event(process_event_t ev, void *data);
