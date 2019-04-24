@@ -137,6 +137,9 @@ at_radio_init() {
   memset(&at_radio_statistics, 0, sizeof(at_radio_statistics));
   status.state = AT_RADIO_STATE_NONE;
   process_start(&at_radio, NULL);
+#ifdef AT_TCPTUN6 
+  attun6_init();
+#endif /* AT_TCPTUN6 */
 }
 /*---------------------------------------------------------------------------*/
 struct at_radio_connection *

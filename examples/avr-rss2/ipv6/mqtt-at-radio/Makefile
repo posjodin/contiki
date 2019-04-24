@@ -20,7 +20,9 @@ CLIBS           = $(PRINTF_LIB)
 RADIO_MODULE=a6
 
 # Use TCP/IP stack on radio module? 
-RADIO_SOCKETS=true
+RADIO_SOCKETS=
+
+RADIO_TUNNEL=true
 
 ifdef RADIO_MODULE
 
@@ -35,6 +37,10 @@ PROJECT_OBJECTFILES +=  tcp-socket-at-radio.o
 CFLAGS += -I$(CONTIKI)/dev/at-radio
 CFLAGS += -DAT_RADIO_SOCKETS
 endif # RADIO_SOCKETS
+
+ifeq ($(RADIO_TUNNEL),true)
+CFLAGS += -DAT_TCPTUN6
+endif # RADIO_TUNNEL
 
 ifeq ($(RADIO_MODULE),sim7020)
 
