@@ -3,7 +3,7 @@ Getting Started with Contiki using avr-rss2
 
 Document version
 ----------------
-V1.1 2019-04-24
+V1.2 2019-04-25
 
 This guide's aim is to help you start using Contiki for RSS2 boards
 The platform supports different AtMega-RF boards:
@@ -59,14 +59,13 @@ The platform has the following key features:
 Toolchain
 ---------
 The Atmel toolcahin is available in most operating systems. 
-
 For a full toolchain and easy installation on Ubuntu:
 
 apt-get install gcc-avr avr-libc avrdude
 
 Toolchain alternative I
 -----------------------
-Otherwise if OS packages does not yet support the new AtMega256RfR2 MCU. 
+Otherwise if OS toolchain packages does not support the AtMega256RfR2 MCU. 
 An option is to use toolchain from Atmels web-site.
 
 ###### For Linux 
@@ -115,7 +114,7 @@ for 3 seconds.
 Flashing commnad line example 256k MCU:
     avrdude -p m256rfr2 -c stk500v2 -P /dev/ttyUSB0 -b 115200 -e -U flash:w:hello-world.avr-rss2 
 
-Note! Older bootloader needs 38400 (Yellow LED
+Note! Older bootloader needs 38400 (Yellow LED)
 
 Flashing older 128k MCU:
     avrdude -p m128rfa1 -c avr109 -P /dev/ttyUSB0 -b 38400 -e -U flash:w:hello-world.avr-rss2 
@@ -128,18 +127,18 @@ Example of tested applications
 * `examples/ipv6/multicast`
 * `examples/example-shell`
 * `examples/powertrace`
-* 'examples/sensniff'
+* `examples/sensniff`
 * `examples/ipv6/rpl-udp`
 * `examples/ipv6/simple-udp-rpl`
-* 'examples/ipv6/rpl-tsch"
+* `examples/ipv6/rpl-tsch`
 
-* 'examples/avr-rss2/timer-test'
-* 'examples/avr-rss2/hello-sensors'
-* 'examples/avr-rss2/tsch'
-* 'examples/avr-rss2/ipv6/tsch-udp'
-* 'examples/avr-rss2/ipv6/rpl-border-router'
-* 'examples/avr-rss2/ipv6/rpl-udp-report'
-* 'examples/avr-rss2/ipv6/coap-publisher'
+* `examples/avr-rss2/timer-test`
+* `examples/avr-rss2/hello-sensors`
+* `examples/avr-rss2/tsch`
+* `examples/avr-rss2/ipv6/tsch-udp`
+* `examples/avr-rss2/ipv6/rpl-border-router`
+* `examples/avr-rss2/ipv6/rpl-udp-report`
+* `examples/avr-rss2/ipv6/coap-publisher`
 
 
 Note that the shell example needs file `symbols.c` to be added to project also seems like
@@ -150,24 +149,32 @@ in `core/dev/serial-line.c` the function `process_poll` must be replaced with `p
     +  process_post(&serial_line_process, 0, 0);
 
 Platform tutorial applications
------------------------------
+------------------------------
 Example to read out various sensors, leds, serial numbers, and so on:
-[platform/avr-rss2/examples/hello-sensors/](examples/hello-sensors/).
 
-The previous example uses the `sensd` data encoding. An example that uses UDP through 6lowpan is here:
-[platform/avr-rss2/examples/ipv6/rpl-udp-report](examples/ipv6/rpl-udp-report).
+platform/avr-rss2/examples/hello-sensors/
+
+UDP through 6lowpan is here:
+
+platform/avr-rss2/examples/ipv6/rpl-udp-report
 
 An Ethernet gateway with ip64 NAT, based on Contiki `core/net/ip64` code:
-[platform/avr-rss2/examples/ipv6/rpl-border-router/](examples/ipv6/rpl-border-router/).
 
-Wireshark in-air realtime protocol decoding. examples/sensniff with sensniff
+platform/avr-rss2/examples/ipv6/rpl-border-router/
+
+Wireshark in-air realtime protocol decoding.
+
+examples/sensniff with sensniff
+
 python script creating a named pipe as wireshark input. Be aware of 
-restrictions in compression format.
+restrictions in 6LoWPAN compression format.
+
 
 Contiki Regressions tests
 --------------------------
-Travis compile regression test for the platform: 
-[regression-tests/23-compile-avr](../../regression-tests/23-compile-avr).
+Travis Contiki compile regression test for the platform: 
+
+regression-tests/23-compile-avr
 
 Board approvals
 ---------------
@@ -203,7 +210,9 @@ Schematics and boards description. Available via Radio-Senors
 Smart Reduced Power Consumption Techniques. AT02594 available via Atmel.
 
 Board (Rev2.4) anatomy with connectors:
+
 http://radio-sensors.com/pictures/s2-2.4-front-edited.jpg
+
 http://radio-sensors.com/pictures/s2-2.4-back-port-edited.jpg
 
 Vendor info
