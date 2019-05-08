@@ -297,7 +297,7 @@ dumpchar(int c) {
   else if (c >= ' ' && c <= '~')
     putchar(c);
   else
-    putchar(c);
+    putchar('*');
 }
 
 PROCESS_THREAD(a6_reader, ev, data)
@@ -336,6 +336,17 @@ at_radio_sendbuf(uint8_t *buf, size_t len) {
   return gprs_a6_tx(buf, len);
 }
 /*---------------------------------------------------------------------------*/
+#ifdef AT_PPP
+void ppp_arch_putchar(uint8_t c) {
+  while (1 != at_radio_sendbuf(&c, 1))
+    ;
+}
+
+uint8_t ppp_arch_getchar(uint8_t *c) {
+  return gprs_a6_rx(c, 1);
+}
+#endif /* AT_PPP */
+
 /* read_csq
  * Protothread to read rssi/csq with AT commands. Store result
  * in status struct
@@ -631,16 +642,21 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
   }
   else {
     /* Look for something like
-     *     +CGCONTRDP: 1,5,"lpwa.telia.iot","10.81.168.254.255.255.255.0" 
+     *     90.141.194.11
      */
     int n;
     int b1, b2, b3, b4;
     char *str;
-    //n = sscanf(at_line, "%*[^:]: %*d,%*d,\"%*[-.a-zA-Z0-9_]\",\"%d.%d.%d.%d", &b1, &b2, &b3, &b4);
     str = at_line;
     while (!isdigit(*str) && *str != '\0')
       str++;
     if (*str != '\0') {
+      uint8_t *ip4addr, *ip4mask;
+      ip4addr = (uint8_t *) &status.ip4addr;       ip4mask = (uint8_t *) &status.ip4mask; 
+      n = sscanf(str, "%hhd.%hhd.%hhd.%hhd", 
+                 &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3]);
+      if (n == 4)
+        printf("Got IP\n");
       n = sscanf(str, "%d.%d.%d.%d", &b1, &b2, &b3, &b4);
       if (n == 4) {
 #if NETSTACK_CONF_WITH_IPV6
@@ -648,6 +664,12 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
 #else
         snprintf(status.ipaddr, sizeof(status.ipaddr), "%d.%d.%d.%d", b1, b2, b3, b4);
 #endif 
+#ifdef AT_PPP
+        PT_ATSTR2("ATO0\r");
+        PT_ATWAIT2(10, &wait_ok);
+        process_exit(&a6_reader);
+
+#endif /* AT_PPP */        
         PT_EXIT(pt);
       }
     }

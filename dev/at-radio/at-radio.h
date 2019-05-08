@@ -72,6 +72,9 @@ struct at_radio_status {
 #else
   char ipaddr[sizeof("255.255.255.255")];  
 #endif /* NETSTACK_CONF_WITH_IPV6 */
+  uip_ip4addr_t ip4addr;
+  uip_ip4addr_t ip4mask;  
+  uip_ipaddr_t uipaddr;
   int8_t rssi;
 
   enum int8_t {

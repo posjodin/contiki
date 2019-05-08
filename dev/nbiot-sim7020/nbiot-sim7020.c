@@ -56,7 +56,7 @@
 #define PDPTYPE "IP"
 //#define PDPTYPE "IPV6"
 
-
+#define RAWIP
 struct at_radio_context at_radio_context;
 
 static void
@@ -450,11 +450,22 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
     int b1, b2, b3, b4;
     n = sscanf(at_line, "%*[^:]: %*d,%*d,\"%*[-.a-zA-Z0-9_]\",\"%d.%d.%d.%d", &b1, &b2, &b3, &b4);
     if (n == 4) {
+      uint8_t *ip_p;
+      memset(&status.uipaddr, 0, sizeof(status.uipaddr));
+      ip_p = &((uint8_t *) &status.uipaddr)[sizeof(status.uipaddr) - 4];
+      ip_p[0] = b1; ip_p[1] = b2; ip_p[2] = b3; ip_p[3] = b4;
 #if NETSTACK_CONF_WITH_IPV6
       snprintf(status.ipaddr, sizeof(status.ipaddr), "::ffff:%d.%d.%d.%d", b1, b2, b3, b4);
 #else
       snprintf(status.ipaddr, sizeof(status.ipaddr), "%d.%d.%d.%d", b1, b2, b3, b4);
 #endif 
+
+      uint8_t *ip4addr, *ip4mask;
+      ip4addr = (uint8_t *) &status.ip4addr;       ip4mask = (uint8_t *) &status.ip4mask; 
+      n = sscanf(at_line, "%*[^:]: %*d,%*d,\"%*[-.a-zA-Z0-9_]\",\"%hhd.%hhd.%hhd.%hhd.%hhd.%hhd.%hhd.%hhd",
+                 &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3],
+                 &ip4mask[0], &ip4mask[1], &ip4mask[2], &ip4mask[3]);
+      printf("Scanned %d address byte\n", n);
     }
     else
       printf("Could not get ipaddr (%d)\n", n);
@@ -478,6 +489,7 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
   while (minor_tries++ < 10) {
 	
     hip4 = (uint8_t *) &at_radioconn->ipaddr + sizeof(at_radioconn->ipaddr) - 4;
+    //#undef RAWIP
     PT_ATSTR2("AT+CSOC=1,1,1\r");
     atwait_record_on();
     PT_ATWAIT2(10, &wait_ok, &wait_error);
@@ -580,6 +592,13 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
       goto disconnect;
     }
     PT_ATBUF2(&ptr[at_radioconn->output_data_len-remain], len);
+    {
+      int i;
+      printf("\n");
+      for (i = 0; i < len; i++)
+        printf("%02x ", ptr[at_radioconn->output_data_len-remain+i]);
+      printf("\n");
+    }
     PT_ATWAIT2(30, &wait_ok, &wait_error, &wait_dataaccept);
     if (at == NULL || at == &wait_error) {
       at_radio_statistics.at_timeouts += 1;

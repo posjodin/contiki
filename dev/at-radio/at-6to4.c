@@ -53,6 +53,7 @@
 
 #include "net/ip/uip.h"
 #include "net/ipv6/uip-ds6.h"
+#include "net/ip64/ip64.h"
 
 #include "i2c.h"
 #include "dev/leds.h"
@@ -63,19 +64,19 @@
 //#include "gprs-a6.h"
 #include "at-wait.h"
 /*---------------------------------------------------------------------------*/
-PROCESS(tcptun_at_radio, "TCP tunnel over AT_RADIO");
+PROCESS(at64_at_radio, "TCP tunnel over AT_RADIO");
 static int connected = 0;
 struct tcp_socket_at_radio atsocket;
 uint8_t inbuf[sizeof(uip_buf)];
 uint8_t outbuf[sizeof(uip_buf)];
 
-int
+static int
 at_data_callback(struct tcp_socket_at_radio *atsptr, void *ptr, const uint8_t *input_data_ptr, int input_data_len) {
   printf("Here is data callback\n");
   return 0;
 }
 /*-------------------*/
-void
+static void
 at_event_callback(struct tcp_socket_at_radio *atsptr, void *ptr, tcp_socket_at_radio_event_t event) {
   printf("Here is event callback\n");
   if (event == TCP_SOCKET_CONNECTED) {
@@ -84,24 +85,25 @@ at_event_callback(struct tcp_socket_at_radio *atsptr, void *ptr, tcp_socket_at_r
   }
 }
 /*-------------------*/
-int 
-attun6_output(void) {
-  printf("Here is attun6_purpurtcpipoutput: \n");
+static int 
+at64_output(void) {
+  int len;
+  
+  printf("Here is at64_output: \n");
   printf("uip_len %d, uip_buf 0x%x (sizeof uip_buf) %d\n",
          uip_len, (unsigned) uip_buf, sizeof(uip_buf));
-  if (uip_buf[0] == 0x60) {
-    /* IPv6 */
-    int i;
-    printf("ip6dst:");
-    for (i = 24; i <40; i++) {
-      printf(" %02x", (unsigned) uip_buf[i]);
+
+  len = ip64_6to4(&uip_buf[UIP_LLH_LEN], uip_len,
+		    ip64_packet_buffer);
+  printf("ip64-interface: output len %d\n", len);
+  if(len > 0) {
+    memcpy(&uip_buf[UIP_LLH_LEN], ip64_packet_buffer, len);
+    uip_len = len;
+    if (connected) {
+      tcp_socket_at_radio_send(&atsocket, uip_buf, uip_len);
     }
-    printf("\n");
   }
-  if (connected) {
-    tcp_socket_at_radio_send(&atsocket, uip_buf, uip_len);
-  }
-  return 1;
+  return 0;
 }
 /*-------------------*/
 //char *tcptunserver = "::82ed:16db"; /*"::130.237.22.219";*/
@@ -109,9 +111,9 @@ attun6_output(void) {
 char *tcptunserver = "::c010:7de8"; /*"::192.16.125.232"*/
 uint16_t tcptunport = 7020;
 
-PROCESS_THREAD(tcptun_at_radio, ev, data) {
+PROCESS_THREAD(at64_at_radio, ev, data) {
   uip_ip6addr_t ip6addr;
-
+  struct at_radio_status *atstat;
   PROCESS_BEGIN();
   //tcpip_set_outputfunc(at_radio_tcpipoutput);
   tcp_socket_at_radio_register(&atsocket, &atsocket,
@@ -120,7 +122,20 @@ PROCESS_THREAD(tcptun_at_radio, ev, data) {
                                at_data_callback, at_event_callback);
 
   PROCESS_WAIT_EVENT_UNTIL(ev == at_radio_ev_init);
-
+  printf("RADIO IS READY\n");
+  atstat = at_radio_status();
+  {
+    int i;
+    for (i = 0; i < sizeof(atstat->ip4addr); i++) {
+      printf("%d.",       ((uint8_t *) &status.ip4addr)[i]);
+    }
+    for (i = 0; i < sizeof(atstat->ip4mask); i++) {
+      printf("%d.",       ((uint8_t *) &status.ip4mask)[i]);
+    }
+    printf("\n");
+  }
+  ip64_set_ipv4_address(&atstat->ip4addr, &atstat->ip4mask);
+  
   if(uiplib_ip6addrconv(tcptunserver, &ip6addr) == 0) {
     printf("Address foncer error fo\n");
   }
@@ -136,10 +151,12 @@ PROCESS_THREAD(tcptun_at_radio, ev, data) {
 }
 
 void
-attun6_init() {
+at64_init() {
   static uip_ipaddr_t loc_fipaddr;
   connected = 0;
 
+  printf("Here is at64_init\n");
+  printf("Here is at64_init again\n");  
   loc_fipaddr.u16[0] = 0xfd;
   loc_fipaddr.u16[1] = rand();
   loc_fipaddr.u16[2] = rand();  
@@ -151,9 +168,9 @@ attun6_init() {
   /* end Hack */
 
 
-  process_start(&tcptun_at_radio, NULL);
+  process_start(&at64_at_radio, NULL);
 }
 
-const struct uip_fallback_interface attun6_interface = {
-  attun6_init, attun6_output
+const struct uip_fallback_interface at64_interface = {
+  at64_init, at64_output
 };
