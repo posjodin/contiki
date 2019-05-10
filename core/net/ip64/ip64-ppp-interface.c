@@ -41,7 +41,7 @@
 
 #define UIP_IP_BUF        ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 PROCESS(ip64_ppp_process, "IP64 PPP process");
@@ -49,64 +49,54 @@ PROCESS(ip64_ppp_process, "IP64 PPP process");
 static uip_ipaddr_t last_sender;
 
 /*---------------------------------------------------------------------------*/
+static void
+create_unique_local_address() {
+  static uip_ipaddr_t loc_fipaddr;
+
+  /* Hack */
+  loc_fipaddr.u16[0] = 0xfd;
+  loc_fipaddr.u16[1] = rand();
+  loc_fipaddr.u16[2] = rand();  
+  loc_fipaddr.u16[3] = rand();
+  loc_fipaddr.u16[4] = rand();
+  loc_fipaddr.u16[5] = rand();
+#if UIP_CONF_ROUTER
+  uip_ds6_prefix_add(&loc_fipaddr, 6*8, 0, 0, 0, 0);
+#else /* UIP_CONF_ROUTER */
+  uip_ds6_prefix_add(&loc_fipaddr, 6*8, 0);
+#endif /* UIP_CONF_ROUTER */
+
+  uip_ds6_set_addr_iid(&loc_fipaddr, &uip_lladdr);
+  uip_ds6_addr_add(&loc_fipaddr, 0, ADDR_AUTOCONF);
+}
+/*---------------------------------------------------------------------------*/
+/*
+ * A node with only an uplink may not get an IPv6 address through autoconf.
+ * Assign one statically instead as a translatable address (64:ff9b::/96).
+ */
+
+static void
+create_translatable_address( uip_ip4addr_t *ip4addr) {
+  uip_ipaddr_t loc_fipaddr;
+
+  memset(&loc_fipaddr, 0, sizeof(loc_fipaddr));
+  loc_fipaddr.u8[0] = 0x00;
+  loc_fipaddr.u8[1] = 0x64;  
+  loc_fipaddr.u8[2] = 0xff;
+  loc_fipaddr.u8[3] = 0x9b;  
+  loc_fipaddr.u8[12] = ip4addr->u8[0];
+  loc_fipaddr.u8[13] = ip4addr->u8[1];
+  loc_fipaddr.u8[14] = ip4addr->u8[2];
+  loc_fipaddr.u8[15] = ip4addr->u8[3];
+      
+  uip_ds6_addr_add(&loc_fipaddr, 0, ADDR_AUTOCONF);
+}
+/*---------------------------------------------------------------------------*/
 void
 ip64_ppp_interface_input(uint8_t *packet, uint16_t len)
 {
   /* Dummy definition: this function is not actually called, but must
      be here to conform to the ip65-interface.h structure. */
-}
-/*---------------------------------------------------------------------------*/
-static void
-input_callback(void)
-{
-  /*PRINTF("SIN: %u\n", uip_len);*/
-  if(uip_buf[0] == '!') {
-    PRINTF("Got configuration message of type %c\n", uip_buf[1]);
-    uip_clear_buf();
-#if 0
-    if(uip_buf[1] == 'P') {
-      uip_ipaddr_t prefix;
-      /* Here we set a prefix !!! */
-      memset(&prefix, 0, 16);
-      memcpy(&prefix, &uip_buf[2], 8);
-      PRINTF("Setting prefix ");
-      PRINT6ADDR(&prefix);
-      PRINTF("\n");
-      set_prefix_64(&prefix);
-    }
-#endif
-  } else if(uip_buf[0] == '?') {
-    PRINTF("Got request message of type %c\n", uip_buf[1]);
-    if(uip_buf[1] == 'M') {
-      const char *hexchar = "0123456789abcdef";
-      int j;
-      /* this is just a test so far... just to see if it works */
-      uip_buf[0] = '!';
-      for(j = 0; j < 8; j++) {
-        uip_buf[2 + j * 2] = hexchar[uip_lladdr.addr[j] >> 4];
-        uip_buf[3 + j * 2] = hexchar[uip_lladdr.addr[j] & 15];
-      }
-      uip_len = 18;
-      slip_send();
-      
-    }
-    uip_clear_buf();
-  } else {
-    
-    /* Save the last sender received over SLIP to avoid bouncing the
-       packet back if no route is found */
-    uip_ipaddr_copy(&last_sender, &UIP_IP_BUF->srcipaddr);
-    
-    uint16_t len = ip64_4to6(&uip_buf[UIP_LLH_LEN], uip_len, 
-			     ip64_packet_buffer);
-    if(len > 0) {
-      memcpy(&uip_buf[UIP_LLH_LEN], ip64_packet_buffer, len);
-      uip_len = len;
-      /*      PRINTF("send len %d\n", len); */
-    } else {
-      uip_clear_buf();
-    }
-  }
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(ip64_ppp_process, ev, data) {
@@ -129,7 +119,10 @@ PROCESS_THREAD(ip64_ppp_process, ev, data) {
     printf("\n");
   }
   ip64_set_ipv4_address(&atstat->ip4addr, &atstat->ip4mask);
+  //create_unique_local_address();
+  create_translatable_address(&atstat->ip4addr);
   ppp_connect();
+
   printf("ip64_ppp: Did ppp_connect()\n");
   while (1) {
     etimer_set(&et, 3*CLOCK_SECOND);
@@ -137,6 +130,23 @@ PROCESS_THREAD(ip64_ppp_process, ev, data) {
       PROCESS_PAUSE();
     } 
     ppp_poll();
+    if (uip_len > 0) {
+      printf("##########ip64_ppp: uip_len %d\n", uip_len);
+      /* Save the last sender received over PPP to avoid bouncing the
+         packet back if no route is found */
+      uip_ipaddr_copy(&last_sender, &UIP_IP_BUF->srcipaddr);
+
+      uint16_t len = ip64_4to6(&uip_buf[UIP_LLH_LEN], uip_len, 
+                               ip64_packet_buffer);
+      if(len > 0) {
+        memcpy(&uip_buf[UIP_LLH_LEN], ip64_packet_buffer, len);
+        uip_len = len;
+        printf("IP6 len %d\n", len);
+        tcpip_input();
+      } else {
+        uip_clear_buf();
+      }
+    }
   }
   PROCESS_END();  
 }
@@ -145,9 +155,6 @@ PROCESS_THREAD(ip64_ppp_process, ev, data) {
 static void
 init(void)
 {
-  PRINTF("ip64-ppp-interface: init\n");
-  printf("ip64-ppp-interface: init\n");  
-  //  slip_arch_init(BAUD2UBR(115200));
   ppp_init();
   process_start(&ip64_ppp_process, NULL);
 }
@@ -156,15 +163,14 @@ static int
 output(void)
 {
   int len;
+  printf("here is ip64-ppp-output\n");
+  printf("ip64-ppp-interface: output source ");
 
-  PRINTF("ip64-ppp-interface: output source ");
-
-  /*
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
-  PRINTF(" destination ");
+  printf(" destination ");
   PRINT6ADDR(&UIP_IP_BUF->destipaddr);
-  PRINTF("\n");
-  */
+  printf("\n");
+
   if(uip_ipaddr_cmp(&last_sender, &UIP_IP_BUF->srcipaddr)) {
     PRINTF("ip64-interface: output, not sending bounced message\n");
   } else {
