@@ -230,6 +230,7 @@ PROCESS_THREAD(tcp_dummy_process, ev, data)
 {
   static struct dummy_connection dummy_connection;
   static struct dummy_connection *conn = &dummy_connection;
+  static struct etimer et;
 
   PROCESS_BEGIN();
   uip_ip6addr_t ip6addr;
@@ -250,12 +251,29 @@ PROCESS_THREAD(tcp_dummy_process, ev, data)
   printf("Here is dummy!\n");
   at_radio_init();
   while(1) {
-
+    static int i;
     PROCESS_WAIT_EVENT();
 
     if (ev == at_radio_ev_init) {
       printf("Dummy: radio is init\n");
       //connect_tcp(conn);
+      i = 0;
+      while (1) {
+        i++;
+        etimer_set(&et, 10*CLOCK_SECOND);
+        while (!etimer_expired(&et)) {
+          PROCESS_PAUSE();
+        } 
+        if (i == 2) {
+          printf("Dummy connect\n");
+          connect_tcp(conn);
+        }
+        else if (i > 3) {
+          static char buf[16];
+          sprintf(buf, "HEJ %d ", i);
+          tcp_socket_send(&conn->socket, buf, strlen(buf)-1);
+        }
+      }
     }
   }
   PROCESS_END();
