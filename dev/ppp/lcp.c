@@ -206,11 +206,13 @@ lcp_rx(uint8_t *buffer, uint16_t count)
 	case LPC_PFC:
 	  bptr++;
 	  PRINTF("<pcomp> ");
+          ahdlc_flags |= AHDLC_PFC;
 	  /*tflag|=PPP_PFC;*/
 	  break;
 	case LPC_ACFC:
 	  bptr++;
 	  PRINTF("<accomp> ");
+          ahdlc_flags |= AHDLC_ACFC;
 	  /*tflag|=PPP_ACFC;*/
 	  break;
 	  
@@ -346,8 +348,9 @@ lcp_task(uint8_t *buffer)
       *bptr++ = 0;
       
       /* ACCM */
-#if 1
-      if((lcp_tx_options & LCP_OPT_ACCM) & 0) {
+
+      //if((lcp_tx_options & LCP_OPT_ACCM) & 0) {
+      if (1) {
 	*bptr++ = LPC_ACCM;
 	*bptr++ = 0x6;
 	*bptr++ = 0;
@@ -358,7 +361,8 @@ lcp_task(uint8_t *buffer)
       /*
        * Authentication protocol
        */
-      if((lcp_tx_options & LCP_OPT_AUTH) && 0) {
+      //if((lcp_tx_options & LCP_OPT_AUTH) && 0) {
+      if (0) {
 	/*
 	 * If turned on, we only negotiate PAP
 	 */
@@ -370,7 +374,8 @@ lcp_task(uint8_t *buffer)
       /*
        * PFC
        */
-      if((lcp_tx_options & LCP_OPT_PFC) && 0) {
+      //if((lcp_tx_options & LCP_OPT_PFC) && 0) {
+      if (1) {
 	/*
 	 * If turned on, we only negotiate PAP
 	 */
@@ -380,14 +385,15 @@ lcp_task(uint8_t *buffer)
       /*
        * ACFC
        */
-      if((lcp_tx_options & LCP_OPT_ACFC) && 0) {
+      //if((lcp_tx_options & LCP_OPT_ACFC) && 0) {
+      if (1) {
 	/*
 	 * If turned on, we only negotiate PAP
 	 */
 	*bptr++ = LPC_ACFC;
 	*bptr++ = 0x2;
       }
-#endif
+
       /* Write length */
       t = bptr - buffer;
       pkt->len = uip_htons(t);			/* length here -  code and ID + */

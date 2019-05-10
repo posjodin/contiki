@@ -69,17 +69,6 @@
 
 #define	PACKET_TX_DEBUG	1
 
-/*---------------------------------------------------------------------------
- * ahdlc flags bit defins, for ahdlc_flags variable
- ---------------------------------------------------------------------------*/
-/* Escaped mode bit */
-#define AHDLC_ESCAPED		0x1
-/* Frame is ready bit */
-#define	AHDLC_RX_READY		0x2				
-#define	AHDLC_RX_ASYNC_MAP	0x4
-#define AHDLC_TX_ASYNC_MAP	0x8
-#define AHDLC_PFC		0x10
-#define AHDLC_ACFC		0x20
 
 /*---------------------------------------------------------------------------
  * Private Local Globals
@@ -215,7 +204,7 @@ ahdlc_rx(uint8_t c)
 	 * upcall routine must fully process frame before return
 	 *	as returning signifies that buffer belongs to AHDLC again.
 	 */
-	if((c & 0x1) && (ahdlc_flags & PPP_PFC)) {
+	if((ahdlc_rx_buffer[0] & 0x1) && (ahdlc_flags & PPP_PFC)) {
 	  /* Send up packet */
 	  ppp_upcall((uint16_t)ahdlc_rx_buffer[0],
 		     (uint8_t *)&ahdlc_rx_buffer[1],
@@ -315,7 +304,6 @@ ahdlc_tx(uint16_t protocol, uint8_t *header, uint8_t *buffer,
   uint8_t c;
 
   PRINTF("\nAHDLC_TX - transmit frame, protocol 0x%04x, length %d\n",protocol,datalen+headerlen);
-  
 #if PACKET_TX_DEBUG
   PRINTF("\n");
   for(i = 0; i < headerlen; ++i) {
@@ -343,7 +331,9 @@ ahdlc_tx(uint16_t protocol, uint8_t *header, uint8_t *buffer,
   }
   
   /* Write Protocol */
-  ahdlc_tx_char(protocol,(uint8_t)(protocol >> 8));
+  if (((protocol >> 8) != 0) || ((ahdlc_flags & PPP_PFC) == 0)) {
+    ahdlc_tx_char(protocol,(uint8_t)(protocol >> 8));
+  }
   ahdlc_tx_char(protocol,(uint8_t)(protocol & 0xff));
 
   /* write header if it exists */

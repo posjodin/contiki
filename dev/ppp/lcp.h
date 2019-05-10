@@ -59,6 +59,7 @@
 #define LPC_MAGICNUMBER		0x5
 #define LPC_PFC			0x7
 #define LPC_ACFC		0x8
+#define LPC_CALLBACK		0xd
 
 /* LCP Negotiated options flag equates */
 #define LCP_OPT_ACCM		0x1

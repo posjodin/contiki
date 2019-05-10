@@ -97,12 +97,12 @@ uint8_t ipcp_state;
 uint8_t ipcplist[] = {0x3, 0};	
 
 /*---------------------------------------------------------------------------*/
-/*void
+void
 printip(uip_ip4addr_t ip)
 {
-PRINTF(" %d.%d.%d.%d ",ip.ipb1,ip.u8[1],ip.u8[2],ip.u8[3]);
-    }*/
-#define printip(x)
+PRINTF(" %d.%d.%d.%d ",ip.u8[0],ip.u8[1],ip.u8[2],ip.u8[3]);
+    }
+ //#define printip(x)
 /*---------------------------------------------------------------------------*/
 void
 ipcp_init(void)
@@ -308,7 +308,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 	break;
 #endif
       default:
-	PRINTF("IPCP CONFIG_ACK problem 2\n");
+	PRINTF("IPCP CONFIG_ACK problem 2 (%d)\n", *(bptr-1));
       }
     }
     ppp_id++;
@@ -316,7 +316,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
 #ifdef IPCP_GET_PRI_DNS
     printip(pri_dns_addr);
 #endif
-#ifdef IPCP_GET_PRI_DNS
+#ifdef IPCP_GET_SEC_DNS
     printip(sec_dns_addr);
 #endif
     PRINTF("\n");

@@ -290,8 +290,7 @@ ppp_send(void)
 {
   /* If IPCP came up then our link should be up. */
   if((ipcp_state & IPCP_TX_UP) && (ipcp_state & IPCP_RX_UP)) {
-    ahdlc_tx(IPV4, uip_buf,        uip_appdata,
-		   UIP_TCPIP_HLEN, uip_len - UIP_TCPIP_HLEN);
+    ahdlc_tx(IPV4, NULL, uip_buf, 0, uip_len); 
   }
 }
 /*---------------------------------------------------------------------------*/

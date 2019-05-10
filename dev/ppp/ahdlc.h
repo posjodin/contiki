@@ -47,6 +47,19 @@
  */
 
 #include "uip.h"
+/*---------------------------------------------------------------------------
+ * ahdlc flags bit defins, for ahdlc_flags variable
+ ---------------------------------------------------------------------------*/
+/* Escaped mode bit */
+#define AHDLC_ESCAPED		0x1
+/* Frame is ready bit */
+#define	AHDLC_RX_READY		0x2				
+#define	AHDLC_RX_ASYNC_MAP	0x4
+#define AHDLC_TX_ASYNC_MAP	0x8
+#define AHDLC_PFC		0x10
+#define AHDLC_ACFC		0x20
+
+uint8_t ahdlc_flags;
 
 void ahdlc_init(uint8_t *, uint16_t);
 void ahdlc_rx_ready(void);
