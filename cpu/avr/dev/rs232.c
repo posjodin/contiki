@@ -268,7 +268,7 @@ ISR(USART2_TX_vect)
 #endif
 /*---------------------------------------------------------------------------*/
 void
-rs232_init (uint8_t port, uint8_t bd, uint8_t ffmt)
+rs232_init (uint8_t port, uint16_t bd, uint8_t ffmt)
 {
 #if NUMPORTS > 0
  if (port == 0) {
