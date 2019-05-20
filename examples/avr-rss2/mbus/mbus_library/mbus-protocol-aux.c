@@ -1383,7 +1383,7 @@ mbus_recv_frame(mbus_handle * handle, mbus_frame *frame)
 
     if (handle == NULL)
     {
-        MBUS_ERROR("%s: Invalid M-Bus handle for receive.\n", __PRETTY_FUNCTION__);
+        printf("Invalid M-Bus handle for receive.\n");
         return 0;
     }
 
@@ -1400,6 +1400,7 @@ mbus_recv_frame(mbus_handle * handle, mbus_frame *frame)
     {
         /* set timestamp to receive time */
         time(&(frame->timestamp));
+        // ^^^ cut this
     }
 
     return result;
@@ -1410,7 +1411,7 @@ mbus_send_frame(mbus_handle * handle, mbus_frame *frame)
 {
     if (handle == NULL)
     {
-        MBUS_ERROR("%s: Invalid M-Bus handle for send.\n", __PRETTY_FUNCTION__);
+        printf("Invalid M-Bus handle for send.\n");
         return 0;
     }
 
@@ -1707,7 +1708,7 @@ mbus_send_ping_frame(mbus_handle *handle, int address)
 
     if (mbus_send_frame(handle, frame) == -1)
     {
-        MBUS_ERROR("%s: failed to send mbus frame.\n", __PRETTY_FUNCTION__);
+        printf("Failed to send mbus frame.\n");
         retval = -1;
     }
 

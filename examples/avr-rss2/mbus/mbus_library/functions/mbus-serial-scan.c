@@ -25,6 +25,9 @@ static int debug = 0;
 
 /*
 
+Search for "^^^" to find our comments
+
+
 instead of mbus_serial_set_baudrate and mbus_connect_serial write our own functions
 
 Dont need to mbus_disconnect.
@@ -32,6 +35,7 @@ Dont need to mbus_disconnect.
 NOTE: mbus_serial_set_baudrate sets baudrate just for the library. Can be
 simplified or omitted.
 
+! Take care of the file descriptor fd in the handle struct
 
 */
 
@@ -64,15 +68,10 @@ main(int argc, char **argv)
         return 1;
     }
 
-    if (mbus_serial_set_baudrate(handle->m_serial_handle, baudrate) == -1)
-    // ^^^
-    {
-        printf("Failed to set baud rate.\n");
-        return 1;
-    }
 
     if (debug)
         printf("Scanning primary addresses:\n");
+
 
     for (address = 0; address <= 250; address++)
     {
@@ -132,5 +131,6 @@ main(int argc, char **argv)
     }
 
     mbus_disconnect(handle);
+    // ^^^ look inside and remove the fd part
     return 0;
 }

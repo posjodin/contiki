@@ -326,7 +326,7 @@ mbus_frame_verify(mbus_frame *frame)
             case MBUS_FRAME_TYPE_SHORT:
                 if(frame->start1 != MBUS_FRAME_SHORT_START)
                 {
-                    snprintf(error_str, sizeof(error_str), "No frame start");
+                    printf("Error: No frame start.");
 
                     return -1;
                 }
@@ -337,7 +337,7 @@ mbus_frame_verify(mbus_frame *frame)
                     (frame->control !=  MBUS_CONTROL_MASK_REQ_UD2)                          &&
                     (frame->control != (MBUS_CONTROL_MASK_REQ_UD2 | MBUS_CONTROL_MASK_FCB)))
                 {
-                    snprintf(error_str, sizeof(error_str), "Unknown Control Code 0x%.2x", frame->control);
+                    printf("Error: Unknown Control Code.");
 
                     return -1;
                 }
@@ -349,7 +349,7 @@ mbus_frame_verify(mbus_frame *frame)
                 if(frame->start1  != MBUS_FRAME_CONTROL_START ||
                    frame->start2  != MBUS_FRAME_CONTROL_START)
                 {
-                    snprintf(error_str, sizeof(error_str), "No frame start");
+                    printf("Error: No frame start");
 
                     return -1;
                 }
@@ -361,21 +361,21 @@ mbus_frame_verify(mbus_frame *frame)
                     (frame->control != (MBUS_CONTROL_MASK_RSP_UD | MBUS_CONTROL_MASK_ACD)) &&
                     (frame->control != (MBUS_CONTROL_MASK_RSP_UD | MBUS_CONTROL_MASK_DFC | MBUS_CONTROL_MASK_ACD)))
                 {
-                    snprintf(error_str, sizeof(error_str), "Unknown Control Code 0x%.2x", frame->control);
+                  printf("Error: Unknown Control Code.");
 
                     return -1;
                 }
 
                 if (frame->length1 != frame->length2)
                 {
-                    snprintf(error_str, sizeof(error_str), "Frame length 1 != 2");
+                    printf("Error: Frame length 1 != 2");
 
                     return -1;
                 }
 
                 if (frame->length1 != calc_length(frame))
                 {
-                    snprintf(error_str, sizeof(error_str), "Frame length 1 != calc length");
+                    printf("Error: Frame length 1 != calc length");
 
                     return -1;
                 }
@@ -383,14 +383,14 @@ mbus_frame_verify(mbus_frame *frame)
                 break;
 
             default:
-                snprintf(error_str, sizeof(error_str), "Unknown frame type 0x%.2x", frame->type);
+                printf("Error: Unknown frame type.");
 
                 return -1;
         }
 
         if(frame->stop != MBUS_FRAME_STOP)
         {
-            snprintf(error_str, sizeof(error_str), "No frame stop");
+            printf("Error: No frame stop");
 
             return -1;
         }
@@ -399,7 +399,7 @@ mbus_frame_verify(mbus_frame *frame)
 
         if(frame->checksum != checksum)
         {
-            snprintf(error_str, sizeof(error_str), "Invalid checksum (0x%.2x != 0x%.2x)", frame->checksum, checksum);
+            printf("Error: Invalid checksum.");
 
             return -1;
         }
@@ -407,7 +407,7 @@ mbus_frame_verify(mbus_frame *frame)
         return 0;
     }
 
-    snprintf(error_str, sizeof(error_str), "Got null pointer to frame.");
+    printf("Error: Got null pointer to frame.");
 
     return -1;
 }
@@ -2394,10 +2394,10 @@ mbus_parse(mbus_frame *frame, uint8_t *data, size_t data_size)
     if (frame && data && data_size > 0)
     {
         if (parse_debug)
-            printf("%s: Attempting to parse binary data [size = %zu]\n", __PRETTY_FUNCTION__, data_size);
+            printf("Attempting to parse binary data [size = %zu]\n", data_size);
 
         if (parse_debug)
-            printf("%s: ", __PRETTY_FUNCTION__);
+            printf("mbus_parse working...");
 
         for (i = 0; i < data_size && parse_debug; i++)
         {
@@ -2405,7 +2405,7 @@ mbus_parse(mbus_frame *frame, uint8_t *data, size_t data_size)
         }
 
         if (parse_debug)
-            printf("\n%s: done.\n", __PRETTY_FUNCTION__);
+            printf("\nmbus_parse done.\n");
 
         switch (data[0])
         {
@@ -2427,7 +2427,7 @@ mbus_parse(mbus_frame *frame, uint8_t *data, size_t data_size)
 
                 if (data_size != MBUS_FRAME_BASE_SIZE_SHORT)
                 {
-                    snprintf(error_str, sizeof(error_str), "Too much data in frame.");
+                    printf("Too much data in frame.");
 
                     // too much data... ?
                     return -2;

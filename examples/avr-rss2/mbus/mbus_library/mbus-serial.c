@@ -92,63 +92,6 @@ mbus_serial_connect(char *device)
     return handle;
 }
 
-//------------------------------------------------------------------------------
-// Set baud rate for serial connection
-//------------------------------------------------------------------------------
-int
-mbus_serial_set_baudrate(mbus_serial_handle *handle, int baudrate)
-{
-    speed_t speed;
-
-    if (handle == NULL)
-        return -1;
-
-    switch (baudrate)
-    {
-        case 300:
-            speed = B300;
-            handle->t.c_cc[VTIME] = 12; // Timeout in 1/10 sec
-            break;
-
-        case 1200:
-            speed = B1200;
-            handle->t.c_cc[VTIME] = 4;  // Timeout in 1/10 sec
-            break;
-
-        case 2400:
-            speed = B2400;
-            handle->t.c_cc[VTIME] = 2;  // Timeout in 1/10 sec
-            break;
-
-        case 9600:
-            speed = B9600;
-            handle->t.c_cc[VTIME] = 1;  // Timeout in 1/10 sec
-            break;
-
-       default:
-            return -1; // unsupported baudrate
-    }
-
-    // Set input baud rate
-    if (cfsetispeed(&(handle->t), speed) != 0)
-    {
-        return -1;
-    }
-
-    // Set output baud rate
-    if (cfsetospeed(&(handle->t), speed) != 0)
-    {
-        return -1;
-    }
-
-    // Change baud rate immediately
-    if (tcsetattr(handle->fd, TCSANOW, &(handle->t)) != 0)
-    {
-        return -1;
-    }
-
-    return 0;
-}
 
 
 //------------------------------------------------------------------------------
@@ -163,6 +106,7 @@ mbus_serial_disconnect(mbus_serial_handle *handle)
     }
 
     close(handle->fd);
+    // ^^^ remove this
 
     free(handle);
 
@@ -172,6 +116,12 @@ mbus_serial_disconnect(mbus_serial_handle *handle)
 //------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
+int
+mbus_serial_send_frame_contiki(mbus_serial_ *handle, mbus_frame *frame)
+{
+
+}
+
 int
 mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame)
 {
@@ -185,13 +135,13 @@ mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame)
 
     if ((len = mbus_frame_pack(frame, buff, sizeof(buff))) == -1)
     {
-        fprintf(stderr, "%s: mbus_frame_pack failed\n", __PRETTY_FUNCTION__);
+        printf("mbus_frame_pack failed\n");
         return -1;
     }
 
 #ifdef MBUS_SERIAL_DEBUG
     // if debug, dump in HEX form to stdout what we write to the serial port
-    printf("%s: Dumping M-Bus frame [%d bytes]: ", __PRETTY_FUNCTION__, len);
+    printf("Dumping M-Bus frame [%d bytes]: ", len);
     for (i = 0; i < len; i++)
     {
        printf("%.2X ", buff[i]);
@@ -200,6 +150,7 @@ mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame)
 #endif
 
     if ((ret = write(handle->fd, buff, len)) == len)
+    // ^^^ change this for tx write
     {
         //
         // call the send event function, if the callback function is registered
@@ -209,7 +160,7 @@ mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame)
     }
     else
     {
-        fprintf(stderr, "%s: Failed to write frame to socket (ret = %d: %s)\n", __PRETTY_FUNCTION__, ret, strerror(errno));
+        printf("Failed to write frame to socket (ret = %d: %s)\n", ret, strerror(errno));
         return -1;
     }
 
@@ -217,6 +168,7 @@ mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame)
     // wait until complete frame has been transmitted
     //
     tcdrain(handle->fd);
+    // ^^^ remove this thing
 
     return 0;
 }
@@ -232,7 +184,7 @@ mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame)
 
     if (handle == NULL || frame == NULL)
     {
-        fprintf(stderr, "%s: Invalid parameter.\n", __PRETTY_FUNCTION__);
+        printf("Invalid parameter.\n");
         return -1;
     }
 
@@ -246,16 +198,11 @@ mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame)
     timeouts = 0;
 
     do {
-        //printf("%s: Attempt to read %d bytes [len = %d]\n", __PRETTY_FUNCTION__, remaining, len);
-
         if ((nread = read(handle->fd, &buff[len], remaining)) == -1)
+        // ^^^ change for rx read
         {
-       //     fprintf(stderr, "%s: aborting recv frame (remaining = %d, len = %d, nread = %d)\n",
-         //          __PRETTY_FUNCTION__, remaining, len, nread);
             return -1;
         }
-
-//   printf("%s: Got %d byte [remaining %d, len %d]\n", __PRETTY_FUNCTION__, nread, remaining, len);
 
         if (nread == 0)
         {
@@ -264,7 +211,7 @@ mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame)
             if (timeouts >= 3)
             {
                 // abort to avoid endless loop
-                fprintf(stderr, "%s: Timeout\n", __PRETTY_FUNCTION__);
+                printf("Timeout\n");
                 break;
             }
         }
@@ -284,6 +231,7 @@ mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame)
     //
     if (_mbus_recv_event)
         _mbus_recv_event(MBUS_HANDLE_TYPE_SERIAL, buff, len);
+    // ^^^ might need to cut this
 
     if (remaining != 0)
     {
@@ -294,7 +242,7 @@ mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame)
 
     if (len == -1)
     {
-        fprintf(stderr, "%s: M-Bus layer failed to parse data.\n", __PRETTY_FUNCTION__);
+        printf("M-Bus layer failed to parse data.\n");
         return -1;
     }
 
