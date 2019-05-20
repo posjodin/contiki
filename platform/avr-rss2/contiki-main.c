@@ -220,14 +220,15 @@ initialize(void)
 
   /* UART1 Disables P0, P1 interrups pin and need HW fix for rss2 */
 #ifdef USART1_CONF_ENABLE
-  rs232_init(RS232_PORT_1, USART1_CONF_BAUD_RATE, USART_PARITY_NONE | USART_STOP_BITS_1 | USART_DATA_BITS_8);
-#endif 
-  
+  //Changed from USART_PARITY_NONE
+  rs232_init(RS232_PORT_1, USART1_CONF_BAUD_RATE, USART_PARITY_EVEN | USART_STOP_BITS_1 | USART_DATA_BITS_8);
+#endif
+
   rs232_redirect_stdout(SERIAL_LINE_CONF_UART);
 #if 0
   /* Do it my way... */
-  //UBRR0L =  8; UBRR0H = 0; UCSR0A = (0 << U2X0);  // 115.2k  err=-3.5%  
-  //UBRR0L = 16; UBRR0H = 0; UCSR0A = (1 << U2X0);  // 115.2k     2.1%  
+  //UBRR0L =  8; UBRR0H = 0; UCSR0A = (0 << U2X0);  // 115.2k  err=-3.5%
+  //UBRR0L = 16; UBRR0H = 0; UCSR0A = (1 << U2X0);  // 115.2k     2.1%
   //UBRR0L =  3; UBRR0H = 0; UCSR0A = (1 << U2X0);  // 500k         0%
 #endif
 
@@ -309,7 +310,7 @@ initialize(void)
   printf("I2C: ");
   i2c_probed = i2c_probe();
   printf("\n");
-  
+
   if( i2c_probed & I2C_AT24MAC ) {
     i2c_at24mac_read((char *)&eui64, 1);
     linkaddr_set_node_addr((linkaddr_t *) &eui64);
@@ -318,7 +319,7 @@ initialize(void)
   else {
     printf("Random EUI64 address generated\n");
     eui64[0] = 0xfc; /* Atmels OUI */
-    eui64[1] = 0xc2; 
+    eui64[1] = 0xc2;
     eui64[2] = 0x3d;
     eui64[3] = 0;
     eui64[4] = 0;
@@ -354,7 +355,7 @@ initialize(void)
 #else
   PRINTA("MAC address ");
   uint8_t i;
-  addr.u8[0] = eui64[1] ; 
+  addr.u8[0] = eui64[1] ;
   addr.u8[1] = eui64[7];
 
   for(i = sizeof(linkaddr_t); i > 0; i--) {
@@ -387,10 +388,10 @@ initialize(void)
 #endif
 
   process_start(&sensors_process, NULL);
-  
+
   /* Autostart other processes */
   autostart_start(autostart_processes);
-  
+
   /*---If using coffee file system create initial web content if necessary---*/
 #if COFFEE_FILES
   int fa = cfs_open("/index.html", CFS_READ);
@@ -496,7 +497,7 @@ main(void)
 #if NETSTACK_CONF_WITH_IPV6
   uip_ds6_nbr_t *nbr;
 #endif /* NETSTACK_CONF_WITH_IPV6 */
- 
+
 
   initialize();
 
