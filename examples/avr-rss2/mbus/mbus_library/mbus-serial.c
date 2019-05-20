@@ -40,7 +40,7 @@ mbus_serial_connect(char *device)
 
     if ((handle = (mbus_serial_handle *)malloc(sizeof(mbus_serial_handle))) == NULL)
     {
-        fprintf(stderr, "%s: failed to allocate memory for handle\n", __PRETTY_FUNCTION__);
+        printf("Failed to allocate memory for handle.\n");
         return NULL;
     }
 
@@ -53,7 +53,7 @@ mbus_serial_connect(char *device)
     // Use blocking read and handle it by serial port VMIN/VTIME setting
     if ((handle->fd = open(handle->device, O_RDWR | O_NOCTTY)) < 0)
     {
-        fprintf(stderr, "%s: failed to open tty.", __PRETTY_FUNCTION__);
+        printf("Failed to open tty.");
         return NULL;
     }
 

@@ -2,7 +2,7 @@
 // Copyright (C) 2011, Robert Johansson, Raditex AB
 // All rights reserved.
 //
-// rSCADA 
+// rSCADA
 // http://www.rSCADA.se
 // info@rscada.se
 //
@@ -22,6 +22,23 @@ static int debug = 0;
 //------------------------------------------------------------------------------
 // Primary addressing scanning of mbus devices.
 //------------------------------------------------------------------------------
+
+/*
+
+instead of mbus_serial_set_baudrate and mbus_connect_serial write our own functions
+
+Dont need to mbus_disconnect.
+
+NOTE: mbus_serial_set_baudrate sets baudrate just for the library. Can be
+simplified or omitted.
+
+
+*/
+
+
+
+
+
 int
 main(int argc, char **argv)
 {
@@ -30,45 +47,25 @@ main(int argc, char **argv)
     int address, baudrate = 9600;
     int ret;
 
-    if (argc == 2)
-    {
-        device = argv[1];
-    }
-    else if (argc == 3 && strcmp(argv[1], "-d") == 0)
-    {
-        debug = 1;
-        device = argv[2];
-    }
-    else if (argc == 4 && strcmp(argv[1], "-b") == 0)
-    {
-        baudrate = atoi(argv[2]); 
-        device = argv[3];
-    }
-    else if (argc == 5 && strcmp(argv[1], "-d") == 0 && strcmp(argv[2], "-b") == 0)
-    {
-        debug = 1;    
-        baudrate = atoi(argv[3]); 
-        device = argv[4];
-    }
-    else
-    {
-        fprintf(stderr, "usage: %s [-d] [-b BAUDRATE] device\n", argv[0]);
-        return 0;
-    }
-    
+    //debug = 0;
+    //device = RS232_PORT_1;
+    //baudrate = 9600;
+
     if (debug)
     {
         mbus_register_send_event(&mbus_dump_send_event);
         mbus_register_recv_event(&mbus_dump_recv_event);
     }
-    
+
     if ((handle = mbus_connect_serial(device)) == NULL)
+    // ^^^ dont need mbus connect serial???
     {
-        printf("Failed to setup connection to M-bus gateway\n");
+        printf("Failed to setup connection to M-bus gateway.\n");
         return 1;
     }
 
     if (mbus_serial_set_baudrate(handle->m_serial_handle, baudrate) == -1)
+    // ^^^
     {
         printf("Failed to set baud rate.\n");
         return 1;
@@ -93,27 +90,27 @@ main(int argc, char **argv)
         {
             printf("Scan failed. Could not send ping frame: %s\n", mbus_error_str());
             return 1;
-        } 
-        
+        }
+
         ret = mbus_recv_frame(handle, &reply);
 
         if (ret == -1)
         {
             continue;
         }
-        
+
         if (debug)
             printf("\n");
-        
+
         if (ret == -2)
         {
             /* check for more data (collision) */
             while (mbus_recv_frame(handle, &reply) != -1);
-            
+
             printf("Collision at address %d\n", address);
-            
+
             continue;
-        } 
+        }
 
         if (mbus_frame_type(&reply) == MBUS_FRAME_TYPE_ACK)
         {
@@ -122,14 +119,14 @@ main(int argc, char **argv)
             {
                 ret = -2;
             }
-    
+
             if (ret == -2)
             {
                 printf("Collision at address %d\n", address);
-                
+
                 continue;
             }
-                
+
             printf("Found a M-Bus device at address %d\n", address);
         }
     }
@@ -137,4 +134,3 @@ main(int argc, char **argv)
     mbus_disconnect(handle);
     return 0;
 }
-

@@ -77,7 +77,7 @@
 typedef struct _mbus_handle {
     char is_serial;                           /**< _handle type (non zero for serial) */
     union {
-        mbus_tcp_handle    * m_tcp_handle;    /**< TCP gateway handle */
+        //mbus_tcp_handle    * m_tcp_handle;    /**< TCP gateway handle */
         mbus_serial_handle * m_serial_handle; /**< Serial gateway handle */
     };
 } mbus_handle;

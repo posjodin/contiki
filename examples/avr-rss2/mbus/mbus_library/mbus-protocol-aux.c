@@ -1313,9 +1313,7 @@ mbus_connect_serial(const char * device)
     mbus_serial_handle * serial_handle;
     if ((serial_handle = mbus_serial_connect((char*)device)) == NULL)
     {
-        MBUS_ERROR("%s: Failed to setup serial connection to M-bus gateway on %s.\n",
-                   __PRETTY_FUNCTION__,
-                   device);
+        printf("Failed to setup serial connection to M-bus gateway.\n");
         return NULL;
     }
 
@@ -1330,30 +1328,30 @@ mbus_connect_serial(const char * device)
     return handle;
 }
 
-
-mbus_handle *
-mbus_connect_tcp(const char * host, int port)
-{
-    mbus_tcp_handle * tcp_handle;
-    if ((tcp_handle = mbus_tcp_connect((char*)host, port)) == NULL)
-    {
-        MBUS_ERROR("%s: Failed to setup tcp connection to M-bus gateway on %s, port %d.\n",
-                   __PRETTY_FUNCTION__,
-                   host,
-                   port);
-        return NULL;
-    }
-
-    mbus_handle * handle;
-    if ((handle = (mbus_handle * ) malloc(sizeof(mbus_handle))) == NULL)
-    {
-        MBUS_ERROR("%s: Failed to allocate handle.\n", __PRETTY_FUNCTION__);
-        return NULL;
-    }
-    handle->is_serial = 0;
-    handle->m_tcp_handle = tcp_handle;
-    return handle;
-}
+//
+// mbus_handle *
+// mbus_connect_tcp(const char * host, int port)
+// {
+//     mbus_tcp_handle * tcp_handle;
+//     if ((tcp_handle = mbus_tcp_connect((char*)host, port)) == NULL)
+//     {
+//         MBUS_ERROR("%s: Failed to setup tcp connection to M-bus gateway on %s, port %d.\n",
+//                    __PRETTY_FUNCTION__,
+//                    host,
+//                    port);
+//         return NULL;
+//     }
+//
+//     mbus_handle * handle;
+//     if ((handle = (mbus_handle * ) malloc(sizeof(mbus_handle))) == NULL)
+//     {
+//         MBUS_ERROR("%s: Failed to allocate handle.\n", __PRETTY_FUNCTION__);
+//         return NULL;
+//     }
+//     handle->is_serial = 0;
+//     handle->m_tcp_handle = tcp_handle;
+//     return handle;
+// }
 
 int
 mbus_disconnect(mbus_handle * handle)
@@ -1369,11 +1367,11 @@ mbus_disconnect(mbus_handle * handle)
         mbus_serial_disconnect(handle->m_serial_handle);
         handle->m_serial_handle = NULL;
     }
-    else
-    {
-        mbus_tcp_disconnect(handle->m_tcp_handle);
-        handle->m_tcp_handle = NULL;
-    }
+    // else
+    // {
+    //     mbus_tcp_disconnect(handle->m_tcp_handle);
+    //     handle->m_tcp_handle = NULL;
+    // }
     free(handle);
     return 0;
 }
@@ -1393,10 +1391,10 @@ mbus_recv_frame(mbus_handle * handle, mbus_frame *frame)
     {
         result = mbus_serial_recv_frame(handle->m_serial_handle, frame);
     }
-    else
-    {
-        result = mbus_tcp_recv_frame(handle->m_tcp_handle, frame);
-    }
+    // else
+    // {
+    //     result = mbus_tcp_recv_frame(handle->m_tcp_handle, frame);
+    // }
 
     if (frame != NULL)
     {
@@ -1420,10 +1418,10 @@ mbus_send_frame(mbus_handle * handle, mbus_frame *frame)
     {
         return mbus_serial_send_frame(handle->m_serial_handle, frame);
     }
-    else
-    {
-        return mbus_tcp_send_frame(handle->m_tcp_handle, frame);
-    }
+    // else
+    // {
+    //     return mbus_tcp_send_frame(handle->m_tcp_handle, frame);
+    // }
     return 0;
 }
 
@@ -1700,7 +1698,7 @@ mbus_send_ping_frame(mbus_handle *handle, int address)
 
     if (frame == NULL)
     {
-        MBUS_ERROR("%s: failed to allocate mbus frame.\n", __PRETTY_FUNCTION__);
+        printf("Failed to allocate mbus frame.\n");
         return -1;
     }
 

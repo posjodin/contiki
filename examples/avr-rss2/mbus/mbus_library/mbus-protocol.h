@@ -84,6 +84,7 @@ typedef struct _mbus_frame {
 
     int type;
     time_t timestamp;
+    // ^^^ should cut
 
     //mbus_frame_data frame_data;
 
