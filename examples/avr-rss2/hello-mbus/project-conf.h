@@ -54,8 +54,9 @@
 /* USART1 is usage. Enable and set BAUD  */
 #define USART1_CONF_ENABLE 1
 
-//#define USART_BAUD_300 3332
+/* Mbus settings */
 #define USART1_CONF_BAUD_RATE   BAUD_RATE(300)
+#define USART1_CONF_CSRC USART_PARITY_EVEN|USART_STOP_BITS_1|USART_DATA_BITS_8
 
 /* Redirect console io to USART1 */
 /* #define SERIAL_LINE_CONF_UART 1 */
