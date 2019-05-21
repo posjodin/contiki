@@ -31,9 +31,9 @@
 #ifndef __MBUS_PROTOCOL_AUX_H__
 #define __MBUS_PROTOCOL_AUX_H__
 
-#include <mbus/mbus.h>
-#include <mbus/mbus-protocol.h>
-#include <mbus/mbus-serial.h>
+#include "mbus.h"
+#include "mbus-protocol.h"
+#include "mbus-serial.h"
 
 #define MBUS_PROBE_NOTHING   0
 #define MBUS_PROBE_SINGLE    1

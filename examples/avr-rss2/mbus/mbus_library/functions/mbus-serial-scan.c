@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include <stdio.h>
-#include <mbus/mbus.h>
+#include <mbus-serial-scan.h>
 
 static int debug = 1;
 
@@ -34,9 +34,8 @@ Search for "^^^" to find our comments
 
 
 int
-main(int argc, char **argv)
+mbus_scan()
 {
-    int address;
     int ret;
 
     //debug = 0;
@@ -51,6 +50,7 @@ main(int argc, char **argv)
 
     if (debug)
         printf("Scanning primary addresses:\n");
+
 
 
     for (address = 0; address <= 250; address++)

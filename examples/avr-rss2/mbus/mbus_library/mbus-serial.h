@@ -18,7 +18,7 @@
 #ifndef MBUS_SERIAL_H
 #define MBUS_SERIAL_H
 
-#include <mbus/mbus.h>
+#include "mbus.h"
 
 
 int                 mbus_serial_send_frame(mbus_frame *frame);

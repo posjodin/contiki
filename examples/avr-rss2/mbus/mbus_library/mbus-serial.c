@@ -19,8 +19,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include <mbus/mbus.h>
-#include <mbus/mbus-serial.h>
+#include "mbus.h"
+#include "mbus-serial.h"
 
 #define PACKET_BUFF_SIZE 2048
 

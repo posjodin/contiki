@@ -44,6 +44,9 @@
 #include "adc.h"
 #include "dev/leds.h"
 #include "usart1.h"
+#include "mbus_library/mbus.h"
+#inlcude "mbus_library/functions/mbus-serial-scan.h"
+
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_mbus_process, "Hello mbus process");
 AUTOSTART_PROCESSES(&hello_mbus_process);
@@ -51,7 +54,7 @@ AUTOSTART_PROCESSES(&hello_mbus_process);
 static struct etimer et;
 
 void
-mbus_scan(void)
+mbus_local_scan(void)
 {
   uint8_t frame[5] = {0x10, 0x40, 0x43, 0x83, 0x16};
 
@@ -91,9 +94,10 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
   while(1) {
     PROCESS_YIELD();
 
+    //mbus_local_scan();
     mbus_scan();
     etimer_reset(&et);
-    read_values();
+    //read_values();
   }
 
   PROCESS_END();
