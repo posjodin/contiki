@@ -73,7 +73,7 @@
 /* Delay between the SFD finishes arriving and it is detected in software */
 #define RADIO_DELAY_BEFORE_DETECT ((unsigned)US_TO_RTIMERTICKS(120)) //30
 
-#ifndef TSCH_CONF_TIMESYNC_REMOVE_JITTER 
+#ifndef TSCH_CONF_TIMESYNC_REMOVE_JITTER
 #define TSCH_CONF_TIMESYNC_REMOVE_JITTER 1
 #endif
 
@@ -197,7 +197,7 @@ void clock_adjust_ticks(clock_time_t howmany);
 /* #define MMEM_CONF_SIZE 256 */
 
 /* Starting address for code received via the codeprop facility. Not tested. */
-typedef unsigned long off_t;
+typedef unsigned long off_t1;
 /* #define EEPROMFS_ADDR_CODEPROP 0x8000 */
 
 /* Logging adds 200 bytes to program size. RS232 output slows down webserver. */
@@ -252,10 +252,10 @@ typedef unsigned short uip_stats_t;
 
 #ifndef NBR_TABLE_CONF_MAX_NEIGHBORS
 #define NBR_TABLE_CONF_MAX_NEIGHBORS     20
-#endif 
+#endif
 #ifndef UIP_CONF_MAX_ROUTES
 #define UIP_CONF_MAX_ROUTES      20
-#endif 
+#endif
 #ifndef UIP_CONF_BUFFER_SIZE
 #define UIP_CONF_BUFFER_SIZE    1280
 #endif

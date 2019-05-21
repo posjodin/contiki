@@ -102,6 +102,7 @@ typedef struct _mbus_slave_data {
 #define NITEMS(x) (sizeof(x)/sizeof(x[0]))
 
 
+
 //------------------------------------------------------------------------------
 // MBUS FRAME DATA FORMATS
 //

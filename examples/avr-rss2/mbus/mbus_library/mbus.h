@@ -36,6 +36,7 @@
 #include "mbus-protocol.h"
 #include "mbus-protocol-aux.h"
 #include "mbus-serial.h"
+#include "functions/mbus-serial-scan.h"
 
 int mbus_init();
 

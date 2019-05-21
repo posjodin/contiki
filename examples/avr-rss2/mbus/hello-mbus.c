@@ -41,11 +41,12 @@
 #include "contiki.h"
 #include "sys/etimer.h"
 #include <stdio.h>
+#include <string.h>
 #include "adc.h"
 #include "dev/leds.h"
 #include "usart1.h"
 #include "mbus_library/mbus.h"
-#inlcude "mbus_library/functions/mbus-serial-scan.h"
+#include "mbus_library/functions/mbus-serial-scan.h"
 
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_mbus_process, "Hello mbus process");
@@ -64,7 +65,9 @@ mbus_local_scan(void)
   }
 }
 
-static void
+
+
+/*static void
 read_values(void)
 {
   uint8_t buf[1];
@@ -74,7 +77,10 @@ read_values(void)
   if (check == 1) {
       printf("buf = %x\n", (uint8_t) buf[0]);
   }
-}
+}*/
+
+
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hello_mbus_process, ev, data)
 {

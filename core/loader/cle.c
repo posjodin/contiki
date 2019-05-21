@@ -1,30 +1,30 @@
 /*
  * Copyright (c) 2006, Swedish Institute of Computer Science
- * All rights reserved. 
+ * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
- * are met: 
- * 1. Redistributions of source code must retain the above copyright 
- *    notice, this list of conditions and the following disclaimer. 
- * 2. Redistributions in binary form must reproduce the above copyright 
- *    notice, this list of conditions and the following disclaimer in the 
- *    documentation and/or other materials provided with the distribution. 
- * 3. Neither the name of the Institute nor the names of its contributors 
- *    may be used to endorse or promote products derived from this software 
- *    without specific prior written permission. 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the Institute nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE 
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS 
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF 
- * SUCH DAMAGE. 
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
  */
 
@@ -68,8 +68,8 @@
  */
 int
 cle_read_info(struct cle_info *info,
-	      int (*pread)(void *, int, off_t),
-	      off_t hdr)
+	      int (*pread)(void *, int, off_t1),
+	      off_t1 hdr)
 {
   /*
    * Save stackspace by using a union!
@@ -83,7 +83,7 @@ cle_read_info(struct cle_info *info,
 #define ehdr huge.ehdr
 #define shdr huge.shdr
 
-  off_t shoff; 
+  off_t1 shoff;
   cle_off strs;
   cle_half shnum;		/* number shdrs */
   cle_half shentsize;		/* sizeof shdr */
@@ -134,7 +134,7 @@ cle_read_info(struct cle_info *info,
   for(i = 0; i < shnum; ++i) {
     ret = pread(&shdr, sizeof(shdr), shoff);
     assert(ret > 0);
-    
+
     /* The name of the section is contained in the strings table. */
     ret = pread(info->name, sizeof(info->name), hdr + strs + shdr.sh_name);
     assert(ret > 0);
@@ -194,18 +194,18 @@ cle_read_info(struct cle_info *info,
  */
 int
 cle_relocate(struct cle_info *info,
-	     int (*pread)(void *, int, off_t),
-	     off_t hdr,		/* Offset to start of file. */
+	     int (*pread)(void *, int, off_t1),
+	     off_t1 hdr,		/* Offset to start of file. */
 	     void *segmem,      /* Where segment is stored in memory. */
 	     cle_off reloff,	/* .rela.<segment> start */
 	     cle_word relsize)	/* .rela.<segment> size */
 {
   struct elf32_rela rela;
   struct elf32_sym s;
-  off_t off;
+  off_t1 off;
   cle_addr addr;
   int ret;
-  
+
   for(off = hdr + reloff;
       off < hdr + reloff + relsize;
       off += sizeof(struct elf32_rela)) {
@@ -274,13 +274,13 @@ cle_relocate(struct cle_info *info,
  */
 void *
 cle_lookup(struct cle_info *info,
-	   int (*pread)(void *, int, off_t),
-	   off_t hdr,		/* Offset to start of file. */
+	   int (*pread)(void *, int, off_t1),
+	   off_t1 hdr,		/* Offset to start of file. */
 	   const char *symbol)
 
 {
   struct elf32_sym s;
-  off_t a;
+  off_t1 a;
   cle_addr addr;
   int ret;
 
