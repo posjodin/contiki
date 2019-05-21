@@ -6,15 +6,15 @@ all: $(CONTIKI_PROJECT)
 PRINTF_LIB_FLT  = -Wl,-u,vfprintf -lprintf_flt -lm
 PRINTF_LIB_MIN  = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB      = $(PRINTF_LIB_FLT)
-CLIBS           = $(PRINTF_LIB) 
+CLIBS           = $(PRINTF_LIB)
 
 MODULES += dev/bme280
 
 CUSTOM_RULE_LINK = 1
 
-PROJECT_OBJECTFILES += usart1.o
+PROJECT_OBJECTFILES += usart1.o mbus_library/mbus.o mbus_library/mbus-protocol.o mbus_library/mbus-protocol-aux.o mbus_library/mbus-serial.o mbus_library/functions/mbus-serial-scan.o
 
-%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 
+%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a
 	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ $(CLIBS)
 
 

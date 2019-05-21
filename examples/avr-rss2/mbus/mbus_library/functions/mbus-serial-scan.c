@@ -9,13 +9,13 @@
 //------------------------------------------------------------------------------
 
 #include <sys/types.h>
-#include <sys/stat.h>
+//#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 
 #include <stdio.h>
-#include <mbus-serial-scan.h>
+#include "mbus-serial-scan.h"
 
 static int debug = 1;
 
@@ -37,6 +37,7 @@ int
 mbus_scan()
 {
     int ret;
+    int address = 0;
 
     //debug = 0;
     //device = RS232_PORT_1;

@@ -1826,6 +1826,7 @@ int
 mbus_scan_2nd_address_range(int pos, char *addr_mask)
 {
     int i, i_start, i_end, probe_ret;
+    //int i, probe_ret;
     char *mask, matching_mask[17];
 
     if (addr_mask == NULL)

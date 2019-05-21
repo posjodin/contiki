@@ -14,13 +14,13 @@
 #include <sys/types.h>
 
 #include <stdio.h>
-#include <strings.h>
 
 #include <errno.h>
 #include <string.h>
 
 #include "mbus.h"
 #include "mbus-serial.h"
+#include "../usart1.h"
 
 #define PACKET_BUFF_SIZE 2048
 
@@ -35,7 +35,7 @@ int
 mbus_serial_send_frame(mbus_frame *frame)
 {
     uint8_t buff[PACKET_BUFF_SIZE];
-    int len, ret;
+    int len;
 
     if (frame == NULL)
     {
@@ -97,7 +97,7 @@ int
 mbus_serial_recv_frame(mbus_frame *frame)
 {
     uint8_t buff[PACKET_BUFF_SIZE];
-    int len, remaining, nread, timeouts;
+    //int len, remaining, timeouts;
 
     if (frame == NULL)
     {
@@ -110,9 +110,9 @@ mbus_serial_recv_frame(mbus_frame *frame)
     //
     // read data until a packet is received
     //
-    remaining = 1; // start by reading 1 byte
-    len = 0;
-    timeouts = 0;
+    // remaining = 1; // start by reading 1 byte
+    // len = 0;
+    // timeouts = 0;
 
 
 
@@ -124,7 +124,7 @@ mbus_serial_recv_frame(mbus_frame *frame)
           buff_size++;
         }
       }
-      mbus_parse(frame, buff, buff_size));
+      mbus_parse(frame, buff, buff_size);
     }
     // ^^^
 
