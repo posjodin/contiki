@@ -64,17 +64,18 @@ mbus_scan()
         if (debug)
         {
             printf("\n");
+            printf("Trying to connect to:\n");
             printf("%d\n", address);
             fflush(stdout);
         }
 
-        printf("before send ping frame\n");
+        //printf("before send ping frame\n");
         if (mbus_send_ping_frame(address) == -1)
         {
             printf("Scan failed. Could not send ping frame: %s\n", mbus_error_str());
             return 1;
         }
-        printf("before recv frame\n");
+        //printf("before recv frame\n");
         ret = mbus_recv_frame(&reply);
 
         if (ret == -1)
@@ -95,11 +96,11 @@ mbus_scan()
             continue;
         }
 
-        printf("before checking frame type\n");
+        //printf("before checking frame type\n");
         printf("%d\n", mbus_frame_type(&reply));
         if (mbus_frame_type(&reply) == MBUS_FRAME_TYPE_ACK)
         {
-            printf("inside checking frame type\n");
+            printf("Received an ACK.\n");
             /* check for more data (collision) */
             //while (mbus_recv_frame(&reply) != -1)
             //{
@@ -115,7 +116,7 @@ mbus_scan()
 
             printf("Found a M-Bus device at address %d\n", address);
         }
-        printf("after frame type\n");
+        //printf("after frame type\n");
         watchdog_periodic();
         //clock_delay_msec(100);
     }

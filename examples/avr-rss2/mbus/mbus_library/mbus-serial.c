@@ -50,7 +50,7 @@ mbus_serial_send_frame(mbus_frame *frame)
         printf("mbus_frame_pack failed\n");
         return -1;
     }
-    printf("Packing frame success\n");
+    //printf("Packing frame success\n");
 
 #ifdef MBUS_SERIAL_DEBUG
     // if debug, dump in HEX form to stdout what we write to the serial port
@@ -67,14 +67,14 @@ mbus_serial_send_frame(mbus_frame *frame)
       printf("%x ",  buff[i]);
     }*/
 
-    printf("Starting transmission");
+    //printf("Starting transmission\n");
 
 
     for (int i = 0; i < 5; i++) {
       usart1_tx(&buff[i], 1);
       // ^^^
     }
-    printf("Done sending");
+    //printf("Done sending\n");
 
     // if ((ret = write(handle->fd, buff, len)) == len)
     //
