@@ -16,35 +16,6 @@
  *
  * @brief  Auxiliary functions to the Freescada libmbus library
  *
- * The idea is to simplify the basic task of querying MBus slaves and
- * the data processing.
- * Typical use might be (in oversimplified "pseudocode"):
- * \verbatim
- * mbus_handle = mbus_connect_serial(device);
- *   or
- * mbus_handle = mbus_connect_tcp(host, port);
- *
- *  ...
- *
- * mbus_read_slave(mbus_handle, addresses, &reply);
- * mbus_frame_data_parse(reply, &frameData);
- * // check the header / record type (fixed/variable)
- *
- * // for fixed use mbus_data_fixed_medium and 2x mbus_parse_fixed_record
- * mbus_data_fixed_medium
- * mbusRecord = mbus_parse_fixed_record() // first record
- *  // process mbusRecord
- * mbusRecord = mbus_parse_fixed_record() // second record
- *  // process mbusRecord
- *
- * // for variable use mbus_parse_variable_record
- * for each record
- *     mbusRecord = mbus_parse_variable_record(record)
- *     // process mbusRecord
- *
- *  ...
- *
- * mbus_disconnect(mbus_handle);
  * \endverbatim
  *
  * Note that the quantity values are partially "normalized". For example energy
@@ -63,24 +34,12 @@
 #include <mbus/mbus.h>
 #include <mbus/mbus-protocol.h>
 #include <mbus/mbus-serial.h>
-#include <mbus/mbus-tcp.h>
 
 #define MBUS_PROBE_NOTHING   0
 #define MBUS_PROBE_SINGLE    1
 #define MBUS_PROBE_COLLISION 2
 #define MBUS_PROBE_ERROR     -1
 
-
-/**
- * Unified MBus handle type encapsulating either Serial or TCP gateway.
- */
-typedef struct _mbus_handle {
-    char is_serial;                           /**< _handle type (non zero for serial) */
-    union {
-        //mbus_tcp_handle    * m_tcp_handle;    /**< TCP gateway handle */
-        mbus_serial_handle * m_serial_handle; /**< Serial gateway handle */
-    };
-} mbus_handle;
 
 
 /**
@@ -131,148 +90,123 @@ typedef struct _mbus_record {
 /**
  * Event callback functions
  */
-extern void (*_mbus_scan_progress)(mbus_handle * handle, const char *mask);
-extern void (*_mbus_found_event)(mbus_handle * handle, mbus_frame *frame);
+extern void (*_mbus_scan_progress)(const char *mask);
+extern void (*_mbus_found_event)(mbus_frame *frame);
 
 /**
  * Event register functions
  */
-void mbus_register_scan_progress(void (*event)(mbus_handle * handle, const char *mask));
-void mbus_register_found_event(void (*event)(mbus_handle * handle, mbus_frame *frame));
+void mbus_register_scan_progress(void (*event)(const char *mask));
+void mbus_register_found_event(void (*event)(mbus_frame *frame));
+
+
+
 
 /**
- * Connects to serial gateway and initializes MBus handle
+ * Receives a frame
  *
- * @param device Serial device (like /dev/ttyUSB0 or /dev/ttyS0)
  *
- * @return Initialized "unified" handler when successful, NULL otherwise;
- */
-mbus_handle * mbus_connect_serial(const char * device);
-
-/**
- * Connects to TCP gateway and initializes MBus handle
- *
- * @param host Gateway host
- * @param port Gateway port
- *
- * @return Initialized "unified" handler when successful, NULL otherwise;
- */
-mbus_handle * mbus_connect_tcp(const char *host, int port);
-
-/**
- * Disconnects the "unified" handle.
- *
- * @param handle Initialized handle
- *
- * @return Zero when successful.
- */
-int mbus_disconnect(mbus_handle * handle);
-
-/**
- * Receives a frame using "unified" handle
- *
- * @param handle Initialized handle
  * @param frame  Received frame
  *
  * @return Zero when successful.
  */
-int mbus_recv_frame(mbus_handle * handle, mbus_frame *frame);
+int mbus_recv_frame(mbus_frame *frame);
 
 /**
- * Sends frame using "unified" handle
+ * Sends frame
  *
- * @param handle Initialized handle
+ *
  * @param frame  Frame to send
  *
  * @return Zero when successful.
  */
-int mbus_send_frame(mbus_handle * handle, mbus_frame *frame);
+int mbus_send_frame(mbus_frame *frame);
 
 /**
- * Sends secodary address selection frame using "unified" handle
+ * Sends secodary address selection frame
  *
- * @param handle             Initialized handle
+ *
  * @param secondary_addr_str Secondary address
  *
  * @return Zero when successful.
  */
-int mbus_send_select_frame(mbus_handle * handle, const char *secondary_addr_str);
+int mbus_send_select_frame(const char *secondary_addr_str);
 
 /**
- * Sends switch baudrate frame using "unified" handle
+ * Sends switch baudrate frame
  *
- * @param handle   Initialized handle
+ *
  * @param address  Address (0-255)
  * @param baudrate Baudrate (300,600,1200,2400,4800,9600,19200,38400)
  *
  * @return Zero when successful.
  */
-int mbus_send_switch_baudrate_frame(mbus_handle * handle, int address, int baudrate);
+int mbus_send_switch_baudrate_frame(int address, int baudrate);
 
 /**
- * Sends request frame to given slave using "unified" handle
+ * Sends request frame to given slave
  *
- * @param handle  Initialized handle
+ *
  * @param address Address (0-255)
  *
  * @return Zero when successful.
  */
-int mbus_send_request_frame(mbus_handle * handle, int address);
+int mbus_send_request_frame(int address);
 
 /**
  * Sends a request and read replies until no more records available
  * or limit is reached.
  *
- * @param handle     Initialized handle
+ *
  * @param address    Address (0-255)
  * @param reply      pointer to an mbus frame for the reply
  * @param max_frames limit of frames to readout (0 = no limit)
  *
  * @return Zero when successful.
  */
-int mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int max_frames);
+int mbus_sendrecv_request(int address, mbus_frame *reply, int max_frames);
 
 /**
- * Sends ping frame to given slave using "unified" handle
+ * Sends ping frame to given slave
  *
- * @param handle  Initialized handle
+ *
  * @param address Address (0-255)
  *
  * @return Zero when successful.
  */
-int mbus_send_ping_frame(mbus_handle *handle, int address);
+int mbus_send_ping_frame(int address);
 
 /**
- * Select slave by secondary address using "unified" handle
+ * Select slave by secondary address
  *
- * @param handle        Initialized handle
+ *
  * @param mask          Address/mask to select
  *
  * @return See MBUS_PROBE_* constants
  */
-int mbus_select_secondary_address(mbus_handle * handle, const char *mask);
+int mbus_select_secondary_address(const char *mask);
 
 /**
- * Probe/address slave by secondary address using "unified" handle
+ * Probe/address slave by secondary address
  *
- * @param handle        Initialized handle
+ *
  * @param mask          Address/mask to probe
  * @param matching_addr Matched address (the buffer has tobe at least 16 bytes)
  *
  * @return See MBUS_PROBE_* constants
  */
-int mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *matching_addr);
+int mbus_probe_secondary_address(const char *mask, char *matching_addr);
 
 /**
- * Read data from given slave using "unified" handle and address types
+ * Read data from given slave using address types
  *
- * @param handle  Initialized handle
+ *
  * @param address Address of the slave
  * @param reply   Reply from the slave
  *
  * @return Zero when successful.
  */
-int mbus_read_slave(mbus_handle *handle, mbus_address *address, mbus_frame *reply);
+int mbus_read_slave(mbus_address *address, mbus_frame *reply);
 
 
 /**
@@ -395,6 +329,6 @@ char * mbus_frame_data_xml_normalized(mbus_frame_data *data);
  *
  * @return zero when OK
  */
-int mbus_scan_2nd_address_range(mbus_handle * handle, int pos, char *addr_mask);
+int mbus_scan_2nd_address_range(int pos, char *addr_mask);
 
 #endif // __MBUS_PROTOCOL_AUX_H__

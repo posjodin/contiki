@@ -18,22 +18,9 @@
 #ifndef MBUS_SERIAL_H
 #define MBUS_SERIAL_H
 
-#include <termios.h>
 #include <mbus/mbus.h>
 
-typedef struct _mbus_serial_handle {
 
-    char *device;
-
-    int fd;
-    // ^^^ change to RS232_PORT_1
-    struct termios t;
-
-} mbus_serial_handle;
-
-
-mbus_serial_handle *mbus_serial_connect(char *device);
-int                 mbus_serial_disconnect(mbus_serial_handle *handle);
-int                 mbus_serial_send_frame(mbus_serial_handle *handle, mbus_frame *frame);
-int                 mbus_serial_recv_frame(mbus_serial_handle *handle, mbus_frame *frame);
+int                 mbus_serial_send_frame(mbus_frame *frame);
+int                 mbus_serial_recv_frame(mbus_frame *frame);
 #endif /* MBUS_SERIAL_H */

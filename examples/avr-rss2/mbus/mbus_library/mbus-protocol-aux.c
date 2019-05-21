@@ -701,14 +701,14 @@ mbus_variable_vif fixed_table[] = {
     { 0xFFFF, 0.0, "", "" },
 };
 
-void (*_mbus_scan_progress)(mbus_handle * handle, const char *mask) = NULL;
-void (*_mbus_found_event)(mbus_handle * handle, mbus_frame *frame) = NULL;
+void (*_mbus_scan_progress)(const char *mask) = NULL;
+void (*_mbus_found_event)(mbus_frame *frame) = NULL;
 
 //------------------------------------------------------------------------------
 /// Register a function for the scan progress.
 //------------------------------------------------------------------------------
 void
-mbus_register_scan_progress(void (*event)(mbus_handle * handle, const char *mask))
+mbus_register_scan_progress(void (*event)(const char *mask))
 {
     _mbus_scan_progress = event;
 }
@@ -717,7 +717,7 @@ mbus_register_scan_progress(void (*event)(mbus_handle * handle, const char *mask
 /// Register a function for the found events.
 //------------------------------------------------------------------------------
 void
-mbus_register_found_event(void (*event)(mbus_handle * handle, mbus_frame *frame))
+mbus_register_found_event(void (*event)(mbus_frame *frame))
 {
     _mbus_found_event = event;
 }
@@ -1307,94 +1307,13 @@ mbus_frame_data_xml_normalized(mbus_frame_data *data)
     return NULL;
 }
 
-mbus_handle *
-mbus_connect_serial(const char * device)
-{
-    mbus_serial_handle * serial_handle;
-    if ((serial_handle = mbus_serial_connect((char*)device)) == NULL)
-    {
-        printf("Failed to setup serial connection to M-bus gateway.\n");
-        return NULL;
-    }
-
-    mbus_handle * handle;
-    if ((handle = (mbus_handle * ) malloc(sizeof(mbus_handle))) == NULL)
-    {
-        MBUS_ERROR("%s: Failed to allocate handle.\n", __PRETTY_FUNCTION__);
-        return NULL;
-    }
-    handle->is_serial = 1;
-    handle->m_serial_handle = serial_handle;
-    return handle;
-}
-
-//
-// mbus_handle *
-// mbus_connect_tcp(const char * host, int port)
-// {
-//     mbus_tcp_handle * tcp_handle;
-//     if ((tcp_handle = mbus_tcp_connect((char*)host, port)) == NULL)
-//     {
-//         MBUS_ERROR("%s: Failed to setup tcp connection to M-bus gateway on %s, port %d.\n",
-//                    __PRETTY_FUNCTION__,
-//                    host,
-//                    port);
-//         return NULL;
-//     }
-//
-//     mbus_handle * handle;
-//     if ((handle = (mbus_handle * ) malloc(sizeof(mbus_handle))) == NULL)
-//     {
-//         MBUS_ERROR("%s: Failed to allocate handle.\n", __PRETTY_FUNCTION__);
-//         return NULL;
-//     }
-//     handle->is_serial = 0;
-//     handle->m_tcp_handle = tcp_handle;
-//     return handle;
-// }
 
 int
-mbus_disconnect(mbus_handle * handle)
-{
-    if (handle == NULL)
-    {
-        MBUS_ERROR("%s: Invalid M-Bus handle for disconnect.\n", __PRETTY_FUNCTION__);
-        return 0;
-    }
-
-    if (handle->is_serial)
-    {
-        mbus_serial_disconnect(handle->m_serial_handle);
-        handle->m_serial_handle = NULL;
-    }
-    // else
-    // {
-    //     mbus_tcp_disconnect(handle->m_tcp_handle);
-    //     handle->m_tcp_handle = NULL;
-    // }
-    free(handle);
-    return 0;
-}
-
-int
-mbus_recv_frame(mbus_handle * handle, mbus_frame *frame)
+mbus_recv_frame(mbus_frame *frame)
 {
     int result = 0;
 
-    if (handle == NULL)
-    {
-        printf("Invalid M-Bus handle for receive.\n");
-        return 0;
-    }
-
-    if (handle->is_serial)
-    {
-        result = mbus_serial_recv_frame(handle->m_serial_handle, frame);
-    }
-    // else
-    // {
-    //     result = mbus_tcp_recv_frame(handle->m_tcp_handle, frame);
-    // }
+    result = mbus_serial_recv_frame(frame);
 
     if (frame != NULL)
     {
@@ -1407,23 +1326,9 @@ mbus_recv_frame(mbus_handle * handle, mbus_frame *frame)
 }
 
 int
-mbus_send_frame(mbus_handle * handle, mbus_frame *frame)
+mbus_send_frame(mbus_frame *frame)
 {
-    if (handle == NULL)
-    {
-        printf("Invalid M-Bus handle for send.\n");
-        return 0;
-    }
-
-    if (handle->is_serial)
-    {
-        return mbus_serial_send_frame(handle->m_serial_handle, frame);
-    }
-    // else
-    // {
-    //     return mbus_tcp_send_frame(handle->m_tcp_handle, frame);
-    // }
-    return 0;
+    return mbus_serial_send_frame(frame);
 }
 
 //------------------------------------------------------------------------------
@@ -1432,7 +1337,7 @@ mbus_send_frame(mbus_handle * handle, mbus_frame *frame)
 // matches that of the slave.
 //------------------------------------------------------------------------------
 int
-mbus_send_select_frame(mbus_handle * handle, const char *secondary_addr_str)
+mbus_send_select_frame(const char *secondary_addr_str)
 {
     mbus_frame *frame;
 
@@ -1440,14 +1345,14 @@ mbus_send_select_frame(mbus_handle * handle, const char *secondary_addr_str)
 
     if (mbus_frame_select_secondary_pack(frame, (char*) secondary_addr_str) == -1)
     {
-        MBUS_ERROR("%s: Failed to pack selection mbus frame.\n", __PRETTY_FUNCTION__);
+        printf("Failed to pack selection mbus frame.\n");
         mbus_frame_free(frame);
         return -1;
     }
 
-    if (mbus_send_frame(handle, frame) == -1)
+    if (mbus_send_frame(frame) == -1)
     {
-        MBUS_ERROR("%s: Failed to send mbus frame.\n", __PRETTY_FUNCTION__);
+        printf("Failed to send mbus frame.\n");
         mbus_frame_free(frame);
         return -1;
     }
@@ -1461,7 +1366,7 @@ mbus_send_select_frame(mbus_handle * handle, const char *secondary_addr_str)
 // adressed slave(s) switch to the given baudrate
 //------------------------------------------------------------------------------
 int
-mbus_send_switch_baudrate_frame(mbus_handle * handle, int address, int baudrate)
+mbus_send_switch_baudrate_frame(int address, int baudrate)
 {
     int retval = 0;
     int control_information = 0;
@@ -1510,7 +1415,7 @@ mbus_send_switch_baudrate_frame(mbus_handle * handle, int address, int baudrate)
     frame->address = address;
     frame->control_information = control_information;
 
-    if (mbus_send_frame(handle, frame) == -1)
+    if (mbus_send_frame(frame) == -1)
     {
         MBUS_ERROR("%s: failed to send mbus frame.\n", __PRETTY_FUNCTION__);
         retval = -1;
@@ -1524,7 +1429,7 @@ mbus_send_switch_baudrate_frame(mbus_handle * handle, int address, int baudrate)
 // send a request packet to from master to slave
 //------------------------------------------------------------------------------
 int
-mbus_send_request_frame(mbus_handle * handle, int address)
+mbus_send_request_frame(int address)
 {
     int retval = 0;
     mbus_frame *frame;
@@ -1540,7 +1445,7 @@ mbus_send_request_frame(mbus_handle * handle, int address)
     frame->control = MBUS_CONTROL_MASK_REQ_UD2 | MBUS_CONTROL_MASK_DIR_M2S;
     frame->address = address;
 
-    if (mbus_send_frame(handle, frame) == -1)
+    if (mbus_send_frame(frame) == -1)
     {
         MBUS_ERROR("%s: failed to send mbus frame.\n", __PRETTY_FUNCTION__);
         retval = -1;
@@ -1555,7 +1460,7 @@ mbus_send_request_frame(mbus_handle * handle, int address)
 // from the slave.
 //------------------------------------------------------------------------------
 int
-mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int max_frames)
+mbus_sendrecv_request(int address, mbus_frame *reply, int max_frames)
 {
     int retval = 0, more_frames = 1;
     mbus_frame_data reply_data;
@@ -1580,7 +1485,7 @@ mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int m
     if (debug)
         printf("%s: debug: sending request frame\n", __PRETTY_FUNCTION__);
 
-    if (mbus_send_frame(handle, frame) == -1)
+    if (mbus_send_frame(frame) == -1)
     {
         MBUS_ERROR("%s: failed to send mbus frame.\n", __PRETTY_FUNCTION__);
         mbus_frame_free(frame);
@@ -1600,7 +1505,7 @@ mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int m
         if (debug)
             printf("%s: debug: receiving response frame #%d\n", __PRETTY_FUNCTION__, frame_count);
 
-        if (mbus_recv_frame(handle, next_frame) == -1)
+        if (mbus_recv_frame(next_frame) == -1)
         {
             MBUS_ERROR("%s: Failed to receive M-Bus response frame.\n", __PRETTY_FUNCTION__);
             retval = 1;
@@ -1660,7 +1565,7 @@ mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int m
 
                 // toogle FCB bit before
                 frame->control ^= MBUS_CONTROL_MASK_FCB;
-                if (mbus_send_frame(handle, frame) == -1)
+                if (mbus_send_frame(frame) == -1)
                 {
                     MBUS_ERROR("%s: failed to send mbus frame.\n", __PRETTY_FUNCTION__);
                     retval = -1;
@@ -1690,7 +1595,7 @@ mbus_sendrecv_request(mbus_handle *handle, int address, mbus_frame *reply, int m
 // send a data request packet to from master to slave
 //------------------------------------------------------------------------------
 int
-mbus_send_ping_frame(mbus_handle *handle, int address)
+mbus_send_ping_frame(int address)
 {
     int retval = 0;
     mbus_frame *frame;
@@ -1706,7 +1611,7 @@ mbus_send_ping_frame(mbus_handle *handle, int address)
     frame->control  = MBUS_CONTROL_MASK_SND_NKE | MBUS_CONTROL_MASK_DIR_M2S;
     frame->address  = address;
 
-    if (mbus_send_frame(handle, frame) == -1)
+    if (mbus_send_frame(frame) == -1)
     {
         printf("Failed to send mbus frame.\n");
         retval = -1;
@@ -1720,7 +1625,7 @@ mbus_send_ping_frame(mbus_handle *handle, int address)
 // Select a device using the supplied secondary address  (mask).
 //------------------------------------------------------------------------------
 int
-mbus_select_secondary_address(mbus_handle * handle, const char *mask)
+mbus_select_secondary_address(const char *mask)
 {
     int ret;
     mbus_frame reply;
@@ -1732,7 +1637,7 @@ mbus_select_secondary_address(mbus_handle * handle, const char *mask)
     }
 
     /* send select command */
-    if (mbus_send_select_frame(handle, mask) == -1)
+    if (mbus_send_select_frame(mask) == -1)
     {
         MBUS_ERROR("%s: Failed to send selection frame: %s.\n",
                    __PRETTY_FUNCTION__,
@@ -1740,7 +1645,7 @@ mbus_select_secondary_address(mbus_handle * handle, const char *mask)
         return MBUS_PROBE_ERROR;
     }
 
-    ret = mbus_recv_frame(handle, &reply);
+    ret = mbus_recv_frame(&reply);
 
     if (ret == -1)
     {
@@ -1750,7 +1655,7 @@ mbus_select_secondary_address(mbus_handle * handle, const char *mask)
     if (ret == -2)
     {
         /* check for more data (collision) */
-        while (mbus_recv_frame(handle, &reply) != -1);
+        while (mbus_recv_frame(&reply) != -1);
 
         return MBUS_PROBE_COLLISION;
     }
@@ -1758,7 +1663,7 @@ mbus_select_secondary_address(mbus_handle * handle, const char *mask)
     if (mbus_frame_type(&reply) == MBUS_FRAME_TYPE_ACK)
     {
         /* check for more data (collision) */
-        while (mbus_recv_frame(handle, &reply) != -1)
+        while (mbus_recv_frame(&reply) != -1)
         {
             ret = -2;
         }
@@ -1781,7 +1686,7 @@ mbus_select_secondary_address(mbus_handle * handle, const char *mask)
 // (mask).
 //------------------------------------------------------------------------------
 int
-mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *matching_addr)
+mbus_probe_secondary_address(const char *mask, char *matching_addr)
 {
     int ret;
     mbus_frame reply;
@@ -1792,12 +1697,12 @@ mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *match
         return MBUS_PROBE_ERROR;
     }
 
-    ret = mbus_select_secondary_address(handle, mask);
+    ret = mbus_select_secondary_address(mask);
 
     if (ret == MBUS_PROBE_SINGLE)
     {
         /* send a data request command to find out the full address */
-        if (mbus_send_request_frame(handle, 253) == -1)
+        if (mbus_send_request_frame(253) == -1)
         {
             MBUS_ERROR("%s: Failed to send request to selected secondary device [mask %s]: %s.\n",
                        __PRETTY_FUNCTION__,
@@ -1806,7 +1711,7 @@ mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *match
             return MBUS_PROBE_ERROR;
         }
 
-        ret = mbus_recv_frame(handle, &reply);
+        ret = mbus_recv_frame(&reply);
 
         if (ret == -1)
         {
@@ -1824,7 +1729,7 @@ mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *match
 
             if (_mbus_found_event)
             {
-                _mbus_found_event(handle,&reply);
+                _mbus_found_event(&reply);
             }
 
             return MBUS_PROBE_SINGLE;
@@ -1841,17 +1746,17 @@ mbus_probe_secondary_address(mbus_handle * handle, const char *mask, char *match
 }
 
 
-int mbus_read_slave(mbus_handle * handle, mbus_address *address, mbus_frame * reply)
+int mbus_read_slave(mbus_address *address, mbus_frame * reply)
 {
-    if (handle == NULL || address == NULL)
+    if (address == NULL)
     {
-        MBUS_ERROR("%s: Invalid handle or address.\n", __PRETTY_FUNCTION__);
+        MBUS_ERROR("%s: Invalid address.\n", __PRETTY_FUNCTION__);
         return -1;
     }
 
     if (address->is_primary)
     {
-        if (mbus_send_request_frame(handle, address->primary) == -1)
+        if (mbus_send_request_frame(address->primary) == -1)
         {
             MBUS_ERROR("%s: Failed to send M-Bus request frame.\n",
                        __PRETTY_FUNCTION__);
@@ -1871,7 +1776,7 @@ int mbus_read_slave(mbus_handle * handle, mbus_address *address, mbus_frame * re
             return -1;
         }
 
-        probe_ret = mbus_probe_secondary_address(handle, address->secondary, matching_addr);
+        probe_ret = mbus_probe_secondary_address(address->secondary, matching_addr);
 
         if (probe_ret == MBUS_PROBE_COLLISION)
         {
@@ -1896,7 +1801,7 @@ int mbus_read_slave(mbus_handle * handle, mbus_address *address, mbus_frame * re
         }
         /* else MBUS_PROBE_SINGLE */
 
-        if (mbus_send_request_frame(handle, 253) == -1)
+        if (mbus_send_request_frame(253) == -1)
         {
             MBUS_ERROR("%s: Failed to send M-Bus request frame.\n",
                        __PRETTY_FUNCTION__);
@@ -1904,7 +1809,7 @@ int mbus_read_slave(mbus_handle * handle, mbus_address *address, mbus_frame * re
         }
     }
 
-    if (mbus_recv_frame(handle, reply) == -1)
+    if (mbus_recv_frame(reply) == -1)
     {
         MBUS_ERROR("%s: Failed to receive M-Bus response frame.\n",
                    __PRETTY_FUNCTION__);
@@ -1918,14 +1823,14 @@ int mbus_read_slave(mbus_handle * handle, mbus_address *address, mbus_frame * re
 // Iterate over all address masks according to the M-Bus probe algorithm.
 //------------------------------------------------------------------------------
 int
-mbus_scan_2nd_address_range(mbus_handle * handle, int pos, char *addr_mask)
+mbus_scan_2nd_address_range(int pos, char *addr_mask)
 {
     int i, i_start, i_end, probe_ret;
     char *mask, matching_mask[17];
 
-    if (handle == NULL || addr_mask == NULL)
+    if (addr_mask == NULL)
     {
-        MBUS_ERROR("%s: Invalid handle or address mask.\n", __PRETTY_FUNCTION__);
+        MBUS_ERROR("%s: Invalid address mask.\n", __PRETTY_FUNCTION__);
         return -1;
     }
 
@@ -1955,7 +1860,7 @@ mbus_scan_2nd_address_range(mbus_handle * handle, int pos, char *addr_mask)
     {
         if (pos < 15)
         {
-            mbus_scan_2nd_address_range(handle, pos+1, mask);
+            mbus_scan_2nd_address_range(pos+1, mask);
         }
         else
         {
@@ -1969,9 +1874,9 @@ mbus_scan_2nd_address_range(mbus_handle * handle, int pos, char *addr_mask)
         mask[pos] = '0'+i;
 
         if (_mbus_scan_progress)
-            _mbus_scan_progress(handle,mask);
+            _mbus_scan_progress(mask);
 
-        probe_ret = mbus_probe_secondary_address(handle, mask, matching_mask);
+        probe_ret = mbus_probe_secondary_address(mask, matching_mask);
 
         if (probe_ret == MBUS_PROBE_SINGLE)
         {
@@ -1983,7 +1888,7 @@ mbus_scan_2nd_address_range(mbus_handle * handle, int pos, char *addr_mask)
         else if (probe_ret == MBUS_PROBE_COLLISION)
         {
             // collision, more than one device matching, restrict the search mask further
-            mbus_scan_2nd_address_range(handle, pos+1, mask);
+            mbus_scan_2nd_address_range(pos+1, mask);
         }
         else if (probe_ret == MBUS_PROBE_NOTHING)
         {

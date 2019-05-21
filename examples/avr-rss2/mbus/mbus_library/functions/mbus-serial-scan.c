@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <mbus/mbus.h>
 
-static int debug = 0;
+static int debug = 1;
 
 //------------------------------------------------------------------------------
 // Primary addressing scanning of mbus devices.
@@ -26,16 +26,6 @@ static int debug = 0;
 /*
 
 Search for "^^^" to find our comments
-
-
-instead of mbus_serial_set_baudrate and mbus_connect_serial write our own functions
-
-Dont need to mbus_disconnect.
-
-NOTE: mbus_serial_set_baudrate sets baudrate just for the library. Can be
-simplified or omitted.
-
-! Take care of the file descriptor fd in the handle struct
 
 */
 
@@ -46,26 +36,16 @@ simplified or omitted.
 int
 main(int argc, char **argv)
 {
-    mbus_handle *handle;
-    char *device;
-    int address, baudrate = 9600;
+    int address;
     int ret;
 
     //debug = 0;
     //device = RS232_PORT_1;
-    //baudrate = 9600;
 
     if (debug)
     {
         mbus_register_send_event(&mbus_dump_send_event);
         mbus_register_recv_event(&mbus_dump_recv_event);
-    }
-
-    if ((handle = mbus_connect_serial(device)) == NULL)
-    // ^^^ dont need mbus connect serial???
-    {
-        printf("Failed to setup connection to M-bus gateway.\n");
-        return 1;
     }
 
 
@@ -85,13 +65,13 @@ main(int argc, char **argv)
             fflush(stdout);
         }
 
-        if (mbus_send_ping_frame(handle, address) == -1)
+        if (mbus_send_ping_frame(address) == -1)
         {
             printf("Scan failed. Could not send ping frame: %s\n", mbus_error_str());
             return 1;
         }
 
-        ret = mbus_recv_frame(handle, &reply);
+        ret = mbus_recv_frame(&reply);
 
         if (ret == -1)
         {
@@ -104,7 +84,7 @@ main(int argc, char **argv)
         if (ret == -2)
         {
             /* check for more data (collision) */
-            while (mbus_recv_frame(handle, &reply) != -1);
+            while (mbus_recv_frame(&reply) != -1);
 
             printf("Collision at address %d\n", address);
 
@@ -114,7 +94,7 @@ main(int argc, char **argv)
         if (mbus_frame_type(&reply) == MBUS_FRAME_TYPE_ACK)
         {
             /* check for more data (collision) */
-            while (mbus_recv_frame(handle, &reply) != -1)
+            while (mbus_recv_frame(&reply) != -1)
             {
                 ret = -2;
             }
@@ -130,7 +110,6 @@ main(int argc, char **argv)
         }
     }
 
-    mbus_disconnect(handle);
-    // ^^^ look inside and remove the fd part
+
     return 0;
 }

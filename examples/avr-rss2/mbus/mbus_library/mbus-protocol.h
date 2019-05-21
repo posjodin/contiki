@@ -101,11 +101,6 @@ typedef struct _mbus_slave_data {
 
 #define NITEMS(x) (sizeof(x)/sizeof(x[0]))
 
-//
-// Supported handle types
-//
-#define MBUS_HANDLE_TYPE_TCP    0
-#define MBUS_HANDLE_TYPE_SERIAL 1
 
 //------------------------------------------------------------------------------
 // MBUS FRAME DATA FORMATS
@@ -148,6 +143,7 @@ typedef struct _mbus_data_record {
     size_t data_len;
 
     time_t timestamp;
+    // ^^^ cut this
 
     void *next;
 
