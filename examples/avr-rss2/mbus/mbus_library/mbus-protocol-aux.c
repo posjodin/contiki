@@ -730,7 +730,7 @@ int mbus_fixed_normalize(int medium_unit, long medium_value, char **unit_out, do
 
     if (unit_out == NULL || value_out == NULL || quantity_out == NULL)
     {
-        MBUS_ERROR("%s: Invalid parameter.\n", __PRETTY_FUNCTION__);
+        printf("Error: Invalid parameter.\n");
         return -1;
     }
 
@@ -893,7 +893,7 @@ int mbus_variable_value_decode(mbus_data_record *record, double *value_out_real,
                     break;
                 }
                 result = -2;
-                MBUS_ERROR("Non ASCII variable length not implemented yet\n");
+                printf("Non ASCII variable length not implemented yet\n");
                 break;
             }
 
@@ -1601,6 +1601,7 @@ mbus_send_ping_frame(int address)
     mbus_frame *frame;
 
     frame = mbus_frame_new(MBUS_FRAME_TYPE_SHORT);
+    printf("Frame created sucessfully.\n");
 
     if (frame == NULL)
     {
@@ -1616,6 +1617,7 @@ mbus_send_ping_frame(int address)
         printf("Failed to send mbus frame.\n");
         retval = -1;
     }
+    printf("Frame was sent.\n");
 
     mbus_frame_free(frame);
     return retval;
@@ -1816,6 +1818,7 @@ int mbus_read_slave(mbus_address *address, mbus_frame * reply)
         return -1;
     }
 
+
     return 0;
 }
 
@@ -1825,8 +1828,8 @@ int mbus_read_slave(mbus_address *address, mbus_frame * reply)
 int
 mbus_scan_2nd_address_range(int pos, char *addr_mask)
 {
-    int i, i_start, i_end, probe_ret;
-    //int i, probe_ret;
+    //int i, i_start, i_end, probe_ret;
+    int i, probe_ret;
     char *mask, matching_mask[17];
 
     if (addr_mask == NULL)
@@ -1837,7 +1840,7 @@ mbus_scan_2nd_address_range(int pos, char *addr_mask)
 
     if (strlen(addr_mask) != 16)
     {
-        fprintf(stderr, "%s: Illegal address mask [%s]. Not 16 characters long.\n", __PRETTY_FUNCTION__, addr_mask);
+        printf("Illegal address mask. Not 16 characters long.\n");
         return -1;
     }
 
@@ -1848,14 +1851,14 @@ mbus_scan_2nd_address_range(int pos, char *addr_mask)
 
     if ((mask = strdup(addr_mask)) == NULL)
     {
-        fprintf(stderr, "%s: Failed to allocate local copy of the address mask.\n", __PRETTY_FUNCTION__);
+        printf("Failed to allocate local copy of the address mask.\n");
         return -1;
     }
 
     if (mask[pos] == 'f' || mask[pos] == 'F')
     {
-        i_start = 0;
-        i_end   = 9;
+        //i_start = 0;
+        //i_end   = 9;
     }
     else
     {
@@ -1865,8 +1868,8 @@ mbus_scan_2nd_address_range(int pos, char *addr_mask)
         }
         else
         {
-            i_start = (int)(mask[pos] - '0');
-            i_end   = (int)(mask[pos] - '0');
+            //i_start = (int)(mask[pos] - '0');
+            //i_end   = (int)(mask[pos] - '0');
         }
     }
 
@@ -1897,7 +1900,7 @@ mbus_scan_2nd_address_range(int pos, char *addr_mask)
         }
         else // MBUS_PROBE_ERROR
         {
-            fprintf(stderr, "%s: Failed to probe secondary address [%s].\n", __PRETTY_FUNCTION__, mask);
+            printf("Failed to probe secondary address.\n");
             return -1;
         }
     }

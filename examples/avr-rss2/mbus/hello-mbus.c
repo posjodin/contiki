@@ -66,18 +66,18 @@ mbus_local_scan(void)
 }
 
 
-
-/*static void
-read_values(void)
-{
-  uint8_t buf[1];
-  memset(buf, 0, sizeof(buf));
-
-  int check = usart1_rx(buf, 1);
-  if (check == 1) {
-      printf("buf = %x\n", (uint8_t) buf[0]);
-  }
-}*/
+//
+// static void
+// read_values(void)
+// {
+//   uint8_t buf[1];
+//   memset(buf, 0, sizeof(buf));
+//
+//   int check = usart1_rx(buf, 1);
+//   if (check == 1) {
+//       printf("buf = %x\n", (uint8_t) buf[0]);
+//   }
+// }
 
 
 
@@ -96,7 +96,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
    * Delay 1/2 sec
    */
 
-  etimer_set(&et, CLOCK_SECOND);
+  etimer_set(&et, CLOCK_SECOND*10);
   while(1) {
     PROCESS_YIELD();
 

@@ -11,9 +11,10 @@
 #include <sys/types.h>
 //#include <sys/stat.h>
 #include <fcntl.h>
+#include "sys/etimer.h"
 #include <unistd.h>
 #include <string.h>
-
+#include "dev/watchdog.h"
 #include <stdio.h>
 #include "mbus-serial-scan.h"
 
@@ -62,16 +63,18 @@ mbus_scan()
 
         if (debug)
         {
-            printf("%d ", address);
+            printf("\n");
+            printf("%d\n", address);
             fflush(stdout);
         }
 
+        printf("before send ping frame\n");
         if (mbus_send_ping_frame(address) == -1)
         {
             printf("Scan failed. Could not send ping frame: %s\n", mbus_error_str());
             return 1;
         }
-
+        printf("before recv frame\n");
         ret = mbus_recv_frame(&reply);
 
         if (ret == -1)
@@ -79,8 +82,8 @@ mbus_scan()
             continue;
         }
 
-        if (debug)
-            printf("\n");
+        // if (debug)
+        //     printf("\n");
 
         if (ret == -2)
         {
@@ -92,24 +95,31 @@ mbus_scan()
             continue;
         }
 
+        printf("before checking frame type\n");
+        printf("%d\n", mbus_frame_type(&reply));
         if (mbus_frame_type(&reply) == MBUS_FRAME_TYPE_ACK)
         {
+            printf("inside checking frame type\n");
             /* check for more data (collision) */
-            while (mbus_recv_frame(&reply) != -1)
-            {
-                ret = -2;
-            }
+            //while (mbus_recv_frame(&reply) != -1)
+            //{
+            //    ret = -2;
+            //}
 
-            if (ret == -2)
-            {
-                printf("Collision at address %d\n", address);
+            //if (ret == -2)
+            //{
+            //    printf("Collision at address %d\n", address);
 
-                continue;
-            }
+//                continue;
+  //          }
 
             printf("Found a M-Bus device at address %d\n", address);
         }
+        printf("after frame type\n");
+        watchdog_periodic();
+        //clock_delay_msec(100);
     }
+
 
 
     return 0;

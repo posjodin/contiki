@@ -13,6 +13,9 @@
 
 #include <sys/types.h>
 
+#include "sys/etimer.h"
+
+
 #include <stdio.h>
 
 #include <errno.h>
@@ -47,6 +50,7 @@ mbus_serial_send_frame(mbus_frame *frame)
         printf("mbus_frame_pack failed\n");
         return -1;
     }
+    printf("Packing frame success\n");
 
 #ifdef MBUS_SERIAL_DEBUG
     // if debug, dump in HEX form to stdout what we write to the serial port
@@ -59,12 +63,18 @@ mbus_serial_send_frame(mbus_frame *frame)
 #endif
 
 
+    /*for (int i = 0; i < PACKET_BUFF_SIZE; i++) {
+      printf("%x ",  buff[i]);
+    }*/
+
+    printf("Starting transmission");
 
 
-    for (int i = 0; i < PACKET_BUFF_SIZE; i++) {
+    for (int i = 0; i < 5; i++) {
       usart1_tx(&buff[i], 1);
       // ^^^
     }
+    printf("Done sending");
 
     // if ((ret = write(handle->fd, buff, len)) == len)
     //
@@ -115,11 +125,12 @@ mbus_serial_recv_frame(mbus_frame *frame)
     // timeouts = 0;
 
 
-
+    clock_delay_msec(400);
     int check = usart1_rx(buff, 1);
     if (check == 1) {
+      printf("buf = %x\n", (uint8_t) buff[0]);
       int buff_size = 0;
-      for (int i = 0; i > PACKET_BUFF_SIZE; i++) {
+      for (int i = 0; i < PACKET_BUFF_SIZE; i++) {
         if (buff[i] != 0) {
           buff_size++;
         }
