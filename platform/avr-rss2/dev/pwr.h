@@ -42,5 +42,6 @@ void pwr_1_init(void); /* Initialize */
 void pwr_1_on(); /* Turn on */
 void pwr_1_off(); /* Turn off */
 void pwr_1_toggle(); /* Toggle */
+void pwr_1_disable(); /* Disable */
 
 #endif /* CONTIKI_PWR_H_ */
