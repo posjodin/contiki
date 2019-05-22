@@ -220,8 +220,7 @@ initialize(void)
 
 /* UART1 Disables P0, P1 interrups pin and need HW fix for rss2 */
 #ifdef USART1_CONF_ENABLE
-  //Changed from USART_PARITY_NONE
-  rs232_init(RS232_PORT_1, USART1_CONF_BAUD_RATE, USART_PARITY_EVEN | USART_STOP_BITS_1 | USART_DATA_BITS_8);
+  rs232_init(RS232_PORT_1, USART1_CONF_BAUD_RATE, USART1_CSRC);
 #endif
 
   rs232_redirect_stdout(SERIAL_LINE_CONF_UART);
