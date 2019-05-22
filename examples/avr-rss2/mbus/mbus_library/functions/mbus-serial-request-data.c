@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <mbus/mbus.h>
+#include "mbus-serial-request-data.h"
 
 // ^^^ mb will need watchdog_periodic???
 

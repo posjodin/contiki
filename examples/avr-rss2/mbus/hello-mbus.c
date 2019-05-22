@@ -47,6 +47,7 @@
 #include "usart1.h"
 #include "mbus_library/mbus.h"
 #include "mbus_library/functions/mbus-serial-scan.h"
+#include "mbus_library/functions/mbus-serial-request-data.h"
 
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_mbus_process, "Hello mbus process");
@@ -100,8 +101,10 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
   while(1) {
     PROCESS_YIELD();
 
+    mbus_serial_request_data();
     //mbus_local_scan();
     mbus_scan();
+
     etimer_reset(&et);
     //read_values();
   }
