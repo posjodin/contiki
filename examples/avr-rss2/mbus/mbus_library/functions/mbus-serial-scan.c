@@ -12,6 +12,7 @@
 //#include <sys/stat.h>
 #include <fcntl.h>
 #include "sys/etimer.h"
+#include "dev/leds.h"
 #include <unistd.h>
 #include <string.h>
 #include "dev/watchdog.h"
@@ -57,6 +58,7 @@ mbus_scan()
 
     for (address = 0; address <= 250; address++)
     {
+        leds_toggle(LEDS_YELLOW);
         mbus_frame reply;
 
         memset((void *)&reply, 0, sizeof(mbus_frame));

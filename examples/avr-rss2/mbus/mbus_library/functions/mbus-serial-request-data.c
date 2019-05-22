@@ -9,13 +9,13 @@
 //------------------------------------------------------------------------------
 
 #include <sys/types.h>
-#include <sys/stat.h>
+//#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 
 #include <stdio.h>
-#include <mbus/mbus.h>
+//#include "../mbus.h"
 #include "mbus-serial-request-data.h"
 
 // ^^^ mb will need watchdog_periodic???
@@ -29,12 +29,12 @@ mbus_serial_request_data()
     mbus_frame_data reply_data;
 
     char *addr_str, *xml_result;
-    int address, baudrate = 9600;
+    //int address, baudrate = 9600;
 
-    int address = 0;
+    int address;
 
     // input args
-    baudrate = 9600;
+    //baudrate = 9600;
     addr_str = "67";
     debug = 1;
 

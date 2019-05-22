@@ -101,7 +101,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
   while(1) {
     PROCESS_YIELD();
 
-    mbus_serial_request_data();
+    //mbus_serial_request_data();
     //mbus_local_scan();
     mbus_scan();
 
