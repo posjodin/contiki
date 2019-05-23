@@ -67,7 +67,7 @@ mbus_local_scan(void)
 }
 
 
-//
+
 // static void
 // read_values(void)
 // {
@@ -97,13 +97,13 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
    * Delay 1/2 sec
    */
 
-  etimer_set(&et, CLOCK_SECOND*10);
+  etimer_set(&et, CLOCK_SECOND*5);
   while(1) {
     PROCESS_YIELD();
 
-    //mbus_serial_request_data();
+    mbus_serial_request_data();
     //mbus_local_scan();
-    mbus_scan();
+    //mbus_scan();
 
     etimer_reset(&et);
     //read_values();

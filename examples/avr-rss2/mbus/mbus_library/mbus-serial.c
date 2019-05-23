@@ -106,7 +106,7 @@ mbus_serial_send_frame(mbus_frame *frame)
 int
 mbus_serial_recv_frame(mbus_frame *frame)
 {
-    uint8_t buff[PACKET_BUFF_SIZE];
+    uint16_t buff[PACKET_BUFF_SIZE];
     //int len, remaining, timeouts;
 
     if (frame == NULL)
@@ -124,20 +124,46 @@ mbus_serial_recv_frame(mbus_frame *frame)
     // len = 0;
     // timeouts = 0;
 
+    // clock_delay_msec(400);
+    // usart1_rx(buff, 1);
+    // int check = 1;
+    // uint8_t buffer2[128];
+    // for (int i = 0; i < 128; i++) {
+    //    buffer2[i] = buff[0];
+    // }
 
-    clock_delay_msec(400);
-    int check = usart1_rx(buff, 1);
+
+    //
+    clock_delay_msec(1000);
+    int check = 1;
+    uint16_t buffer2[144];
+    memset((void *)buffer2, 0, sizeof(buffer2));
+
+    for (int i = 0; i < 144; i++) {
+       usart1_rx(buff, 1);
+       buffer2[i] = buff[0];
+    }
+
+    //int check = usart1_rx(buff, 1);
     if (check == 1) {
-      printf("buf = %x\n", (uint8_t) buff[0]);
-      int buff_size = 0;
-      for (int i = 0; i < PACKET_BUFF_SIZE; i++) {
-        if (buff[i] != 0) {
-          buff_size++;
+      //printf("buf = %x\n", (uint8_t) buff[0]);
+      //int buff_size = 0;
+      for (int i = 0; i < 144; i++) {
+
+        printf("%0X ", (uint16_t) buffer2[i]);
+        if ((i+1)%32 == 0) {
+          printf("\n");
         }
+        // if (buff[i] != 0) {
+        //   buff_size++;
+        // }
       }
-      mbus_parse(frame, buff, buff_size);
+      printf("\n\n");
+      //mbus_parse(frame, buff, buff_size);
     }
     // ^^^
+
+
 
 
     // do {

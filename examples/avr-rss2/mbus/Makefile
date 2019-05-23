@@ -12,7 +12,7 @@ MODULES += dev/bme280
 
 CUSTOM_RULE_LINK = 1
 
-PROJECT_OBJECTFILES += usart1.o mbus_library/mbus.o mbus_library/mbus-protocol.o mbus_library/mbus-protocol-aux.o mbus_library/mbus-serial.o mbus_library/functions/mbus-serial-scan.o mbus_library/functions/mbus-serial-request-data.o
+PROJECT_OBJECTFILES += usart1.o mbus_library/mbus.o mbus_library/mbus-protocol.o mbus_library/mbus-protocol-aux.o mbus_library/mbus-serial.o mbus_library/functions/mbus-serial-scan.o mbus_library/functions/mbus-serial-request-data.o ringbuf-mbus.o
 
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a
 	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ $(CLIBS)

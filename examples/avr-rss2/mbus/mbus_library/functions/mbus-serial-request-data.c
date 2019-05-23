@@ -26,9 +26,9 @@ int
 mbus_serial_request_data()
 {
     mbus_frame reply;
-    mbus_frame_data reply_data;
+    //mbus_frame_data reply_data;
 
-    char *addr_str, *xml_result;
+    char *addr_str; //*xml_result;
     //int address, baudrate = 9600;
 
     int address;
@@ -40,11 +40,11 @@ mbus_serial_request_data()
 
 
 
-    if (debug)
-    {
-        mbus_register_send_event(&mbus_dump_send_event);
-        mbus_register_recv_event(&mbus_dump_recv_event);
-    }
+    // if (debug)
+    // {
+    //     mbus_register_send_event(&mbus_dump_send_event);
+    //     mbus_register_recv_event(&mbus_dump_recv_event);
+    // }
 
 
     if (strlen(addr_str) == 16)
@@ -99,31 +99,31 @@ mbus_serial_request_data()
     //
     // parse data and print in XML format
     //
-    if (debug)
-    {
-        mbus_frame_print(&reply);
-    }
+    // if (debug)
+    // {
+    //     mbus_frame_print(&reply);
+    // }
 
-    if (mbus_frame_data_parse(&reply, &reply_data) == -1)
-    {
-        printf("M-bus data parse error.\n");
-        return 1;
-    }
+    // if (mbus_frame_data_parse(&reply, &reply_data) == -1)
+    // {
+    //     printf("M-bus data parse error.\n");
+    //     return 1;
+    // }
 
-    if ((xml_result = mbus_frame_data_xml(&reply_data)) == NULL)
-    {
-        printf("Failed to generate XML representation of MBUS frame: %s\n", mbus_error_str());
-        return 1;
-    }
+    // if ((xml_result = mbus_frame_data_xml(&reply_data)) == NULL)
+    // {
+    //     printf("Failed to generate XML representation of MBUS frame: %s\n", mbus_error_str());
+    //     return 1;
+    // }
+    //
+    // printf("%s", xml_result);
+    // free(xml_result);
 
-    printf("%s", xml_result);
-    free(xml_result);
-
-    // manual free
-    if (reply_data.data_var.record)
-    {
-        mbus_data_record_free(reply_data.data_var.record); // free's up the whole list
-    }
+    // // manual free
+    // if (reply_data.data_var.record)
+    // {
+    //     mbus_data_record_free(reply_data.data_var.record); // free's up the whole list
+    // }
 
     return 0;
 }

@@ -37,9 +37,9 @@
 /**
  * \file
  *         Example uses avr-rss2 platform
- *         
+ *
  */
 
 void usart1_init();
-size_t usart1_rx(uint8_t *buf, size_t len);
+size_t usart1_rx(uint16_t *buf, size_t len);
 size_t usart1_tx(uint8_t *buf, size_t len);

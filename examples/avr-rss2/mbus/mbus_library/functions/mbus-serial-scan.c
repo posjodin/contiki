@@ -66,7 +66,7 @@ mbus_scan()
         if (debug)
         {
             printf("\n");
-            printf("Trying to connect to:\n");
+            printf("Trying to connect to: ");
             printf("%d\n", address);
             fflush(stdout);
         }

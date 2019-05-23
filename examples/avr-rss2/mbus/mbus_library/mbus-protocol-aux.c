@@ -724,7 +724,7 @@ mbus_register_found_event(void (*event)(mbus_frame *frame))
 
 int mbus_fixed_normalize(int medium_unit, long medium_value, char **unit_out, double *value_out, char **quantity_out)
 {
-    double exponent = 0.0;
+    //double exponent = 0.0;
     int i;
     medium_unit = medium_unit & 0x3F;
 
@@ -759,7 +759,7 @@ int mbus_fixed_normalize(int medium_unit, long medium_value, char **unit_out, do
 
         *unit_out = strdup("Unknown");
         *quantity_out = strdup("Unknown");
-        exponent = 0.0;
+        //exponent = 0.0;
         *value_out = 0.0;
         return -1;
         break;
@@ -929,7 +929,7 @@ mbus_vif_unit_normalize(int vif, double value, char **unit_out, double *value_ou
 {
     MBUS_DEBUG("vif_unit_normalize = 0x%03X \n", vif);
 
-    double exponent = 1.0;
+    //double exponent = 1.0;
 
     unsigned newVif = vif & 0xF7F; /* clear extension bit */
 
@@ -954,7 +954,7 @@ mbus_vif_unit_normalize(int vif, double value, char **unit_out, double *value_ou
 
     *unit_out = strdup("Unknown (VIF=0x%.2X)");
     *quantity_out = strdup("Unknown");
-    exponent = 0.0;
+    //exponent = 0.0;
     *value_out = 0.0;
     return -1;
 }
@@ -1005,7 +1005,7 @@ mbus_vib_unit_normalize(mbus_value_information_block *vib, double value, char **
         {
             // custom VIF
             *unit_out = strdup("-");
-            *quantity_out = strdup(vib->custom_vif);
+            *quantity_out = strdup( (const char *) vib->custom_vif);
             *value_out = 0.0;
         }
         else
@@ -1215,7 +1215,7 @@ mbus_data_variable_xml_normalized(mbus_data_variable *data)
     mbus_data_record *record;
     mbus_record *norm_record;
     char *buff = NULL;
-    char str_encoded[768];
+    uint8_t str_encoded[768];
     size_t len = 0, buff_size = 8192;
     size_t i;
 

@@ -552,7 +552,7 @@ mbus_slave_data *mbus_slave_data_get(size_t i);
 //
 // XML generating functions
 //
-void  mbus_str_xml_encode(uint8_t *dst, const uint8_t *src, size_t max_len);
+void  mbus_str_xml_encode(uint8_t *dst, const char *src, size_t max_len);
 char *mbus_data_xml(mbus_frame_data *data);
 char *mbus_data_variable_xml(mbus_data_variable *data);
 char *mbus_data_fixed_xml(mbus_data_fixed *data);
@@ -584,7 +584,7 @@ void  mbus_hex_dump(const char *label, const char *buff, size_t len);
 // data encode/decode functions
 //
 int mbus_data_manufacturer_encode(uint8_t *m_data, uint8_t *m_code);
-const char *mbus_decode_manufacturer(uint8_t byte1, uint8_t byte2);
+const uint8_t *mbus_decode_manufacturer(uint8_t byte1, uint8_t byte2);
 const char *mbus_data_product_name(mbus_data_variable_header *header);
 
 int mbus_data_bcd_encode(uint8_t *bcd_data, size_t bcd_data_size, int value);
