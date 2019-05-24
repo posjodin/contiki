@@ -60,7 +60,7 @@ uint8_t usart = RS232_PORT_1;
 
 /*---------------------------------------------------------------------------*/
 
-static int
+int
 usart_input_byte(unsigned char c)
 {
   // if (kek < 128) {
@@ -134,7 +134,7 @@ usart1_init() {
 
 /*---------------------------------------------------------------------------*/
 size_t
-usart1_rx(uint8_t *buf, size_t len) {
+usart1_rx(uint16_t *buf, size_t len) {
   int c;
 
   c = ringbuf16_get(&rxbuf);

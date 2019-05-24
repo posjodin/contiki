@@ -41,5 +41,6 @@
  */
 
 void usart1_init();
+int usart_input_byte(unsigned char c);
 size_t usart1_rx(uint16_t *buf, size_t len);
 size_t usart1_tx(uint8_t *buf, size_t len);

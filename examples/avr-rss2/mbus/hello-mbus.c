@@ -45,9 +45,9 @@
 #include "adc.h"
 #include "dev/leds.h"
 #include "usart1.h"
-#include "mbus_library/mbus.h"
-#include "mbus_library/functions/mbus-serial-scan.h"
-#include "mbus_library/functions/mbus-serial-request-data.h"
+//#include "mbus_library/mbus.h"
+//#include "mbus_library/functions/mbus-serial-scan.h"
+//#include "mbus_library/functions/mbus-serial-request-data.h"
 
 #include "contiki-mbus.h"
 
@@ -99,13 +99,32 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
    * Delay 1/2 sec
    */
 
-  etimer_set(&et, CLOCK_SECOND*5);
+  etimer_set(&et, CLOCK_SECOND*10);
   while(1) {
     PROCESS_YIELD();
 
-    mbus_serial_request_data();
+    //mbus_serial_request_data();
     //mbus_local_scan();
     //mbus_scan();
+    leds_on(LEDS_YELLOW);
+
+    mbus_scan_primary_at_address(67);
+    //mbus_scan_primary_all();
+    // uint16_t data[144];
+    // memset(data, 0, sizeof(data));
+    // mbus_request_data_at_primary_address(67, data);
+    // printf("\n");
+    // for (int i = 0; i < 144; i++) {
+    //   printf("%0X ", data[i]);
+    //   if ((i+1) % 32 == 0) {
+    //     printf("\n");
+    //   }
+    // }
+    //mbus_switch_baudrate(67, 2400);
+    // mbus_scan_primary_at_address(67);
+    //
+    // mbus_set_primary_address(100, 67);
+    // mbus_scan_primary_at_address(67);
 
     etimer_reset(&et);
     //read_values();

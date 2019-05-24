@@ -12,7 +12,7 @@
 #include "usart1.h"
 
 
-
+#include "dev/leds.h"
 /*
 TODO list:
 
@@ -69,23 +69,24 @@ add the frame check to every function
 int
 wait_for_mbus()
 {
-  int baudrate = USART1_CONF_BAUD_RATE;
+  int baudrate = 9600; // change later
   if (baudrate == 300)
   {
-    clock_wait_msec(4000);
+    clock_delay_msec(4000);
   } else
   if (baudrate == 2400)
   {
-    clock_wait_msec(1000);
+    clock_delay_msec(1000);
   } else
   if (baudrate == 9600)
   {
-    clock_wait_msec(250);
+    clock_delay_msec(300);
   } else
   {
     printf("Unsupported baudrate!\n");
     return -1;
   }
+  return 1;
 }
 
 
@@ -145,13 +146,15 @@ int
 mbus_receive_ack()
 {
   int response = 0;
-  uint8_t buff[1];
+  uint16_t buff[1];
 
   usart1_rx(buff, 1);
   // might act wrong is a situation where for example at address 67 there is an
   // mbus device, but at the address 68 there isnt, but it still sees a E5 there
+
   response = buff[0];
-  ringbuf16_put(&rxbuf, 0);
+  //usart_input_byte(0);
+  //ringbuf16_put(&rxbuf, 0);
   // ^ this might solve the issue above by writing a 0 to the buffer right after
   // we got the ACK
 
@@ -177,7 +180,7 @@ mbus_scan_primary_at_address(int address)
 
   if (response == MBUS_ANSWER_ACK)
   {
-    printf("M-Bus device at %x has sent an ACK.\n", response);
+    printf("M-Bus device at %d has sent an ACK.\n\n", address);
   } else {
     printf("No M-Bus device found at the address %d.\n", address);
   }
@@ -193,10 +196,11 @@ mbus_scan_primary_all()
   int address = 0;
   for (address = 0; address <= 250; address++)
   {
+    leds_toggle(LEDS_YELLOW);
     int result = mbus_ping_frame(address);
     if (result == -1)
     {
-      printf("Scan failed at the following address: %d", address);
+      printf("Scan failed at the following address: %d\n", address);
     }
 
     if (wait_for_mbus() == -1)
@@ -204,11 +208,13 @@ mbus_scan_primary_all()
 
     int response = mbus_receive_ack();
 
+    clock_delay_msec(3);
+
     if (response == MBUS_ANSWER_ACK)
     {
-      printf("M-Bus device at %x has sent an ACK.", address);
+      printf("M-Bus device at %d has sent an ACK.\n\n", address);
     } else {
-      printf("No M-Bus device found at the address %d", address);
+      printf("No M-Bus device found at the address %d\n", address);
     }
 
     watchdog_periodic();
@@ -222,6 +228,7 @@ int
 mbus_scan_secondary_all()
 {
   //to be added later
+  return 1;
 }
 
 
@@ -246,6 +253,7 @@ mbus_send_data_request(int address)
     usart1_tx(&frame[i], 1);
     // change usart1_tx later to usart1_tx(&buff[i]);
   }
+  return 1;
 }
 
 
@@ -288,7 +296,7 @@ mbus_request_data_at_primary_address(int address, uint16_t *data)
   uint16_t received_data[MBUS_FRAME_SIZE_LONG];
   memset((void *)received_data, 0, sizeof(received_data));
 
-  int response = mbus_receive_long(&received_data);
+  mbus_receive_long(received_data);
 
   for (int i = 0; i < MBUS_FRAME_SIZE_LONG; i++)
   {
@@ -358,7 +366,7 @@ mbus_set_primary_address(int address, int new_address)
   if (response == MBUS_ANSWER_ACK)
   {
     printf("Control frame sent successfully.\n");
-    printf("M-Bus device at %x has sent an ACK.\n", address);
+    printf("M-Bus device at %d has sent an ACK.\n", address);
   } else {
     printf("No M-Bus device found at the address %d.\n", address);
   }
@@ -419,7 +427,7 @@ mbus_switch_baudrate(int address, int baudrate)
   if (response == MBUS_ANSWER_ACK)
   {
     printf("Baudrate change control frame sent successfully.\n");
-    printf("M-Bus device at %x has sent an ACK.\n", address);
+    printf("M-Bus device at %d has sent an ACK.\n", address);
   } else {
     printf("No response from the M-Bus device at the address %d.\n", address);
   }
@@ -435,158 +443,159 @@ int
 mbus_send_custom_message(uint8_t *message, int reply_type)
 {
   // fill later
-}
-
-
-
-char *
-str_data_combiner(char *text, uint8_t value)
-{
-  char str[64];
-  char data[16];
-  sprintf(data, "%d", value);
-  strcpy(str, text);
-  strcat(str, data);
-  return str;
-}
-
-
-char *
-str_combiner(char *str1, char *str2)
-{
-  char str[64];
-  strcpy(str, str1);
-  strcat(str, str2);
-  return str;
-}
-
-
-// THIS IS SO BROKEN
-
-// before calling the function should declare a const char *text_data[144];
-int
-mbus_parse_data_kamstrup_2101(uint8_t *data, char **text_data)
-{
-  // strings are hard in C :(
-  char tmp_str[64];
-  uint16_t tmp = 0;
-  uint16_t tmp2 = 0;
-
-  if (data[0] != 0x68 || data[1] != 0x8A || data[2] != 0x8A || data[3] != 0x68)
-  {
-    printf("The frame is incorrect.\n");
-    return -1;
-  }
-
-
-
-  // checksum check
-  // implement later
-
-
-
-  text_data[4] = str_data_combiner("Control field: ",data[4]);
-  text_data[5] = str_data_combiner("Primary address: ",data[5]);
-  text_data[6] = str_data_combiner("CI field: ",data[6]);
-  text_data[7] = str_data_combiner(str_data_combiner(str_data_combiner(
-       str_data_combiner("ID number: ", data[7]), data[8]), data[9]), data[10]);
-  // ^^^ wrong
-
-
-  tmp = data[11] + (data[12] << 8);
-  text_data[11] = str_data_combiner("Manufacturer ID: ", tmp);
-
-  text_data[13] = str_data_combiner("Version ID: ", data[13]);
-  text_data[14] = str_data_combiner("Device ID: ", data[14]);
-  text_data[15] = str_data_combiner("Number of accesses: ", data[15]);
-  text_data[16] = str_data_combiner("Status field: ", data[16]);
-
-  tmp = data[17] + (data[18] << 8);
-  text_data[17] = str_data_combiner("Config (not used): ", tmp);
-
-  // tmp = data[21] + (data[22] << 8);
-  // tmp2 = data[23] + (data[24] << 8);
-  // text_data[21] = str_data_combiner(
-  //                 str_data_combiner("Volume (m3, 3 decimals): ", tmp), tmp2);
-  //
-  // tmp = data[28] + (data[29] << 8);
-  // tmp2 = data[30] + (data[31] << 8);
-  // text_data[28] = str_data_combiner(
-  //                 str_data_combiner("Volume Reverse (m3, 3 decimals): ", tmp), tmp2);
-  //
-  // tmp = data[34] + (data[35] << 8);
-  // tmp2 = data[36] + (data[37] << 8);
-  // text_data[34] = str_data_combiner(
-  //                 str_data_combiner("Power on (in hours): ", tmp), tmp2);
-
-  tmp = data[40] + (data[41] << 8);
-  text_data[40] = str_data_combiner("Flow (in l/h): ", tmp);
-
-  text_data[44] = str_data_combiner("Media temperature (in C): ", data[44]);
-
-  text_data[47] = str_data_combiner("Ambient temperature (in C): ", data[47]);
-
-  tmp = data[50] + (data[51] << 8);
-  text_data[50] = str_data_combiner("Flow MIN (in l/h): ", tmp);
-
-  tmp = data[54] + (data[55] << 8);
-  text_data[54] = str_data_combiner("Flow MAX (in l/h): ", tmp);
-
-  text_data[58] = str_data_combiner("Media temperature MIN (in C): ", data[58]);
-
-  text_data[63] = str_data_combiner("Media temperature AVG (in C, Kamstrup specific): ", data[63]);
-
-  text_data[66] = str_data_combiner("Ambient temperature MIN (in C): ", data[66]);
-
-  text_data[69] = str_data_combiner("Ambient temperature MAX (in C): ", data[69]);
-
-  text_data[74] = str_data_combiner("Ambient temperature AVG (in C): ", data[74]);
-
-  // time stamp is weird
-  // tmp = data[21] + (data[22] << 8);
-  // tmp2 = data[23] + (data[24] << 8);
-  // text_data[21] = str_data_combiner(
-  //                 str_data_combiner("Date and Time: ", tmp), tmp2);
-
-  // tmp = data[83] + (data[84] << 8);
-  // tmp2 = data[85] + (data[86] << 8);
-  // text_data[83] = str_data_combiner("V1 Target (m3, 3 decimals): ", data[83]);
-
-
-
-
-  tmp = data[89] + (data[90] << 8);
-  text_data[89] = str_data_combiner("Flow MIN Month (in l/h): ", tmp);
-
-  tmp = data[93] + (data[94] << 8);
-  text_data[93] = str_data_combiner("Flow MAX Month (in l/h): ", tmp);
-
-  text_data[97] = str_data_combiner("Media temperature MIN Month (in C): ", data[97]);
-
-  text_data[102] = str_data_combiner("Media Ambient temperature AVG Month (in C): ", data[102]);
-
-  text_data[105] = str_data_combiner("Media Ambient temperature MIN Month (in C): ", data[105]);
-
-  text_data[108] = str_data_combiner("Media Ambient temperature MAX Month (in C): ", data[108]);
-
-  text_data[113] = str_data_combiner("Ambient temperature AVG Month (in C): ", data[108]);
-
-  // target date skip
-
-
-  tmp = data[121] + (data[122] << 8);
-  text_data[121] = str_data_combiner("Info codes (Kamstrup): ", tmp);
-
-  // config number skip
-
-
-  tmp = data[135] + (data[136] << 8);
-  text_data[135] = str_data_combiner("Meter type (Kamstrup): ", tmp);
-
-  tmp = data[140] + (data[141] << 8);
-  text_data[140] = str_data_combiner("Software revision (Kamstrup): ", tmp);
-
-  tmp = 0;
-
   return 1;
 }
+
+
+//
+// char *
+// str_data_combiner(char *text, uint8_t value)
+// {
+//   char str[64];
+//   char data[16];
+//   sprintf(data, "%d", value);
+//   strcpy(str, text);
+//   strcat(str, data);
+//   return str;
+// }
+//
+//
+// char *
+// str_combiner(char *str1, char *str2)
+// {
+//   char str[64];
+//   strcpy(str, str1);
+//   strcat(str, str2);
+//   return str;
+// }
+//
+//
+// // THIS IS SO BROKEN
+//
+// // before calling the function should declare a const char *text_data[144];
+// int
+// mbus_parse_data_kamstrup_2101(uint8_t *data, char **text_data)
+// {
+//   // strings are hard in C :(
+//   char tmp_str[64];
+//   uint16_t tmp = 0;
+//   uint16_t tmp2 = 0;
+//
+//   if (data[0] != 0x68 || data[1] != 0x8A || data[2] != 0x8A || data[3] != 0x68)
+//   {
+//     printf("The frame is incorrect.\n");
+//     return -1;
+//   }
+//
+//
+//
+//   // checksum check
+//   // implement later
+//
+//
+//
+//   text_data[4] = str_data_combiner("Control field: ",data[4]);
+//   text_data[5] = str_data_combiner("Primary address: ",data[5]);
+//   text_data[6] = str_data_combiner("CI field: ",data[6]);
+//   text_data[7] = str_data_combiner(str_data_combiner(str_data_combiner(
+//        str_data_combiner("ID number: ", data[7]), data[8]), data[9]), data[10]);
+//   // ^^^ wrong
+//
+//
+//   tmp = data[11] + (data[12] << 8);
+//   text_data[11] = str_data_combiner("Manufacturer ID: ", tmp);
+//
+//   text_data[13] = str_data_combiner("Version ID: ", data[13]);
+//   text_data[14] = str_data_combiner("Device ID: ", data[14]);
+//   text_data[15] = str_data_combiner("Number of accesses: ", data[15]);
+//   text_data[16] = str_data_combiner("Status field: ", data[16]);
+//
+//   tmp = data[17] + (data[18] << 8);
+//   text_data[17] = str_data_combiner("Config (not used): ", tmp);
+//
+//   // tmp = data[21] + (data[22] << 8);
+//   // tmp2 = data[23] + (data[24] << 8);
+//   // text_data[21] = str_data_combiner(
+//   //                 str_data_combiner("Volume (m3, 3 decimals): ", tmp), tmp2);
+//   //
+//   // tmp = data[28] + (data[29] << 8);
+//   // tmp2 = data[30] + (data[31] << 8);
+//   // text_data[28] = str_data_combiner(
+//   //                 str_data_combiner("Volume Reverse (m3, 3 decimals): ", tmp), tmp2);
+//   //
+//   // tmp = data[34] + (data[35] << 8);
+//   // tmp2 = data[36] + (data[37] << 8);
+//   // text_data[34] = str_data_combiner(
+//   //                 str_data_combiner("Power on (in hours): ", tmp), tmp2);
+//
+//   tmp = data[40] + (data[41] << 8);
+//   text_data[40] = str_data_combiner("Flow (in l/h): ", tmp);
+//
+//   text_data[44] = str_data_combiner("Media temperature (in C): ", data[44]);
+//
+//   text_data[47] = str_data_combiner("Ambient temperature (in C): ", data[47]);
+//
+//   tmp = data[50] + (data[51] << 8);
+//   text_data[50] = str_data_combiner("Flow MIN (in l/h): ", tmp);
+//
+//   tmp = data[54] + (data[55] << 8);
+//   text_data[54] = str_data_combiner("Flow MAX (in l/h): ", tmp);
+//
+//   text_data[58] = str_data_combiner("Media temperature MIN (in C): ", data[58]);
+//
+//   text_data[63] = str_data_combiner("Media temperature AVG (in C, Kamstrup specific): ", data[63]);
+//
+//   text_data[66] = str_data_combiner("Ambient temperature MIN (in C): ", data[66]);
+//
+//   text_data[69] = str_data_combiner("Ambient temperature MAX (in C): ", data[69]);
+//
+//   text_data[74] = str_data_combiner("Ambient temperature AVG (in C): ", data[74]);
+//
+//   // time stamp is weird
+//   // tmp = data[21] + (data[22] << 8);
+//   // tmp2 = data[23] + (data[24] << 8);
+//   // text_data[21] = str_data_combiner(
+//   //                 str_data_combiner("Date and Time: ", tmp), tmp2);
+//
+//   // tmp = data[83] + (data[84] << 8);
+//   // tmp2 = data[85] + (data[86] << 8);
+//   // text_data[83] = str_data_combiner("V1 Target (m3, 3 decimals): ", data[83]);
+//
+//
+//
+//
+//   tmp = data[89] + (data[90] << 8);
+//   text_data[89] = str_data_combiner("Flow MIN Month (in l/h): ", tmp);
+//
+//   tmp = data[93] + (data[94] << 8);
+//   text_data[93] = str_data_combiner("Flow MAX Month (in l/h): ", tmp);
+//
+//   text_data[97] = str_data_combiner("Media temperature MIN Month (in C): ", data[97]);
+//
+//   text_data[102] = str_data_combiner("Media Ambient temperature AVG Month (in C): ", data[102]);
+//
+//   text_data[105] = str_data_combiner("Media Ambient temperature MIN Month (in C): ", data[105]);
+//
+//   text_data[108] = str_data_combiner("Media Ambient temperature MAX Month (in C): ", data[108]);
+//
+//   text_data[113] = str_data_combiner("Ambient temperature AVG Month (in C): ", data[108]);
+//
+//   // target date skip
+//
+//
+//   tmp = data[121] + (data[122] << 8);
+//   text_data[121] = str_data_combiner("Info codes (Kamstrup): ", tmp);
+//
+//   // config number skip
+//
+//
+//   tmp = data[135] + (data[136] << 8);
+//   text_data[135] = str_data_combiner("Meter type (Kamstrup): ", tmp);
+//
+//   tmp = data[140] + (data[141] << 8);
+//   text_data[140] = str_data_combiner("Software revision (Kamstrup): ", tmp);
+//
+//   tmp = 0;
+//
+//   return 1;
+// }
