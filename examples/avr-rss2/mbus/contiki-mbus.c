@@ -575,6 +575,7 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
   tmp = data[121] + (data[122] << 8);
   str_data_combiner("Info codes (Kamstrup): ", tmp, text_data[32]);
 
+  //uint64_t tmp2 = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24) + ((uint64_t) data[130] << 32) + ((uint64_t) data[131] << 40);
   tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
   str_data_combiner("Config number (Kamstrup): ", tmp, text_data[33]);
 
