@@ -45,6 +45,7 @@
 #include "adc.h"
 #include "dev/leds.h"
 #include "usart1.h"
+#include "dev/watchdog.h"
 //#include "mbus_library/mbus.h"
 //#include "mbus_library/functions/mbus-serial-scan.h"
 //#include "mbus_library/functions/mbus-serial-request-data.h"
@@ -108,18 +109,43 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
     //mbus_scan();
     leds_on(LEDS_YELLOW);
 
-    mbus_scan_primary_at_address(67);
+    //mbus_scan_primary_at_address(67);
     //mbus_scan_primary_all();
-    // uint16_t data[144];
-    // memset(data, 0, sizeof(data));
-    // mbus_request_data_at_primary_address(67, data);
-    // printf("\n");
-    // for (int i = 0; i < 144; i++) {
-    //   printf("%0X ", data[i]);
-    //   if ((i+1) % 32 == 0) {
-    //     printf("\n");
-    //   }
-    // }
+
+
+
+    //-------------
+    uint16_t data[144];
+    memset(data, 0, sizeof(data));
+    mbus_request_data_at_primary_address(67, data);
+    printf("\n");
+    for (int i = 0; i < 144; i++) {
+      printf("%0X ", data[i]);
+      if ((i+1) % 32 == 0) {
+        printf("\n");
+      }
+    }
+
+    printf("\n");
+
+    watchdog_periodic();
+
+    char text_data[144][64];
+    //memset(text_data, 0, sizeof(text_data));
+
+    for (int i = 0; i < 144; i++) {
+      memset(text_data[i], 0, sizeof(text_data[i]));
+    }
+
+    mbus_parse_data_kamstrup_2101(data, text_data);
+
+
+    for (int i = 0; i < 36; i++)
+    {
+      printf("%s\n", text_data[i]);
+    }
+    //-------------
+
     //mbus_switch_baudrate(67, 2400);
     // mbus_scan_primary_at_address(67);
     //

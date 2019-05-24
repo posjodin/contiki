@@ -30,8 +30,8 @@ int mbus_switch_baudrate(int address, int baudrate);
 
 // send custom message
 
-char *str_data_combiner(char *text, uint8_t value);
+int str_data_combiner(char *text, uint16_t value, char **text_data);
 
 char *str_combiner(char *str1, char *str2);
 
-int mbus_parse_data_kamstrup_2101(uint8_t *data, char **text_data);
+int mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64]);
