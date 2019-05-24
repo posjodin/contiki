@@ -49,6 +49,8 @@
 #include "mbus_library/functions/mbus-serial-scan.h"
 #include "mbus_library/functions/mbus-serial-request-data.h"
 
+#include "contiki-mbus.h"
+
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_mbus_process, "Hello mbus process");
 AUTOSTART_PROCESSES(&hello_mbus_process);
