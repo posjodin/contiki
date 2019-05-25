@@ -53,13 +53,20 @@
 //#define CHANNEL_CONF_802_15_4 26
 #define RPL_CONF_WITH_DAO_ACK 1
 
-#define NETSTACK_CONF_RDC nullrdc_driver
-#define NETSTACK_CONF_MAC nullmac_driver
 
 #define NETSTACK_CONF_FRAMER      framer_802154
 #define NETSTACK_CONF_RADIO       rf230_driver
 
-#define COAP_CONF_PUBLISH_INTERVAL  (3 * CLOCK_SECOND)
+#define RDC NORDC
+#define NETSTACK_CONF_RDC nullrdc_driver
+#define NETSTACK_CONF_MAC nullmac_driver
+
+//#define RDC CONTIKIMAC
+//#define NETSTACK_CONF_MAC         csma_driver
+//#define NETSTACK_CONF_RDC         contikimac_driver
+//#define NETSTACK_CONF_RDC_CHANNEL_CHECK_RATE 8
+
+#define COAP_CONF_PUBLISH_INTERVAL  (10 * CLOCK_SECOND)
 
 /* The observer URL length needs to be set long enough to conation the topic URL. */
 /* This needs to be set in /apps/er-coap/er-coap-observe.h for the time being. */
