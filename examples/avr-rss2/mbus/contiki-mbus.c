@@ -1,8 +1,4 @@
-#include <sys/types.h>
-//#include <sys/stat.h>
-#include <fcntl.h>
 #include "sys/etimer.h"
-#include "dev/leds.h"
 #include <unistd.h>
 #include <string.h>
 #include "dev/watchdog.h"
@@ -12,7 +8,6 @@
 #include "usart1.h"
 
 
-#include "dev/leds.h"
 /*
 TODO list:
 
@@ -134,8 +129,7 @@ mbus_ping_frame(int address)
                                           address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
-      usart1_tx(&frame[i], 1);
-      // change usart1_tx later to usart1_tx(&buff[i]);
+      usart1_tx(&frame[i]);
     }
   return 1;
 }
@@ -148,15 +142,8 @@ mbus_receive_ack()
   int response = 0;
   uint16_t buff[1];
 
-  usart1_rx(buff, 1);
-  // might act wrong is a situation where for example at address 67 there is an
-  // mbus device, but at the address 68 there isnt, but it still sees a E5 there
-
+  usart1_rx(buff);
   response = buff[0];
-  //usart_input_byte(0);
-  //ringbuf16_put(&rxbuf, 0);
-  // ^ this might solve the issue above by writing a 0 to the buffer right after
-  // we got the ACK
 
   return response;
 }
@@ -196,7 +183,6 @@ mbus_scan_primary_all()
   int address = 0;
   for (address = 0; address <= 250; address++)
   {
-    leds_toggle(LEDS_YELLOW);
     int result = mbus_ping_frame(address);
     if (result == -1)
     {
@@ -250,8 +236,7 @@ mbus_send_data_request(int address)
                                           address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
-    usart1_tx(&frame[i], 1);
-    // change usart1_tx later to usart1_tx(&buff[i]);
+    usart1_tx(&frame[i]);
   }
   return 1;
 }
@@ -263,16 +248,11 @@ mbus_receive_long(uint16_t *data)
 {
   uint16_t buff[MBUS_FRAME_SIZE_LONG]; // can be 0?
   memset((void *)buff, 0, sizeof(buff));
-  //uint16_t buff2[MBUS_FRAME_SIZE_LONG];
-  //memset((void *)buff2, 0, sizeof(buff2));
 
   for (int i = 0; i < MBUS_FRAME_SIZE_LONG; i++) {
-     usart1_rx(buff, 1);
+     usart1_rx(buff);
      data[i] = buff[0];     // buff[0] is it really correct? should be &buff
-     //buff2[i] = buff[0];
   }
-
-  //data = buff2;
 
   return 1;
 }
@@ -334,8 +314,7 @@ mbus_send_address_change(int address, int new_address)
                       new_address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < 12; i++) {
-      usart1_tx(&frame[i], 1);
-      // change usart1_tx later to usart1_tx(&buff[i]);
+      usart1_tx(&frame[i]);
     }
   return 1;
 }
@@ -400,8 +379,7 @@ mbus_send_frame_switch_baudrate(int address, int baudrate)
                       0x68, control, address, baudrate, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < 9; i++) {
-      usart1_tx(&frame[i], 1);
-      // change usart1_tx later to usart1_tx(&buff[i]);
+      usart1_tx(&frame[i]);
     }
   return 1;
 }
@@ -451,31 +429,17 @@ mbus_send_custom_message(uint8_t *message, int reply_type)
 int
 str_data_combiner(char *text, uint16_t value, char *text_data)
 {
-  //char data[16];
-  sprintf(text_data, "%s %d", text, value);
-  // printf("Some: %d\n", some);
-  // printf("Some: %s\n", text);
-  // printf("Some: %s\n", text_data);
-  // strcpy(text_data, text);
-  // printf("4\n");
-  // strcat(text_data, data);
+  sprintf(text_data, "%s%d", text, value);
   return 1;
 }
 
+int
+str_data_combiner_id(char *text, uint16_t value1, uint16_t value2, uint16_t value3, uint16_t value4, char *text_data)
+{
+  sprintf(text_data, "%s%x%x%x%x", text, value4, value3, value2, value1);
+  return 1;
+}
 
-// char *
-// str_combiner(char *str1, char *str2)
-// {
-//   char str[64];
-//   strcpy(str, str1);
-//   strcat(str, str2);
-//   return str;
-// }
-
-
-// THIS IS SO BROKEN
-
-// before calling the function should declare a const char *text_data[144];
 int
 mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
 {
@@ -497,10 +461,14 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
 
   str_data_combiner("Primary address: ",data[5], text_data[1]);
   str_data_combiner("CI field: ",data[6], text_data[2]);
+
   // str_data_combiner(str_data_combiner(str_data_combiner(
   //      str_data_combiner("ID number: ", data[10], text_data[7]), data[9],
   //      text_data[7]), data[8], text_data[7]), data[7], text_data[7]);
-  // ^^^ wrong
+
+  str_data_combiner_id("ID number: ",data[7], data[8], data[9], data[10], text_data[36]);
+
+
 
 
   tmp = data[11] + (data[12] << 8);
@@ -575,7 +543,6 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
   tmp = data[121] + (data[122] << 8);
   str_data_combiner("Info codes (Kamstrup): ", tmp, text_data[32]);
 
-  //uint64_t tmp2 = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24) + ((uint64_t) data[130] << 32) + ((uint64_t) data[131] << 40);
   tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
   str_data_combiner("Config number (Kamstrup): ", tmp, text_data[33]);
 

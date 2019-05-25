@@ -46,11 +46,8 @@
 #include "dev/leds.h"
 #include "usart1.h"
 #include "dev/watchdog.h"
-//#include "mbus_library/mbus.h"
-//#include "mbus_library/functions/mbus-serial-scan.h"
-//#include "mbus_library/functions/mbus-serial-request-data.h"
-
 #include "contiki-mbus.h"
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_mbus_process, "Hello mbus process");
@@ -58,30 +55,7 @@ AUTOSTART_PROCESSES(&hello_mbus_process);
 
 static struct etimer et;
 
-void
-mbus_local_scan(void)
-{
-  uint8_t frame[5] = {0x10, 0x40, 0x43, 0x83, 0x16};
 
-  int i = 0;
-  for (i = 0; i < 5; i++) {
-    usart1_tx(&frame[i], 1);
-  }
-}
-
-
-
-// static void
-// read_values(void)
-// {
-//   uint8_t buf[1];
-//   memset(buf, 0, sizeof(buf));
-//
-//   int check = usart1_rx(buf, 1);
-//   if (check == 1) {
-//       printf("buf = %x\n", (uint8_t) buf[0]);
-//   }
-// }
 
 
 
@@ -100,17 +74,15 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
    * Delay 1/2 sec
    */
 
-  etimer_set(&et, CLOCK_SECOND*10);
+  etimer_set(&et, CLOCK_SECOND*5);
   while(1) {
     PROCESS_YIELD();
 
-    //mbus_serial_request_data();
-    //mbus_local_scan();
-    //mbus_scan();
-    leds_on(LEDS_YELLOW);
+    leds_toggle(LEDS_YELLOW);
 
     //mbus_scan_primary_at_address(67);
     //mbus_scan_primary_all();
+
 
 
 
@@ -140,20 +112,23 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
     mbus_parse_data_kamstrup_2101(data, text_data);
 
 
-    for (int i = 0; i < 36; i++)
+    for (int i = 0; i < 37; i++)
     {
       printf("%s\n", text_data[i]);
     }
     //-------------
 
-    //mbus_switch_baudrate(67, 2400);
+    // mbus_switch_baudrate(67, 2400);
     // mbus_scan_primary_at_address(67);
-    //
+    // //
+    // mbus_set_primary_address(67, 100);
+    // mbus_scan_primary_at_address(67);
+    // mbus_scan_primary_at_address(100);
     // mbus_set_primary_address(100, 67);
     // mbus_scan_primary_at_address(67);
 
+
     etimer_reset(&et);
-    //read_values();
   }
 
   PROCESS_END();

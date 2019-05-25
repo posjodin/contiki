@@ -52,9 +52,6 @@
 #define BUFSIZE 256
 struct ringbuf16 rxbuf;
 uint16_t rxbuf_data[BUFSIZE];
-// struct ringbuf16 rxbuf2;
-// uint8_t rxbuf_data2[16];
-// int rxbuf2counter = 0;
 uint8_t usart = RS232_PORT_1;
 
 
@@ -63,85 +60,24 @@ uint8_t usart = RS232_PORT_1;
 int
 usart_input_byte(unsigned char c)
 {
-  // if (kek < 128) {
-  //   ringbuf_put(&rxbuf, c);
-  // } else {
-  //   if (kek < 144) {
-  //     ringbuf_put(&rxbuf2, c);
-  //   } else {
-  //     ringbuf_put(&rxbuf, c);
-  //     kek = 0;
-  //   }
-  // }
-
-
   ringbuf16_put(&rxbuf, c);
-  //kek++;
   return 1;
 }
 
-// static int
-// usart_input_byte(unsigned char c)
-// {
-//   static uint8_t overflow = 0; /* Buffer overflow: ignore until END */
-//
-//   if(!overflow) {
-//     /* Add character */
-//     kek++;
-//     if(ringbuf_put(&rxbuf, c) == 0) {
-//       printf("%d", kek);
-//
-//       /* Buffer overflow: ignore the rest of the line */
-//       ringbuf_put(&rxbuf2, c);
-//       rxbuf2counter++;
-//       overflow = 1;
-//     }
-//   } else {
-//     //printf("OVERFLOW!\n");
-//     /* Buffer overflowed:
-//      * Only (try to) add terminator characters, otherwise skip */
-//      if (rxbuf2counter == 16) {
-//        overflow = 0;
-//        rxbuf2counter = 0;
-//        ringbuf_put(&rxbuf, c);
-//        return 1;
-//      }
-//
-//      if(ringbuf_put(&rxbuf2, c) == 0) {
-//
-//        ringbuf_put(&rxbuf, c);
-//        overflow = 0;
-//        rxbuf2counter = 0;
-//      }
-//      else {
-//        rxbuf2counter++;
-//      }
-//
-//     // if(c == END && ringbuf_put(&rxbuf, c) != 0) {
-//     //   overflow = 0;
-//     // }
-//     }
-//   return 1;
-// }
 
 /*---------------------------------------------------------------------------*/
 void
 usart1_init() {
   ringbuf16_init(&rxbuf, rxbuf_data, sizeof(rxbuf_data));
-  //ringbuf16_init(&rxbuf2, rxbuf_data2, sizeof(rxbuf_data2));
   rs232_set_input(usart, usart_input_byte);
 }
 
 /*---------------------------------------------------------------------------*/
 size_t
-usart1_rx(uint16_t *buf, size_t len) {
+usart1_rx(uint16_t *buf) {
   int c;
 
   c = ringbuf16_get(&rxbuf);
-
-  // if (c == -1) {
-  //   c = ringbuf16_get(&rxbuf2);
-  // }
 
   if (c == -1)
     return 0;
@@ -150,7 +86,7 @@ usart1_rx(uint16_t *buf, size_t len) {
 }
 /*---------------------------------------------------------------------------*/
 size_t
-usart1_tx(uint8_t *buf, size_t len) {
+usart1_tx(uint8_t *buf) {
   uint8_t p = *buf;
   rs232_send(usart, p);
   return 1;
