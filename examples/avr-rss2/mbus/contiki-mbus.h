@@ -1,35 +1,39 @@
 #include "usart1.h"
 
-//int wait_for_mbus(void);
-
-//int mbus_verify_frame(uint16_t *data, int reply_type);
-
-//int mbus_ping_frame(int address);
-
-//int mbus_receive_ack();
-
+/*
+ * Request an ACK from a slave at param address
+*/
 int mbus_scan_primary_at_address(int address);
 
+/*
+ * Scan entire address space for M-Bus devices
+*/
 int mbus_scan_primary_all();
 
-// secondary scan
-
-//int mbus_send_data_request(int address);
-
-//int mbus_receive_long(uint16_t *data);
-
+/*
+ * Request data (long frame) from slave at param address,
+ * requires an empty array of string to where the data is stored.
+ * Has to be char data[144][64]
+*/
 int mbus_request_data_at_primary_address(int address, uint16_t *data);
 
-//int mbus_send_address_change(int address, int new_address);
-
+/*
+ * Set or change the primary address of a M-Bus slave
+*/
 int mbus_set_primary_address(int address, int new_address);
 
-//int mbus_send_frame_switch_baudrate(int address, int baudrate);
-
+/*
+ * Change the baud rate of M-Bus slave. Baud rate can be 300, 2400 or 9600.
+ * The slave returns an ACK (0xE5) for a successful change at the previous baudrate.
+ * In the future the baud rate for communication will be changed.
+ * Note: Kamstrup 2101 supports auto baud rate detection. It will return an ACK,
+ * but the baud rate will not be set.
+*/
 int mbus_switch_baudrate(int address, int baudrate);
 
-// send custom message
-
-//int str_data_combiner(char *text, uint16_t value, char **text_data);
-
+/*
+ * Functon for parsing the data received from the long frame.
+ * Can be used after mbus_request_data_at_primary_address();
+ * Specific for Kamstrup 2101
+*/
 int mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64]);

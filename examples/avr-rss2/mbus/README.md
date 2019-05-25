@@ -1,31 +1,49 @@
-Hello-mbus
-==========
+# Contiki M-Bus
 
-WIP.
+M-Bus library for contiki, adapted for platform avr-rss2.
 
-Simple mbus demo from the RSS2 mote.
-Example uses for usart1 at 300 BUAD
+## Getting Started
 
-Test slave with pattern
------------------------
-Waveform test. Voltage at least 25V. Power supply pullup 470 OHM
-for both VCC and GND.
+### Prerequisites
 
-buf[0] = 0b10101010;
-usart1_tx(buf, 1);
-  
-clock_delay_usec(100);
-
-buf[0] = 0b01010101;
-usart1_tx(buf, 1);
-
-Result captured on a oscilloscope
----------------------------------
-mbus-1.png mbus-slave-test-1.png
+Will need to install the following software before proceeding:
+avrdude command line tool to flash the sensor node
+minicom to see the output from the sensor node
 
 
-Build
------
+```
+apt-get install gcc-avr avr-libc avrdude
+apt-get install minicom
+
+```
+
+### Installing
+
+After 'make', press the RESET button, and run the second command.
+
+```
 make TARGET=avr-rss2
 
+Flashing commnad line example 256k MCU: avrdude -p m256rfr2 -c stk500v2 -P /dev/ttyUSB0 -b 115200 -e -U flash:w:hello-mbus.avr-rss2
+```
 
+Tested at 9600 baud, can be changed in the conf file
+
+```
+#define USART1_CONF_BAUD_RATE   USART_BAUD_9600
+```
+
+Examples: Received long frame
+
+## Deployment
+
+Needs M-Bus Master board to be connected to the sensor node and the water meter. Schematic for a generic M-Bus master can be found on [libmbus](https://github.com/rscada/libmbus/blob/master/hardware/MBus_USB.pdf)
+
+## Authors
+
+* **Albert Asratyan** - *Initial work* - [Goradux](https://github.com/goradux)
+* **Mandar Joshi** - *Initial work* - [mandaryoshi](https://github.com/mandaryoshi)
+
+## Acknowledgments
+
+* [libmbus](https://github.com/rscada/libmbus) open source linux library from Raditex Control (rscada)
