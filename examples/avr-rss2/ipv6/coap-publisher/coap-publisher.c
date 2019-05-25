@@ -54,6 +54,7 @@
 #include "dev/bme680/bme680-sensor.h"
 #include "dev/pms5003/pms5003.h"
 #include "dev/pms5003/pms5003-sensor.h"
+#include "dev/light-sensor.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -80,7 +81,7 @@ PROCESS(coap_client, "CoAP publisher client");
 AUTOSTART_PROCESSES(&coap_client);
 
 static broker_t broker;
-static client_topic_t topic_dir, topic_bme, topic_pm;
+static client_topic_t topic_dir, topic_bme, topic_pm, topic_light;
 static uint8_t content_buffer[128];
 static struct etimer publish_timer;
 static char *buf_ptr;
@@ -99,11 +100,15 @@ PROCESS_THREAD(coap_client, ev, data)
     SENSORS_ACTIVATE(bme680_sensor);
   }
 
-  SENSORS_ACTIVATE(pms5003_sensor);
-
+  if( i2c_probed & I2C_PMS5003 ) {
+    SENSORS_ACTIVATE(pms5003_sensor);
+  }
+ 
   topic_dir.broker = &broker;
   topic_bme.broker = &broker;
   topic_pm.broker = &broker;
+  topic_light.broker = &broker;
+
   broker.port = UIP_HTONS(COAP_DEFAULT_PORT);
 
   /* convert the to a numeric IPv6 address */
@@ -121,20 +126,31 @@ PROCESS_THREAD(coap_client, ev, data)
   topic_pm.content = (uint8_t *)&content_buffer;
   topic_pm.max_age = COAP_MAX_AGE;
 
+  topic_light.content_type = 0;
+  topic_light.content = (uint8_t *)&content_buffer;
+  topic_light.max_age = COAP_MAX_AGE/2;
+
   for(i = 0; i < 8; i++) {
     sprintf(((char *)&topic_dir.url) + 2 * i * sizeof(char), "%02x", uip_lladdr.addr[i]);
   }
   strncat((char *)&topic_dir.url, "/", 1);
   PRINTF("Node-ID=%s\n", topic_dir.url);
 
-  strcpy(topic_bme.url, topic_dir.url);
-  //sprintf(((char *)&topic_bme.url) + strlen(topic_dir.url) * sizeof(char), "bmetrhp/");
-  sprintf(((char *)&topic_bme.url) + strlen(topic_dir.url) * sizeof(char), "topic1/");
-  PRINTF("BME topic url = %s\n", topic_bme.url);
+  strcpy(topic_light.url, topic_dir.url);
+  sprintf(((char *)&topic_light.url) + strlen(topic_dir.url) * sizeof(char), "light/");
+  PRINTF("light topic url = %s\n", topic_light.url);
 
-  strcpy(topic_pm.url, topic_dir.url);
-  sprintf(((char *)&topic_pm.url) + strlen(topic_dir.url) * sizeof(char), "pm/");
-  PRINTF("PM topic url = %s\n", topic_pm.url);
+  if(i2c_probed & I2C_BME280 ) {
+    strcpy(topic_bme.url, topic_dir.url);
+    sprintf(((char *)&topic_bme.url) + strlen(topic_dir.url) * sizeof(char), "T_RH_P/");
+    PRINTF("T_RH_P topic url = %s\n", topic_bme.url);
+  }
+
+  if(i2c_probed & I2C_PMS5003 ) {
+    strcpy(topic_pm.url, topic_dir.url);
+    sprintf(((char *)&topic_pm.url) + strlen(topic_dir.url) * sizeof(char), "pm/");
+    PRINTF("PM topic url = %s\n", topic_pm.url);
+  }
 
 #ifdef COAP_CONF_PUBLISH_INTERVAL
   etimer_set(&publish_timer, COAP_CONF_PUBLISH_INTERVAL);
@@ -161,36 +177,55 @@ PROCESS_THREAD(coap_client, ev, data)
 	
 	if(strlen(broker.base_url) > 1){
 	  PRINTF("Broker function set at: %s\n", broker.base_url);
-	  PRINTF("CREATE dir topic\n");
+
 	  COAP_PUBSUB_CREATE(&topic_dir);
-	  PRINTF("CREATE topic_dir_url=%s\n", topic_dir.url);
-	  PRINTF("CREATE finished, return code %d\n", topic_dir.last_response_code);
+	  PRINTF("CREATE %s, return code %d\n", topic_dir.url, topic_dir.last_response_code);
 	  
 	  if(topic_dir.last_response_code == CREATED_2_01 
 	     || topic_dir.last_response_code == FORBIDDEN_4_03){
-	    PRINTF("Dir topic created\n");
 	    
-	    PRINTF("CREATE bmeerature topic\n");
-	    COAP_PUBSUB_CREATE(&topic_bme);
-	    PRINTF("CREATE topic_bme_url=%s\n", topic_bme.url);
-	    PRINTF("CREATE finished, return code %d\n", topic_bme.last_response_code);
-	    if(topic_bme.last_response_code == CREATED_2_01 
-	       || topic_bme.last_response_code == FORBIDDEN_4_03){
-	      PRINTF("Bmeerature topic created\n");
+	    COAP_PUBSUB_CREATE(&topic_light);
+	    PRINTF("CREATE %s, return code %d\n", topic_light.url, topic_light.last_response_code);
+	    if(topic_light.last_response_code == CREATED_2_01 
+	       || topic_light.last_response_code == FORBIDDEN_4_03){
 	      found_broker = 1;
 	    }
-	    PRINTF("CREATE PM topic\n");
-	    COAP_PUBSUB_CREATE(&topic_pm);
-	    PRINTF("CREATE finished, return code %d\n", topic_pm.last_response_code);
-	    if(topic_pm.last_response_code == CREATED_2_01 
-	       || topic_pm.last_response_code == FORBIDDEN_4_03){
-	      PRINTF("PM topic created\n");
-	      found_broker = 1;
+
+	    if(i2c_probed & I2C_BME280 ) {
+	      COAP_PUBSUB_CREATE(&topic_bme);
+	      PRINTF("CREATE %s, return code %d\n", topic_bme.url, topic_bme.last_response_code);
+	      if(topic_bme.last_response_code == CREATED_2_01 
+		 || topic_bme.last_response_code == FORBIDDEN_4_03){
+		found_broker = 1;
+	      }
+	    }
+
+	    if(i2c_probed & I2C_PMS5003 ) {
+	      COAP_PUBSUB_CREATE(&topic_pm);
+	      PRINTF("CREATE %s, return code %d\n", topic_pm.url, topic_pm.last_response_code);
+	      if(topic_pm.last_response_code == CREATED_2_01 
+		 || topic_pm.last_response_code == FORBIDDEN_4_03){
+		found_broker = 1;
+	      }
 	    }
 	  }
 	}
       }
+
       else {
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_light.content;
+	PUTFMT("%-u ",  light_sensor.value(0));
+
+	topic_light.content_len = strlen((char *)topic_light.content); 
+	PRINTF("PUBLISH LIGHT value %s, len %u\n", topic_light.content, topic_light.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_light);
+	PRINTF("PUBLISH finished, return code %d\n", topic_light.last_response_code );
+	if(topic_bme.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic LIGHT!\n");
+	  found_broker = 0;
+	}
+
 	if(0 && i2c_probed & I2C_BME680) {
 	  remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
 	  buf_ptr = (char *) topic_bme.content;
@@ -226,8 +261,9 @@ PROCESS_THREAD(coap_client, ev, data)
 	    PRINTF("No topic TEMP!\n");
 	    found_broker = 0;
 	  }
-	}       
-	if (pms5003_sensor.value(PMS5003_SENSOR_TIMESTAMP) != 0) {
+	}
+
+	if (i2c_probed & I2C_PMS5003 && pms5003_sensor.value(PMS5003_SENSOR_TIMESTAMP) != 0) {
 	  remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
 	  buf_ptr = (char *) topic_pm.content;
 	  PUTFMT("%d ", pms5003_sensor.value(PMS5003_SENSOR_PM1));
