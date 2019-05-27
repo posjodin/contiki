@@ -591,7 +591,7 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
   sprintf(text_data[2],"%ud", data[6]);
 
   tmp = data[11] + (data[12] << 8);
-  sprintf(text_data[3],"%ud", tmp);
+  sprintf(text_data[3],"%lud", tmp);
 
   sprintf(text_data[4],"%ud", data[13]);
   sprintf(text_data[5],"%ud", data[14]);
@@ -599,28 +599,28 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
   sprintf(text_data[7],"%ud", data[16]);
 
   tmp = data[17] + (data[18] << 8);
-  sprintf(text_data[8],"%ud", tmp);
+  sprintf(text_data[8],"%lud", tmp);
 
   tmp = (uint32_t) data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
-  sprintf(text_data[9],"%ud", tmp);
+  sprintf(text_data[9],"%lud", tmp);
 
   tmp =  data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
-  sprintf(text_data[10],"%ud", tmp);
+  sprintf(text_data[10],"%lud", tmp);
 
   tmp = data[34] + ((uint32_t) data[35] << 8) + ((uint32_t) data[36] << 16) + ((uint32_t) data[37] << 24);
-  sprintf(text_data[11],"%ud", tmp);
+  sprintf(text_data[11],"%lud", tmp);
 
   tmp = data[40] + (data[41] << 8);
-  sprintf(text_data[12],"%ud", tmp);
+  sprintf(text_data[12],"%lud", tmp);
 
   sprintf(text_data[13],"%ud", data[44]);
   sprintf(text_data[14],"%ud", data[47]);
 
   tmp = data[50] + (data[51] << 8);
-  sprintf(text_data[15],"%ud", tmp);
+  sprintf(text_data[15],"%lud", tmp);
 
   tmp = data[54] + (data[55] << 8);
-  sprintf(text_data[16],"%ud", tmp);
+  sprintf(text_data[16],"%lud", tmp);
 
   sprintf(text_data[17],"%ud", data[58]);
   sprintf(text_data[18],"%ud", data[63]);
@@ -629,16 +629,16 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
   sprintf(text_data[21],"%ud", data[74]);
 
   tmp = data[77] + ((uint32_t) data[78] << 8) + ((uint32_t) data[79] << 16) + ((uint32_t) data[80] << 24);
-  sprintf(text_data[22],"%ud", tmp);
+  sprintf(text_data[22],"%lud", tmp);
 
   tmp = data[83] + ((uint32_t) data[84] << 8) + ((uint32_t) data[85] << 16) + ((uint32_t) data[86] << 24);
-  sprintf(text_data[23],"%ud", tmp);
+  sprintf(text_data[23],"%lud", tmp);
 
   tmp = data[89] + (data[90] << 8);
-  sprintf(text_data[24],"%ud", tmp);
+  sprintf(text_data[24],"%lud", tmp);
 
   tmp = data[93] + (data[94] << 8);
-  sprintf(text_data[25],"%ud", tmp);
+  sprintf(text_data[25],"%lud", tmp);
 
   sprintf(text_data[26],"%ud", data[97]);
   sprintf(text_data[27],"%ud", data[102]);
@@ -647,19 +647,19 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
   sprintf(text_data[30],"%ud", data[113]);
 
   tmp = data[116] +(data[117] << 8);
-  sprintf(text_data[31],"%ud", tmp);
+  sprintf(text_data[31],"%lud", tmp);
 
   tmp = data[121] + (data[122] << 8);
-  sprintf(text_data[32],"%ud", tmp);
+  sprintf(text_data[32],"%lud", tmp);
 
   tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
-  sprintf(text_data[33],"%ud", tmp);
+  sprintf(text_data[33],"%lud", tmp);
 
   tmp = data[135] + (data[136] << 8);
-  sprintf(text_data[34],"%ud", tmp);
+  sprintf(text_data[34],"%lud", tmp);
 
   tmp = data[140] + (data[141] << 8);
-  sprintf(text_data[35],"%ud", tmp);
+  sprintf(text_data[35],"%lud", tmp);
 
 
   sprintf(text_data[36],"%x%x%x%x", data[7], data[8], data[9], data[10]);
