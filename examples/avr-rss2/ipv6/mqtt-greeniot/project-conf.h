@@ -48,10 +48,10 @@
 
 /* If undefined, the demo will attempt to connect to IBM's quickstart */
 //#define MQTT_DEMO_BROKER_IP_ADDR "aaaa::1"
-//#define MQTT_DEMO_BROKER_IP_ADDR "::ffff:c010:7dea" 
-//#define MQTT_DEMO_BROKER_IP_ADDR "::ffff:c010:7dea" 
+//#define MQTT_DEMO_BROKER_IP_ADDR "::ffff:c010:7dea"
+//#define MQTT_DEMO_BROKER_IP_ADDR "::ffff:c010:7dea"
 //#define MQTT_DEMO_BROKER_IP_ADDR "0064:ff9b:0000:0000:0000:0000:c010:7dea"
-#define MQTT_CONF_PUBLISH_INTERVAL    (60 * CLOCK_SECOND)
+#define MQTT_CONF_PUBLISH_INTERVAL    (5 * CLOCK_SECOND)
 
 #define NETSTACK_CONF_RDC nullrdc_driver
 #define NETSTACK_CONF_MAC nullmac_driver
@@ -107,6 +107,13 @@
 #define CLI_CONF_PROJECT  "GreenIoT V1.0 2017-03-13"
 
 #define SERIAL_LINE_CONF_HUMAN 1
+
+#define USART1_CONF_ENABLE 1
+
+/* M-Bus Settings */
+//#define USART1_CONF_BAUD_RATE   BAUD_RATE(300)
+#define USART1_CONF_BAUD_RATE   USART_BAUD_9600
+#define USART1_CONF_CSRC USART_PARITY_EVEN|USART_STOP_BITS_1|USART_DATA_BITS_8
 
 /* Use MQTT CLI? */
 //#define MQTT_CLI	1

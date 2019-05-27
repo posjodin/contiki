@@ -67,6 +67,9 @@
 #include "i2c.h"
 #include "dev/bme280/bme280-sensor.h"
 #include "dev/serial-line.h"
+#include "../../mbus/contiki-mbus.h"
+#include "../../mbus/usart1.h"
+#include "../../mbus/ringbuf-mbus.h"
 #include <dev/watchdog.h>
 #ifndef RF230_DEBUG
 #define RF230_DEBUG 0
@@ -158,7 +161,7 @@ static uint8_t state;
 #define DEFAULT_EVENT_TYPE_ID       "status"
 #define DEFAULT_SUBSCRIBE_CMD_TYPE  "+"
 #define DEFAULT_BROKER_PORT         1883
-#define DEFAULT_PUBLISH_INTERVAL    (30 * CLOCK_SECOND)
+#define DEFAULT_PUBLISH_INTERVAL    (5 * CLOCK_SECOND)
 #define DEFAULT_KEEP_ALIVE_TIMER    60
 #define DEFAULT_RSSI_MEAS_INTERVAL  (CLOCK_SECOND * 30)
 
@@ -172,13 +175,13 @@ static uint8_t state;
 #ifdef MQTT_WATCHDOG
 static struct etimer checktimer;
 
-#define WATCHDOG_INTERVAL (CLOCK_SECOND*30)
+#define WATCHDOG_INTERVAL (CLOCK_SECOND*10)
 /* Watchdogs in WATCHDOG_INTERVAL units: */
 #define STALE_PUBLISHING_WATCHDOG 10
 #define STALE_CONNECTING_WATCHDOG 20
 
 static struct {
-  unsigned int stale_publishing; 
+  unsigned int stale_publishing;
   unsigned int stale_connecting;
   unsigned int closed_connection;
 } watchdog_stats = {0, 0, 0};
@@ -195,8 +198,8 @@ double m = MIC2714_M;
 double a = MIC2714_A;
 
 /*
-  EC  20C 1013mB  NO2 1 ppb= 1.9125 μg/m**3 
-  WHO 25C 1013mB  NO2 1 ppb= 1.88   μg/m**3 
+  EC  20C 1013mB  NO2 1 ppb= 1.9125 μg/m**3
+  WHO 25C 1013mB  NO2 1 ppb= 1.88   μg/m**3
 
   https://uk-air.defra.gov.uk/assets/documents/reports/cat06/0502160851_Conversion_Factors_Between_ppb_and.pdf
 
@@ -240,7 +243,7 @@ typedef struct mqtt_client_config {
 } mqtt_client_config_t;
 /*---------------------------------------------------------------------------*/
 /* Maximum TCP segment size for outgoing segments of our socket */
-#define MAX_TCP_SEGMENT_SIZE  32  
+#define MAX_TCP_SEGMENT_SIZE  32
 /*---------------------------------------------------------------------------*/
 #define STATUS_LED LEDS_YELLOW
 /*---------------------------------------------------------------------------*/
@@ -269,7 +272,7 @@ static char *pub_now_topic;
  * The main MQTT buffers.
  * We will need to increase if we start publishing more data.
  */
-#if RF230_DEBUG || RPL_CONF_STATS 
+#if RF230_DEBUG || RPL_CONF_STATS
 /* increase buffer size when debug/statistics is enabled */
 #define APP_BUFFER_SIZE 2048
 #else
@@ -358,7 +361,7 @@ set_chan(uint8_t chan)
 
 extern bool rf230_blackhole_rx;
 
-void 
+void
 do_all_chan_cca(uint8_t *cca)
 {
   int i, j;
@@ -392,7 +395,7 @@ static void
 pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
             uint16_t chunk_len)
 {
-  
+
   char *cmd_topic, *reply_topic;
 
   DBG("Pub Handler: topic='%s' (len=%u), chunk_len=%u\n", topic, topic_len,
@@ -406,7 +409,7 @@ pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
   }
 
   if (chunk[chunk_len-1] != 0 && chunk[chunk_len] != 0) {
-    printf("MQTT chunk not null terminated\n");  
+    printf("MQTT chunk not null terminated\n");
     return;
   }
 
@@ -427,7 +430,7 @@ pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
     printf("Ignoring pub. topic %s\n", topic);
   }
 #endif /* MQTT_CLI */
-} 
+}
 
 static struct mqtt_app_statistics {
   unsigned int connected;
@@ -495,7 +498,7 @@ static char *
 construct_topic(char *suffix)
 {
   static char buf[BUFFER_SIZE];
-  
+
   int len = snprintf(buf, sizeof(buf), "%s/%s/%s", MQTT_DEMO_TOPIC_BASE, node_id, suffix);
 
   /* len < 0: Error. Len >= BUFFER_SIZE: Buffer too small */
@@ -523,7 +526,7 @@ construct_client_id(void)
 static int
 construct_node_id(void)
 {
-int len = snprintf(node_id, NODEID_SIZE, 
+int len = snprintf(node_id, NODEID_SIZE,
 			   "%02x%02x%02x%02x%02x%02x%02x%02x",
 			   linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],
 			   linkaddr_node_addr.u8[2], linkaddr_node_addr.u8[3],
@@ -623,7 +626,7 @@ init_node_local_config()
   else if(memcmp(node_mac, n1242, 8) == 0) {
     lc.dustbin = 1; /*  */
     lc.cca_test = 0;
-    lc.no2_corr = 0; 
+    lc.no2_corr = 0;
   }
   else {
     lc.dustbin = 0;
@@ -658,7 +661,7 @@ init_config()
   conf.keep_alive_timer = MQTT_CONF_KEEP_ALIVE_TIMER;
 #else
   conf.keep_alive_timer = DEFAULT_KEEP_ALIVE_TIMER;
-#endif /* MQTT_CONF_KEEP_ALIVE_TIMER */ 
+#endif /* MQTT_CONF_KEEP_ALIVE_TIMER */
   conf.def_rt_ping_interval = DEFAULT_RSSI_MEAS_INTERVAL;
 
   init_node_local_config();
@@ -671,7 +674,7 @@ subscribe(void)
   /* Publish MQTT topic in IBM quickstart format */
   mqtt_status_t status;
   char *topic;
-  
+
 #ifdef MQTT_CLI
   topic = construct_topic("cli/cmd");
   if (topic) {
@@ -698,7 +701,7 @@ subscribe(void)
 	}
 
 
-/* Converts to NO2 ppm according to MIC2714 NO2 curve 
+/* Converts to NO2 ppm according to MIC2714 NO2 curve
    We assume pure NO2 */
 
 double mics2714(double vcc, double v0, double corr)
@@ -719,7 +722,7 @@ double mics2714(double vcc, double v0, double corr)
   return no2;
 }
 
-double no2(void) 
+double no2(void)
 {
   double no2;
   no2 = mics2714(5, adc_read_a2(), lc.no2_corr) * NO2_CONV_EC;
@@ -730,6 +733,7 @@ static void
 publish_sensors(void)
 {
   /* Publish MQTT topic in SenML format */
+  //usart1_init();
 
   int len;
   int remaining = APP_BUFFER_SIZE;
@@ -743,17 +747,20 @@ publish_sensors(void)
   PUTFMT(",\"bt\":%lu}", clock_seconds());
   PUTFMT(",{\"n\":\"seq_no\",\"u\":\"count\",\"v\":%d}", seq_nr_value);
 
-#ifdef CO2
-  PUTFMT(",{\"n\":\"co2\",\"u\":\"ppm\",\"v\":%d}", co2_sa_kxx_sensor.value(CO2_SA_KXX_CO2));
-#endif
+// #ifdef CO2
+//   PUTFMT(",{\"n\":\"co2\",\"u\":\"ppm\",\"v\":%d}", co2_sa_kxx_sensor.value(CO2_SA_KXX_CO2));
+// #endif
 
-    if(lc.no2_corr) {
-      /* Assume 5V VCC and 0 correection */
-      PUTFMT(",{\"n\":\"no2\",\"u\":\"ug/m3\",\"v\":%-4.2f}", no2());
-      PUTFMT(",{\"n\":\"a2\",\"u\":\"V\",\"v\":%-4.2f}", adc_read_a2());
-    }
+    int res = mbus_scan_primary_at_address(67);
+    PUTFMT(",{\"n\":\"flowIQ2101\",\"u\":\"hex\",\"v\":%X}", res);
 
-  if (pms5003_sensor.value(PMS5003_SENSOR_TIMESTAMP) != 0) {
+    // if(lc.no2_corr) {
+    //   /* Assume 5V VCC and 0 correection */
+    //   PUTFMT(",{\"n\":\"no2\",\"u\":\"ug/m3\",\"v\":%-4.2f}", no2());
+    //   PUTFMT(",{\"n\":\"a2\",\"u\":\"V\",\"v\":%-4.2f}", adc_read_a2());
+    // }
+
+  /*if (pms5003_sensor.value(PMS5003_SENSOR_TIMESTAMP) != 0) {
     PUTFMT(",{\"n\":\"pms5003;tsi;pm1\",\"u\":\"ug/m3\",\"v\":%d}", pms5003_sensor.value(PMS5003_SENSOR_PM1));
     PUTFMT(",{\"n\":\"pms5003;tsi;pm2_5\",\"u\":\"ug/m3\",\"v\":%d}", pms5003_sensor.value(PMS5003_SENSOR_PM2_5));
     PUTFMT(",{\"n\":\"pms5003;tsi;pm10\",\"u\":\"ug/m3\",\"v\":%d}", pms5003_sensor.value(PMS5003_SENSOR_PM10));
@@ -770,8 +777,8 @@ publish_sensors(void)
       PUTFMT(",{\"n\":\"pms5003;db;10\",\"u\":\"cnt/dm3\",\"v\":%d}", pms5003_sensor.value(PMS5003_SENSOR_DB10));
     }
 
-  }
-  if( i2c_probed & I2C_BME280 ) {
+  }*/
+  /*if( i2c_probed & I2C_BME280 ) {
     bme280_sensor.value(BME280_SENSOR_TEMP);
     PUTFMT(",{\"n\":\"bme280;temp\",\"u\":\"Cel\",\"v\":%4.2f}", (double)bme280_mea.t_overscale100/100.0);
     PUTFMT(",{\"n\":\"bme280;humidity\",\"u\":\"%%RH\",\"v\":%4.2f}", (double)bme280_mea.h_overscale1024 / 1024.0);
@@ -780,7 +787,7 @@ publish_sensors(void)
 #else
     PUTFMT(",{\"n\":\"bme280;pressure\",\"u\":\"hPa\",\"v\":%4.2f}", (double)bme280_mea.p);
 #endif
-  }
+}*/
 
   PUTFMT("]");
 
@@ -807,7 +814,7 @@ publish_stats(void)
   int len;
   int remaining = APP_BUFFER_SIZE;
   char *topic;
-  
+
   buf_ptr = app_buffer;
 
   seq_nr_value++;
@@ -841,9 +848,9 @@ publish_stats(void)
     PUTFMT(",{\"n\":\"rf230;no_ack\",\"v\":%u}", count_no_ack);
     PUTFMT(",{\"n\":\"rf230;cca_fail\",\"v\":%u}", count_cca_fail);
 #endif
-    
+
      /* case STATS_MQTT:*/
-     
+
     PUTFMT(",{\"n\":\"mqtt;conn\",\"v\":%u}", mqtt_stats.connected);
     PUTFMT(",{\"n\":\"mqtt;disc\",\"v\":%u}", mqtt_stats.disconnected);
     PUTFMT(",{\"n\":\"mqtt;pub\",\"v\":%u}", mqtt_stats.published);
@@ -865,8 +872,8 @@ publish_stats(void)
 
     PUTFMT(",");
     len = mqtt_i2c_pub(buf_ptr, remaining);
-    if (len < 0 || len >= remaining) { 
-      printf("Line %d: Buffer too short. Have %d, need %d + \\0", __LINE__, remaining, len); 
+    if (len < 0 || len >= remaining) {
+      printf("Line %d: Buffer too short. Have %d, need %d + \\0", __LINE__, remaining, len);
       return;
     }
     remaining -= len;
@@ -887,8 +894,8 @@ publish_stats(void)
 #endif
     PUTFMT(",");
     len = mqtt_rpl_pub(buf_ptr, remaining);
-    if (len < 0 || len >= remaining) { 
-      printf("Line %d: Buffer too short. Have %d, need %d + \\0", __LINE__, remaining, len); 
+    if (len < 0 || len >= remaining) {
+      printf("Line %d: Buffer too short. Have %d, need %d + \\0", __LINE__, remaining, len);
       return;
     }
     remaining -= len;
@@ -905,7 +912,7 @@ publish_stats(void)
 
   if (++stats > ENDSTATS)
     stats = STARTSTATS;
-  
+
 }
 
 static void
@@ -1091,7 +1098,7 @@ state_machine(void)
 #else
       DBG("Publishing... (MQTT state %d conn.state=%d, q=%u) mqtt_ready %d out_buffer_sent %d\n", state, conn.state,
           conn.out_queue_full, mqtt_ready(&conn), conn.out_buffer_sent);
-#endif      
+#endif
     }
     break;
   case STATE_DISCONNECTED:
@@ -1143,13 +1150,15 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
 {
 
   PROCESS_BEGIN();
+  usart1_init();
+  printf("usart initialised!\n");
 
   SENSORS_ACTIVATE(temp_sensor);
   SENSORS_ACTIVATE(battery_sensor);
 #ifdef CO2
   SENSORS_ACTIVATE(co2_sa_kxx_sensor);
 #endif
-  leds_init(); 
+  leds_init();
   SENSORS_ACTIVATE(pulse_sensor);
   SENSORS_ACTIVATE(pms5003_sensor);
   if( i2c_probed & I2C_BME280 ) {
@@ -1159,8 +1168,8 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
 #if RF230_DEBUG
   printf("RF230_CONF_FRAME_RETRIES: %d\n", RF230_CONF_FRAME_RETRIES);
   printf("RF230_CONF_CMSA_RETRIES: %d\n", RF230_CONF_CSMA_RETRIES);
-#endif  
-  /* The data sink runs with a 100% duty cycle in order to ensure high 
+#endif
+  /* The data sink runs with a 100% duty cycle in order to ensure high
      packet reception rates. */
   //NETSTACK_MAC.off(1);
 
@@ -1181,6 +1190,7 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
   while(1) {
 
     PROCESS_YIELD();
+
 
     if(ev == sensors_event && data == PUBLISH_TRIGGER) {
       if(state == STATE_ERROR) {
@@ -1226,6 +1236,7 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
   PROCESS_BEGIN();
   etimer_set(&checktimer, WATCHDOG_INTERVAL);
 
+
   /* Main loop */
   while(1) {
 
@@ -1233,7 +1244,7 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
 
     if((ev == PROCESS_EVENT_TIMER) && (data == &checktimer)) {
       printf("MQTT: state %d conn.state %d\n", state, conn.state);
-      if (state == STATE_PUBLISHING) { 
+      if (state == STATE_PUBLISHING) {
        stale_connecting = 0;
        if (seq_nr_value > seen_seq_nr_value) {
          stale_publishing = 0;
@@ -1241,7 +1252,7 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
        else {
          stale_publishing++;
          if (stale_publishing > STALE_PUBLISHING_WATCHDOG) {
-           /* In publishing state, but nothing published for a while. 
+           /* In publishing state, but nothing published for a while.
             * Milder reset -- call mqtt_disconnect() to trigger mqtt to restart the session
             */
            mqtt_disconnect(&conn);
@@ -1256,13 +1267,13 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
        if (stale_connecting > STALE_CONNECTING_WATCHDOG) {
          if(conn.state > MQTT_CONN_STATE_NOT_CONNECTED) {
            /* Waiting for mqtt connection, but nothing happened for a while.
-            * Trigger communication error by closing TCP socket 
+            * Trigger communication error by closing TCP socket
             */
            tcp_socket_close(&conn.socket);
 	   watchdog_stats.stale_connecting++;
-         }       
+         }
          else {
-	   watchdog_stats.closed_connection++;	   
+	   watchdog_stats.closed_connection++;
 	 }
          stale_connecting = 0;
        }
