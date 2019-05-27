@@ -586,80 +586,80 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
 {
   uint32_t tmp = 0;
 
-  sprintf(text_data[0],"%d", data[4]);
-  sprintf(text_data[1],"%d", data[5]);
-  sprintf(text_data[2],"%d", data[6]);
+  sprintf(text_data[0],"%ud", data[4]);
+  sprintf(text_data[1],"%ud", data[5]);
+  sprintf(text_data[2],"%ud", data[6]);
 
   tmp = data[11] + (data[12] << 8);
-  sprintf(text_data[3],"%d", tmp);
+  sprintf(text_data[3],"%ud", tmp);
 
-  sprintf(text_data[4],"%d", data[13]);
-  sprintf(text_data[5],"%d", data[14]);
-  sprintf(text_data[6],"%d", data[15]);
-  sprintf(text_data[7],"%d", data[16]);
+  sprintf(text_data[4],"%ud", data[13]);
+  sprintf(text_data[5],"%ud", data[14]);
+  sprintf(text_data[6],"%ud", data[15]);
+  sprintf(text_data[7],"%ud", data[16]);
 
   tmp = data[17] + (data[18] << 8);
-  sprintf(text_data[8],"%d", tmp);
+  sprintf(text_data[8],"%ud", tmp);
 
   tmp = (uint32_t) data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
-  sprintf(text_data[9],"%d", tmp);
+  sprintf(text_data[9],"%ud", tmp);
 
   tmp =  data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
-  sprintf(text_data[10],"%d", tmp);
+  sprintf(text_data[10],"%ud", tmp);
 
   tmp = data[34] + ((uint32_t) data[35] << 8) + ((uint32_t) data[36] << 16) + ((uint32_t) data[37] << 24);
-  sprintf(text_data[11],"%d", tmp);
+  sprintf(text_data[11],"%ud", tmp);
 
   tmp = data[40] + (data[41] << 8);
-  sprintf(text_data[12],"%d", tmp);
+  sprintf(text_data[12],"%ud", tmp);
 
-  sprintf(text_data[13],"%d", data[44]);
-  sprintf(text_data[14],"%d", data[47]);
+  sprintf(text_data[13],"%ud", data[44]);
+  sprintf(text_data[14],"%ud", data[47]);
 
   tmp = data[50] + (data[51] << 8);
-  sprintf(text_data[15],"%d", tmp);
+  sprintf(text_data[15],"%ud", tmp);
 
   tmp = data[54] + (data[55] << 8);
-  sprintf(text_data[16],"%d", tmp);
+  sprintf(text_data[16],"%ud", tmp);
 
-  sprintf(text_data[17],"%d", data[58]);
-  sprintf(text_data[18],"%d", data[63]);
-  sprintf(text_data[19],"%d", data[66]);
-  sprintf(text_data[20],"%d", data[69]);
-  sprintf(text_data[21],"%d", data[74]);
+  sprintf(text_data[17],"%ud", data[58]);
+  sprintf(text_data[18],"%ud", data[63]);
+  sprintf(text_data[19],"%ud", data[66]);
+  sprintf(text_data[20],"%ud", data[69]);
+  sprintf(text_data[21],"%ud", data[74]);
 
   tmp = data[77] + ((uint32_t) data[78] << 8) + ((uint32_t) data[79] << 16) + ((uint32_t) data[80] << 24);
-  sprintf(text_data[22],"%d", tmp);
+  sprintf(text_data[22],"%ud", tmp);
 
   tmp = data[83] + ((uint32_t) data[84] << 8) + ((uint32_t) data[85] << 16) + ((uint32_t) data[86] << 24);
-  sprintf(text_data[23],"%d", tmp);
+  sprintf(text_data[23],"%ud", tmp);
 
   tmp = data[89] + (data[90] << 8);
-  sprintf(text_data[24],"%d", tmp);
+  sprintf(text_data[24],"%ud", tmp);
 
   tmp = data[93] + (data[94] << 8);
-  sprintf(text_data[25],"%d", tmp);
+  sprintf(text_data[25],"%ud", tmp);
 
-  sprintf(text_data[26],"%d", data[97]);
-  sprintf(text_data[27],"%d", data[102]);
-  sprintf(text_data[28],"%d", data[105]);
-  sprintf(text_data[29],"%d", data[108]);
-  sprintf(text_data[30],"%d", data[113]);
+  sprintf(text_data[26],"%ud", data[97]);
+  sprintf(text_data[27],"%ud", data[102]);
+  sprintf(text_data[28],"%ud", data[105]);
+  sprintf(text_data[29],"%ud", data[108]);
+  sprintf(text_data[30],"%ud", data[113]);
 
   tmp = data[116] +(data[117] << 8);
-  sprintf(text_data[31],"%d", tmp);
+  sprintf(text_data[31],"%ud", tmp);
 
   tmp = data[121] + (data[122] << 8);
-  sprintf(text_data[32],"%d", tmp);
+  sprintf(text_data[32],"%ud", tmp);
 
   tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
-  sprintf(text_data[33],"%d", tmp);
+  sprintf(text_data[33],"%ud", tmp);
 
   tmp = data[135] + (data[136] << 8);
-  sprintf(text_data[34],"%d", tmp);
+  sprintf(text_data[34],"%ud", tmp);
 
   tmp = data[140] + (data[141] << 8);
-  sprintf(text_data[35],"%d", tmp);
+  sprintf(text_data[35],"%ud", tmp);
 
 
   sprintf(text_data[36],"%x%x%x%x", data[7], data[8], data[9], data[10]);
