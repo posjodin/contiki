@@ -751,8 +751,25 @@ publish_sensors(void)
 //   PUTFMT(",{\"n\":\"co2\",\"u\":\"ppm\",\"v\":%d}", co2_sa_kxx_sensor.value(CO2_SA_KXX_CO2));
 // #endif
 
-    int res = mbus_scan_primary_at_address(67);
-    PUTFMT(",{\"n\":\"flowIQ2101\",\"u\":\"hex\",\"v\":%X}", res);
+    //int res = mbus_scan_primary_at_address(67);
+    uint16_t data[144];
+    memset(data, 0, sizeof(data));
+    mbus_request_data_at_primary_address(67, data);
+
+    char text_names[37][32];
+    mbus_parse_data_kamstrup_2101_names(text_names);
+    char text_units[37][32];
+    mbus_parse_data_kamstrup_2101_units(text_units);
+    char text_data[37][32];
+    mbus_parse_data_kamstrup_2101_datas(data, text_data);
+
+    for (int filler = 0; filler < 37; filler++)
+    {
+      PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[filler], text_units[filler], text_data[filler]);
+    }
+
+
+    //PUTFMT(",{\"n\":\"flowIQ2101\",\"u\":\"hex\",\"v\":%X}", res);
 
     // if(lc.no2_corr) {
     //   /* Assume 5V VCC and 0 correection */

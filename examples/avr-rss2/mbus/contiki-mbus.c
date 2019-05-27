@@ -444,8 +444,227 @@ str_data_combiner_id(char *text, uint16_t value1, uint16_t value2, uint16_t valu
 
 
 int
-mbus_parse_data_kamstrup_2101_names(){
-  
+mbus_parse_data_kamstrup_2101_names(char text_names[37][32])
+{
+  sprintf(text_names[0],"%s", "Control Field");
+  sprintf(text_names[1],"%s", "Primary address");
+  sprintf(text_names[2],"%s", "CI field");
+  sprintf(text_names[3],"%s", "Manufacturer ID");
+  sprintf(text_names[4],"%s", "Version ID");
+  sprintf(text_names[5],"%s", "Device ID");
+  sprintf(text_names[6],"%s", "Number of accesses");
+  sprintf(text_names[7],"%s", "Status Field");
+  sprintf(text_names[8],"%s", "Config (not used)");
+  sprintf(text_names[9],"%s", "Volume");
+  sprintf(text_names[10],"%s", "Vol.Rev.");
+  sprintf(text_names[11],"%s", "Power on");
+  sprintf(text_names[12],"%s", "Flow");
+  sprintf(text_names[13],"%s", "Media temp.");
+  sprintf(text_names[14],"%s", "Amb. temp.");
+  sprintf(text_names[15],"%s", "Flow MIN");
+  sprintf(text_names[16],"%s", "Flow MAX");
+  sprintf(text_names[17],"%s", "Media temp. MIN");
+  sprintf(text_names[18],"%s", "Media temp. AVG");
+  sprintf(text_names[19],"%s", "Ambient temp. MIN");
+  sprintf(text_names[20],"%s", "Ambient temp. MAX");
+  sprintf(text_names[21],"%s", "Ambient temp. AVG");
+  sprintf(text_names[22],"%s", "Date and Time");
+  sprintf(text_names[23],"%s", "V1 Target");
+  sprintf(text_names[24],"%s", "Flow MIN Month");
+  sprintf(text_names[25],"%s", "Flow MAX Month");
+  sprintf(text_names[26],"%s", "Media temp.MIN Month");
+  sprintf(text_names[27],"%s", "Media Amb.temp.AVG Month");
+  sprintf(text_names[28],"%s", "Media Amb.temp.MIN Month");
+  sprintf(text_names[29],"%s", "Media Amb.temp.MAX Month");
+  sprintf(text_names[30],"%s", "Amb.temp.AVG Month(C)");
+  sprintf(text_names[31],"%s", "Target date (Kamstrup)");
+  sprintf(text_names[32],"%s", "Info codes (Kamstrup)");
+  sprintf(text_names[33],"%s", "Config number (KAM)");
+  sprintf(text_names[34],"%s", "Meter type (KAM)");
+  sprintf(text_names[35],"%s", "Software revision (KAM)");
+  sprintf(text_names[36],"%s", "ID number");
+
+  return 1;
+}
+
+/*
+
+int
+mbus_parse_data_kamstrup_2101_names(char text_names[37][32])
+{
+  sprintf(text_names[0],"%s", "Control Field");
+  sprintf(text_names[1],"%s", "Primary address");
+  sprintf(text_names[2],"%s", "CI field");
+  sprintf(text_names[3],"%s", "Manufacturer ID");
+  sprintf(text_names[4],"%s", "Version ID");
+  sprintf(text_names[5],"%s", "Device ID");
+  sprintf(text_names[6],"%s", "Number of accesses");
+  sprintf(text_names[7],"%s", "Status Field");
+  sprintf(text_names[8],"%s", "Config (not used)");
+  sprintf(text_names[29],"%s", "Volume");
+  sprintf(text_names[10],"%s", "Vol.Rev.");
+  sprintf(text_names[11],"%s", "Power on(hours)");
+  sprintf(text_names[12],"%s", "Flow(l/h)");
+  sprintf(text_names[13],"%s", "Media temp.(C)");
+  sprintf(text_names[14],"%s", "Amb. temp.(C)");
+  sprintf(text_names[15],"%s", "Flow MIN (l/h)");
+  sprintf(text_names[16],"%s", "Flow MAX (l/h)");
+  sprintf(text_names[17],"%s", "Media temp. MIN (C)");
+  sprintf(text_names[18],"%s", "Media temp. AVG (C, KAM)");
+  sprintf(text_names[19],"%s", "Ambient temp. MIN (C)");
+  sprintf(text_names[20],"%s", "Ambient temp. MAX (C)");
+  sprintf(text_names[21],"%s", "Ambient temp. AVG (C)");
+  sprintf(text_names[22],"%s", "Date and Time");
+  sprintf(text_names[23],"%s", "V1 Target (m3, 3 decimals)");
+  sprintf(text_names[24],"%s", "Flow MIN Month (in l/h)");
+  sprintf(text_names[25],"%s", "Flow MAX Month (in l/h)");
+  sprintf(text_names[26],"%s", "Media temp.MIN Month (C)");
+  sprintf(text_names[27],"%s", "Media Amb.temp.AVG Month(C)");
+  sprintf(text_names[28],"%s", "Media Amb.temp.MIN Month(C)");
+  sprintf(text_names[29],"%s", "Media Amb.temp.MAX Month(C)");
+  sprintf(text_names[30],"%s", "Amb.temp.AVG Month(C)");
+  sprintf(text_names[31],"%s", "Target date (Kamstrup)");
+  sprintf(text_names[32],"%s", "Info codes (Kamstrup)");
+  sprintf(text_names[33],"%s", "Config number (KAM)");
+  sprintf(text_names[34],"%s", "Meter type (KAM)");
+  sprintf(text_names[35],"%s", "Software revision (KAM)");
+  sprintf(text_names[36],"%s", "ID number");
+
+  return 1;
+}
+*/
+
+
+int
+mbus_parse_data_kamstrup_2101_units(char text_units[37][32])
+{
+  sprintf(text_units[0],"%s", "num");
+  sprintf(text_units[1],"%s", "num");
+  sprintf(text_units[2],"%s", "num");
+  sprintf(text_units[3],"%s", "num");
+  sprintf(text_units[4],"%s", "num");
+  sprintf(text_units[5],"%s", "num");
+  sprintf(text_units[6],"%s", "num");
+  sprintf(text_units[7],"%s", "num");
+  sprintf(text_units[8],"%s", "num");
+  sprintf(text_units[9],"%s", "m3, 3 dec.");
+  sprintf(text_units[10],"%s", "m3, 3 dec.");
+  sprintf(text_units[11],"%s", "hours");
+  sprintf(text_units[12],"%s", "l/h");
+  sprintf(text_units[13],"%s", "C");
+  sprintf(text_units[14],"%s", "C");
+  sprintf(text_units[15],"%s", "l/h");
+  sprintf(text_units[16],"%s", "l/h");
+  sprintf(text_units[17],"%s", "C");
+  sprintf(text_units[18],"%s", "C");
+  sprintf(text_units[19],"%s", "C");
+  sprintf(text_units[20],"%s", "C");
+  sprintf(text_units[21],"%s", "C");
+  sprintf(text_units[22],"%s", "s");
+  sprintf(text_units[23],"%s", "m3, 3 dec.");
+  sprintf(text_units[24],"%s", "l/h");
+  sprintf(text_units[25],"%s", "l/h");
+  sprintf(text_units[26],"%s", "C");
+  sprintf(text_units[27],"%s", "C");
+  sprintf(text_units[28],"%s", "C");
+  sprintf(text_units[29],"%s", "C");
+  sprintf(text_units[30],"%s", "C");
+  sprintf(text_units[31],"%s", "num");
+  sprintf(text_units[32],"%s", "num");
+  sprintf(text_units[33],"%s", "num");
+  sprintf(text_units[34],"%s", "num");
+  sprintf(text_units[35],"%s", "num");
+  sprintf(text_units[36],"%s", "num");
+
+  return 1;
+}
+
+
+
+int
+mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
+{
+  uint32_t tmp = 0;
+
+  sprintf(text_data[0],"%d", data[4]);
+  sprintf(text_data[1],"%d", data[5]);
+  sprintf(text_data[2],"%d", data[6]);
+
+  tmp = data[11] + (data[12] << 8);
+  sprintf(text_data[3],"%d", tmp);
+
+  sprintf(text_data[4],"%d", data[13]);
+  sprintf(text_data[5],"%d", data[14]);
+  sprintf(text_data[6],"%d", data[15]);
+  sprintf(text_data[7],"%d", data[16]);
+
+  tmp = data[17] + (data[18] << 8);
+  sprintf(text_data[8],"%d", tmp);
+
+  tmp = (uint32_t) data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
+  sprintf(text_data[9],"%d", tmp);
+
+  tmp =  data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
+  sprintf(text_data[10],"%d", tmp);
+
+  tmp = data[34] + ((uint32_t) data[35] << 8) + ((uint32_t) data[36] << 16) + ((uint32_t) data[37] << 24);
+  sprintf(text_data[11],"%d", tmp);
+
+  tmp = data[40] + (data[41] << 8);
+  sprintf(text_data[12],"%d", tmp);
+
+  sprintf(text_data[13],"%d", data[44]);
+  sprintf(text_data[14],"%d", data[47]);
+
+  tmp = data[50] + (data[51] << 8);
+  sprintf(text_data[15],"%d", tmp);
+
+  tmp = data[54] + (data[55] << 8);
+  sprintf(text_data[16],"%d", tmp);
+
+  sprintf(text_data[17],"%d", data[58]);
+  sprintf(text_data[18],"%d", data[63]);
+  sprintf(text_data[19],"%d", data[66]);
+  sprintf(text_data[20],"%d", data[69]);
+  sprintf(text_data[21],"%d", data[74]);
+
+  tmp = data[77] + ((uint32_t) data[78] << 8) + ((uint32_t) data[79] << 16) + ((uint32_t) data[80] << 24);
+  sprintf(text_data[22],"%d", tmp);
+
+  tmp = data[83] + ((uint32_t) data[84] << 8) + ((uint32_t) data[85] << 16) + ((uint32_t) data[86] << 24);
+  sprintf(text_data[23],"%d", tmp);
+
+  tmp = data[89] + (data[90] << 8);
+  sprintf(text_data[24],"%d", tmp);
+
+  tmp = data[93] + (data[94] << 8);
+  sprintf(text_data[25],"%d", tmp);
+
+  sprintf(text_data[26],"%d", data[97]);
+  sprintf(text_data[27],"%d", data[102]);
+  sprintf(text_data[28],"%d", data[105]);
+  sprintf(text_data[29],"%d", data[108]);
+  sprintf(text_data[30],"%d", data[113]);
+
+  tmp = data[116] +(data[117] << 8);
+  sprintf(text_data[31],"%d", tmp);
+
+  tmp = data[121] + (data[122] << 8);
+  sprintf(text_data[32],"%d", tmp);
+
+  tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
+  sprintf(text_data[33],"%d", tmp);
+
+  tmp = data[135] + (data[136] << 8);
+  sprintf(text_data[34],"%d", tmp);
+
+  tmp = data[140] + (data[141] << 8);
+  sprintf(text_data[35],"%d", tmp);
+
+
+  sprintf(text_data[36],"%x%x%x%x", data[7], data[8], data[9], data[10]);
+
+  return 1;
 }
 
 
@@ -545,7 +764,7 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
 
   str_data_combiner("Media Amb.temp.MAX Month(C)", data[108], text_data[29]);
 
-  str_data_combiner("Amb.temp.AVG Month(C)", data[108], text_data[30]);
+  str_data_combiner("Amb.temp.AVG Month(C)", data[113], text_data[30]);
 
   tmp = data[116] +(data[117] << 8);
   str_data_combiner("Target date (Kamstrup)", tmp, text_data[31]);
