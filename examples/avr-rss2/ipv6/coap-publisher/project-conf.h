@@ -41,7 +41,7 @@
 
 /* The observe client is required to subscribe to topics. Removing it can free memory. */
 #define COAP_OBSERVE_CLIENT 1
-#define COAP_MAX_AGE 20
+#define COAP_MAX_AGE 60
 /* KTH configuration: this is a default configuration */
 #define COAP_DEMO_TOPIC_BASE 	"KTH/avr-rss2"
 //#define COAP_DEMO_BROKER_IP_ADDR "0064:ff9b::c010:7dea"

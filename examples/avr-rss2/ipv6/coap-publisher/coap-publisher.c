@@ -86,6 +86,7 @@ static uint8_t content_buffer[128];
 static struct etimer publish_timer;
 static char *buf_ptr;
 
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_client, ev, data)
 {
   static int found_broker = 0;
@@ -128,7 +129,7 @@ PROCESS_THREAD(coap_client, ev, data)
 
   topic_light.content_type = 0;
   topic_light.content = (uint8_t *)&content_buffer;
-  topic_light.max_age = COAP_MAX_AGE/2;
+  topic_light.max_age = COAP_MAX_AGE;
 
   for(i = 0; i < 8; i++) {
     sprintf(((char *)&topic_dir.url) + 2 * i * sizeof(char), "%02x", uip_lladdr.addr[i]);
@@ -162,9 +163,12 @@ PROCESS_THREAD(coap_client, ev, data)
   PROCESS_PAUSE();
   
   while(1) {
-    PROCESS_WAIT_EVENT();
+    //PROCESS_WAIT_EVENT();
+    PROCESS_YIELD();
     
     if(etimer_expired(&publish_timer)){
+      etimer_reset(&publish_timer);
+      
       if(!found_broker){
 	PRINTF("Trying server ");
 	PRINT6ADDR(&broker.address);
@@ -221,7 +225,7 @@ PROCESS_THREAD(coap_client, ev, data)
 	PRINTF("PUBLISH LIGHT value %s, len %u\n", topic_light.content, topic_light.content_len);
 	COAP_PUBSUB_PUBLISH(&topic_light);
 	PRINTF("PUBLISH finished, return code %d\n", topic_light.last_response_code );
-	if(topic_bme.last_response_code == NOT_FOUND_4_04){
+	if(topic_light.last_response_code == NOT_FOUND_4_04){
 	  PRINTF("No topic LIGHT!\n");
 	  found_broker = 0;
 	}
@@ -240,7 +244,7 @@ PROCESS_THREAD(coap_client, ev, data)
 	  COAP_PUBSUB_PUBLISH(&topic_bme);
 	  PRINTF("PUBLISH finished, return code %d\n", topic_bme.last_response_code );
 	  if(topic_bme.last_response_code == NOT_FOUND_4_04){
-	    PRINTF("No topic!\n");
+	    PRINTF("No topic BME!\n");
 	    found_broker = 0;
 	  }
 	}
@@ -258,7 +262,7 @@ PROCESS_THREAD(coap_client, ev, data)
 	  COAP_PUBSUB_PUBLISH(&topic_bme);
 	  PRINTF("PUBLISH finished, return code %d\n", topic_bme.last_response_code );
 	  if(topic_bme.last_response_code == NOT_FOUND_4_04){
-	    PRINTF("No topic TEMP!\n");
+	    PRINTF("No topic BME!\n");
 	    found_broker = 0;
 	  }
 	}
