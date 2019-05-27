@@ -36,4 +36,4 @@ int mbus_switch_baudrate(int address, int baudrate);
  * Can be used after mbus_request_data_at_primary_address();
  * Specific for Kamstrup 2101
 */
-int mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64]);
+int mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32]);

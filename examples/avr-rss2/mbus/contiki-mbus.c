@@ -168,6 +168,7 @@ mbus_scan_primary_at_address(int address)
   if (response == MBUS_ANSWER_ACK)
   {
     printf("M-Bus device at %d has sent an ACK.\n\n", address);
+    return response;
   } else {
     printf("No M-Bus device found at the address %d.\n", address);
   }
@@ -429,19 +430,28 @@ mbus_send_custom_message(uint8_t *message, int reply_type)
 int
 str_data_combiner(char *text, uint16_t value, char *text_data)
 {
-  sprintf(text_data, "%s%d", text, value);
+  sprintf(text_data, "%s:%d", text, value);
   return 1;
 }
 
 int
 str_data_combiner_id(char *text, uint16_t value1, uint16_t value2, uint16_t value3, uint16_t value4, char *text_data)
 {
-  sprintf(text_data, "%s%x%x%x%x", text, value4, value3, value2, value1);
+  sprintf(text_data, "%s:%x%x%x%x", text, value4, value3, value2, value1);
   return 1;
 }
 
+
+
 int
-mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
+mbus_parse_data_kamstrup_2101_names(){
+  
+}
+
+
+
+int
+mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
 {
   uint32_t tmp = 0;
 
@@ -456,101 +466,101 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[144][64])
   // implement later
 
 
-  str_data_combiner("Control field: ", data[4], text_data[0]);
+  str_data_combiner("Control field", data[4], text_data[0]);
 
 
-  str_data_combiner("Primary address: ",data[5], text_data[1]);
-  str_data_combiner("CI field: ",data[6], text_data[2]);
+  str_data_combiner("Primary address",data[5], text_data[1]);
+  str_data_combiner("CI field",data[6], text_data[2]);
 
   // str_data_combiner(str_data_combiner(str_data_combiner(
   //      str_data_combiner("ID number: ", data[10], text_data[7]), data[9],
   //      text_data[7]), data[8], text_data[7]), data[7], text_data[7]);
 
-  str_data_combiner_id("ID number: ",data[7], data[8], data[9], data[10], text_data[36]);
+  str_data_combiner_id("ID number",data[7], data[8], data[9], data[10], text_data[36]);
 
 
 
 
   tmp = data[11] + (data[12] << 8);
-  str_data_combiner("Manufacturer ID: ", tmp, text_data[3]);
+  str_data_combiner("Manufacturer ID", tmp, text_data[3]);
 
-  str_data_combiner("Version ID: ", data[13], text_data[4]);
-  str_data_combiner("Device ID: ", data[14], text_data[5]);
-  str_data_combiner("Number of accesses: ", data[15], text_data[6]);
-  str_data_combiner("Status field: ", data[16], text_data[7]);
+  str_data_combiner("Version ID", data[13], text_data[4]);
+  str_data_combiner("Device ID", data[14], text_data[5]);
+  str_data_combiner("Number of accesses", data[15], text_data[6]);
+  str_data_combiner("Status field", data[16], text_data[7]);
 
   tmp = data[17] + (data[18] << 8);
-  str_data_combiner("Config (not used): ", tmp, text_data[8]);
+  str_data_combiner("Config (not used)", tmp, text_data[8]);
 
   tmp = (uint32_t) data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
-  str_data_combiner("Volume (m3, 3 decimals): ", tmp, text_data[9]);
+  str_data_combiner("Volume(m3, 3 dec)", tmp, text_data[9]);
 
   tmp =  data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
-  str_data_combiner("Volume Reverse (m3, 3 decimals): ", tmp, text_data[10]);
+  str_data_combiner("Vol.Rev.(m3, 3 dec)", tmp, text_data[10]);
 
   tmp = data[34] + ((uint32_t) data[35] << 8) + ((uint32_t) data[36] << 16) + ((uint32_t) data[37] << 24);
-  str_data_combiner("Power on (in hours): ", tmp, text_data[11]);
+  str_data_combiner("Power on(hours)", tmp, text_data[11]);
 
   tmp = data[40] + (data[41] << 8);
-  str_data_combiner("Flow (in l/h): ", tmp, text_data[12]);
+  str_data_combiner("Flow(l/h)", tmp, text_data[12]);
 
-  str_data_combiner("Media temperature (in C): ", data[44], text_data[13]);
+  str_data_combiner("Media temp.(C)", data[44], text_data[13]);
 
-  str_data_combiner("Ambient temperature (in C): ", data[47], text_data[14]);
+  str_data_combiner("Amb. temp.(C)", data[47], text_data[14]);
 
   tmp = data[50] + (data[51] << 8);
-  str_data_combiner("Flow MIN (in l/h): ", tmp, text_data[15]);
+  str_data_combiner("Flow MIN (l/h)", tmp, text_data[15]);
 
   tmp = data[54] + (data[55] << 8);
-  str_data_combiner("Flow MAX (in l/h): ", tmp, text_data[16]);
+  str_data_combiner("Flow MAX (l/h)", tmp, text_data[16]);
 
-  str_data_combiner("Media temperature MIN (in C): ", data[58], text_data[17]);
+  str_data_combiner("Media temp. MIN (C)", data[58], text_data[17]);
 
-  str_data_combiner("Media temperature AVG (in C, Kamstrup specific): ", data[63], text_data[18]);
+  str_data_combiner("Media temp. AVG (C, KAM)", data[63], text_data[18]);
 
-  str_data_combiner("Ambient temperature MIN (in C): ", data[66], text_data[19]);
+  str_data_combiner("Ambient temp. MIN (C)", data[66], text_data[19]);
 
-  str_data_combiner("Ambient temperature MAX (in C): ", data[69], text_data[20]);
+  str_data_combiner("Ambient temp. MAX (C)", data[69], text_data[20]);
 
-  str_data_combiner("Ambient temperature AVG (in C): ", data[74], text_data[21]);
+  str_data_combiner("Ambient temp. AVG (C)", data[74], text_data[21]);
 
   tmp = data[77] + ((uint32_t) data[78] << 8) + ((uint32_t) data[79] << 16) + ((uint32_t) data[80] << 24);
 
-  str_data_combiner("Date and Time: ", tmp, text_data[22]);
+  str_data_combiner("Date and Time", tmp, text_data[22]);
 
   tmp = data[83] + ((uint32_t) data[84] << 8) + ((uint32_t) data[85] << 16) + ((uint32_t) data[86] << 24);
-  str_data_combiner("V1 Target (m3, 3 decimals): ", data[83], text_data[23]);
+  str_data_combiner("V1 Target (m3, 3 decimals)", data[83], text_data[23]);
 
   tmp = data[89] + (data[90] << 8);
-  str_data_combiner("Flow MIN Month (in l/h): ", tmp, text_data[24]);
+  str_data_combiner("Flow MIN Month (in l/h)", tmp, text_data[24]);
 
   tmp = data[93] + (data[94] << 8);
-  str_data_combiner("Flow MAX Month (in l/h): ", tmp, text_data[25]);
+  str_data_combiner("Flow MAX Month (in l/h)", tmp, text_data[25]);
 
-  str_data_combiner("Media temperature MIN Month (in C): ", data[97], text_data[26]);
+  str_data_combiner("Media temp.MIN Month (C)", data[97], text_data[26]);
 
-  str_data_combiner("Media Ambient temperature AVG Month (in C): ", data[102], text_data[27]);
+  str_data_combiner("Media Amb.temp.AVG Month(C)", data[102], text_data[27]);
 
-  str_data_combiner("Media Ambient temperature MIN Month (in C): ", data[105], text_data[28]);
+  str_data_combiner("Media Amb.temp.MIN Month(C)", data[105], text_data[28]);
 
-  str_data_combiner("Media Ambient temperature MAX Month (in C): ", data[108], text_data[29]);
+  str_data_combiner("Media Amb.temp.MAX Month(C)", data[108], text_data[29]);
 
-  str_data_combiner("Ambient temperature AVG Month (in C): ", data[108], text_data[30]);
+  str_data_combiner("Amb.temp.AVG Month(C)", data[108], text_data[30]);
 
   tmp = data[116] +(data[117] << 8);
-  str_data_combiner("Target date (Kamstrup): ", tmp, text_data[31]);
+  str_data_combiner("Target date (Kamstrup)", tmp, text_data[31]);
 
   tmp = data[121] + (data[122] << 8);
-  str_data_combiner("Info codes (Kamstrup): ", tmp, text_data[32]);
+  str_data_combiner("Info codes (Kamstrup)", tmp, text_data[32]);
 
   tmp = data[126] + ((uint32_t) data[127] << 8) + ((uint32_t) data[128] << 16) + ((uint32_t) data[129] << 24);
-  str_data_combiner("Config number (Kamstrup): ", tmp, text_data[33]);
+  str_data_combiner("Config number (KAM)", tmp, text_data[33]);
 
   tmp = data[135] + (data[136] << 8);
-  str_data_combiner("Meter type (Kamstrup): ", tmp, text_data[34]);
+  str_data_combiner("Meter type (KAM)", tmp, text_data[34]);
 
   tmp = data[140] + (data[141] << 8);
-  str_data_combiner("Software revision (Kamstrup): ", tmp, text_data[35]);
+  str_data_combiner("Software revision (KAM)", tmp, text_data[35]);
 
   tmp = 0;
 

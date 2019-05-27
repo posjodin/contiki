@@ -102,10 +102,10 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
 
     watchdog_periodic();
 
-    char text_data[144][64];
+    char text_data[37][32];
     //memset(text_data, 0, sizeof(text_data));
 
-    for (int i = 0; i < 144; i++) {
+    for (int i = 0; i < 37; i++) {
       memset(text_data[i], 0, sizeof(text_data[i]));
     }
 
@@ -119,7 +119,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
     //-------------
 
     // mbus_switch_baudrate(67, 2400);
-    // mbus_scan_primary_at_address(67);
+    //mbus_scan_primary_at_address(67);
     // //
     // mbus_set_primary_address(67, 100);
     // mbus_scan_primary_at_address(67);
