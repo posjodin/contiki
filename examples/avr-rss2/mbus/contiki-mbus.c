@@ -662,7 +662,7 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32])
   sprintf(text_data[35],"%lu", tmp);
 
 
-  sprintf(text_data[36],"%x%x%x%x", data[7], data[8], data[9], data[10]);
+  sprintf(text_data[36],"%x%x%x%x", data[10], data[9], data[8], data[7]);
 
   return 1;
 }
