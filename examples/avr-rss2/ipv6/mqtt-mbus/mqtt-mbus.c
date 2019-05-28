@@ -53,17 +53,13 @@
 #include "lib/sensors.h"
 #include "dev/button-sensor.h"
 #include "dev/leds.h"
-#include "dev/temp-sensor.h"
-#include "dev/battery-sensor.h"
 #include <math.h>
 #include <string.h>
-#include "adc.h"
-#include "dev/pulse-sensor.h"
 #include "i2c.h"
 #include "dev/serial-line.h"
 #include "contiki-mbus.h"
 #include "usart1.h"
-#include "ringbuf-mbus.h"
+#include "mbus-supported-devices.h"
 #include <dev/watchdog.h>
 #ifndef RF230_DEBUG
 #define RF230_DEBUG 0
@@ -182,25 +178,6 @@ static struct {
 #endif /* MQTT_WATCHDOG */
 /* Publish statistics every N publication */
 #define PUBLISH_STATS_INTERVAL 8
-
-
-/*---------------------------------------------------------------------------*/
-/* NO2 settings */
-#define MIC2714_M  0.9986
-#define MIC2714_A  0.163
-double m = MIC2714_M;
-double a = MIC2714_A;
-
-/*
-  EC  20C 1013mB  NO2 1 ppb= 1.9125 μg/m**3
-  WHO 25C 1013mB  NO2 1 ppb= 1.88   μg/m**3
-
-  https://uk-air.defra.gov.uk/assets/documents/reports/cat06/0502160851_Conversion_Factors_Between_ppb_and.pdf
-
-*/
-
-#define NO2_CONV_EC  1.9125
-#define NO2_CONV_WHO 1.88
 
 /*---------------------------------------------------------------------------*/
 extern int
@@ -569,68 +546,6 @@ update_config(void)
   return;
 }
 
-struct {
-  uint8_t dustbin;
-  uint8_t cca_test;
-  double no2_corr;
-  uint8_t no2_rev;
-} lc;
-
-/*---------------------------------------------------------------------------*/
-static void
-init_node_local_config()
-{
-  unsigned char node_mac[8];
-  unsigned char n06aa[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x01, 0x06, 0xaa }; /* Stadhus north side - has NO2 sensor */
-  unsigned char n050f[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x00, 0x05, 0x0f }; /* Stadhus south side - no NO2 sensor */
-  unsigned char n63a7[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x01, 0x63, 0xa7 }; /* SLB station - has NO2 sensor */
-  unsigned char n8554[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x01, 0x85, 0x54 }; /* SLB station - has NO2 sensor */
-  unsigned char n837e[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x01, 0x83, 0x7e }; /* RO test */
-  unsigned char n1242[8] = { 0xfc, 0xc2, 0x3d, 0x00, 0x00, 0x00, 0x12, 0x42 }; /* lab node */
-
-  memcpy(node_mac, &uip_lladdr.addr, sizeof(linkaddr_t));
-
-  if(memcmp(node_mac, n06aa, 8) == 0) {
-    lc.dustbin = 1;
-    lc.cca_test = 1;
-    lc.no2_corr = 20.9; /* Comparing SLB urban background sthlm with Kista */
-  }
-  else if(memcmp(node_mac, n050f, 8) == 0) {
-    lc.dustbin = 1;
-    lc.cca_test = 1;
-    lc.no2_corr = 0;
-  }
-  else if(memcmp(node_mac, n63a7, 8) == 0) {
-    lc.dustbin = 1; /* 63a7 is at SLB station with dustbin enabled */
-    lc.cca_test = 1;
-    lc.no2_corr = 1600; /* Experiment with SLB Uppsala */
-    lc.no2_rev = 1;
-  }
-  else if(memcmp(node_mac, n8554, 8) == 0) {
-    lc.dustbin = 1; /* 63a7 is at SLB station with dustbin enabled */
-    lc.cca_test = 1;
-    lc.no2_corr = 1; /* Experiment with SLB Uppsala */
-    lc.no2_rev = 1;
-  }
-  else if(memcmp(node_mac, n837e, 8) == 0) {
-    lc.dustbin = 0; /*  */
-    lc.cca_test = 0;
-    lc.no2_corr = 100; /* Comparing SLB urban background sthlm with Kista */
-  }
-  else if(memcmp(node_mac, n1242, 8) == 0) {
-    lc.dustbin = 1; /*  */
-    lc.cca_test = 0;
-    lc.no2_corr = 0;
-  }
-  else {
-    lc.dustbin = 0;
-    lc.cca_test = 0;
-    lc.no2_corr = 0;
-    lc.no2_rev = 0;
-  }
-  printf("Local node settings: Dustbin=%d, CCA_TEST=%d, NO2_CORR=%-4.2f\n", lc.dustbin, lc.cca_test, lc.no2_corr);
-}
-/*---------------------------------------------------------------------------*/
 static int
 init_config()
 {
@@ -658,7 +573,6 @@ init_config()
 #endif /* MQTT_CONF_KEEP_ALIVE_TIMER */
   conf.def_rt_ping_interval = DEFAULT_RSSI_MEAS_INTERVAL;
 
-  init_node_local_config();
   return 1;
 }
 /*---------------------------------------------------------------------------*/
@@ -694,35 +608,6 @@ subscribe(void)
 		buf_ptr += len; \
 	}
 
-
-/* Converts to NO2 ppm according to MIC2714 NO2 curve
-   We assume pure NO2 */
-
-double mics2714(double vcc, double v0, double corr)
-{
-  double no2, rsr0;
-  /* Voltage divider */
-
-  /* Experimental fix */
-  if( lc.no2_rev)
-    v0 = vcc - v0;
-
-  if(v0 == 0)
-    return 9999.99;
-  rsr0 = (vcc - v0)/v0;
-  rsr0 = rsr0 * corr;
-  /* Transfer function */
-  no2 = a * pow(rsr0, m);
-  return no2;
-}
-
-double no2(void)
-{
-  double no2;
-  no2 = mics2714(5, adc_read_a2(), lc.no2_corr) * NO2_CONV_EC;
-  return no2;
-}
-
 static void
 publish_sensors(void)
 {
@@ -751,26 +636,26 @@ publish_sensors(void)
     mbus_parse_data_kamstrup_2101_names(text_names);
     char text_units[37][8];
     mbus_parse_data_kamstrup_2101_units(text_units);
-    char text_data[37][32];
+    char text_data[37][8];
     mbus_parse_data_kamstrup_2101_datas(data, text_data);
 
-    // for (int filler = 0; filler < 37; filler++)
-    // {
-    //   PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[filler], text_units[filler], text_data[filler]);
-    // }
+    for (int filler = 0; filler < 37; filler++)
+    {
+      PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[filler], text_units[filler], text_data[filler]);
+    }
 
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[1], text_units[1], text_data[1]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[36], text_units[36], text_data[36]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[9], text_units[9], text_data[9]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[10], text_units[10], text_data[10]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[11], text_units[11], text_data[11]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[12], text_units[12], text_data[12]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[13], text_units[13], text_data[13]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[14], text_units[14], text_data[14]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[15], text_units[15], text_data[15]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[16], text_units[16], text_data[16]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[24], text_units[24], text_data[24]);
-    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[25], text_units[25], text_data[25]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[1], text_units[1], text_data[1]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[36], text_units[36], text_data[36]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[9], text_units[9], text_data[9]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[10], text_units[10], text_data[10]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[11], text_units[11], text_data[11]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[12], text_units[12], text_data[12]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[13], text_units[13], text_data[13]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[14], text_units[14], text_data[14]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[15], text_units[15], text_data[15]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[16], text_units[16], text_data[16]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[24], text_units[24], text_data[24]);
+    // PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[25], text_units[25], text_data[25]);
 
   PUTFMT("]");
 
@@ -810,22 +695,6 @@ publish_stats(void)
   PUTFMT(",{\"n\":\"seq_no\",\"u\":\"count\",\"v\":%d}", seq_nr_value);
   switch (stats) {
   case STATS_DEVICE:
-
-    PUTFMT(",{\"n\":\"battery\", \"u\":\"V\",\"v\":%-5.2f}", ((double) battery_sensor.value(0)/1000.));
-
-    /* Put our Default route's string representation in a buffer */
-    char def_rt_str[64];
-    memset(def_rt_str, 0, sizeof(def_rt_str));
-    ipaddr_sprintf(def_rt_str, sizeof(def_rt_str), uip_ds6_defrt_choose());
-
-    PUTFMT(",{\"n\":\"def_route\",\"vs\":\"%s\"}", def_rt_str);
-    PUTFMT(",{\"n\":\"rssi\",\"u\":\"dBm\",\"v\":%lu}", def_rt_rssi);
-
-    extern uint32_t pms5003_valid_frames();
-    extern uint32_t pms5003_invalid_frames();
-
-    PUTFMT(",{\"n\":\"pms5003;valid\",\"v\":%lu}", pms5003_valid_frames());
-    PUTFMT(",{\"n\":\"pms5003;invalid\",\"v\":%lu}", pms5003_invalid_frames());
 
 #if RF230_DEBUG
     PUTFMT(",{\"n\":\"rf230;no_ack\",\"v\":%u}", count_no_ack);
@@ -907,48 +776,12 @@ publish_now(void)
 }
 
 static void
-publish_cca_test(void)
-{
-
-  int len;
-  int i;
-  int remaining = APP_BUFFER_SIZE;
-  char *topic;
-  buf_ptr = app_buffer;
-
-  seq_nr_value++;
-
-  /* Publish MQTT topic not in SenML format */
-
-  PUTFMT("[{\"bn\":\"urn:dev:mac:%s;\"", node_id);
-  PUTFMT(",\"bt\":%lu}", clock_seconds());
-  PUTFMT(",{\"n\":\"cca_test\",\"v\":\"");
-
-    PUTFMT("%d", 100-cca[0]);
-  for(i = 1; i < 16; i++) {
-    PUTFMT(" %d", 100-cca[i]);
-  }
-
-  PUTFMT("\"}");
-  PUTFMT("]");
-
-  DBG("MQTT publish CCA test, seq %d: %d bytes\n", seq_nr_value, strlen(app_buffer));
-  topic = construct_topic("cca_test");
-  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
-               strlen(app_buffer), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
-}
-
-static void
 publish(void)
 {
   if (pub_now_message)
     publish_now();
   else if ((seq_nr_value % PUBLISH_STATS_INTERVAL) == 2)
     publish_stats();
-  else if (((seq_nr_value % PUBLISH_STATS_INTERVAL) == 6) && (lc.cca_test)) {
-    do_all_chan_cca(cca);
-    publish_cca_test();
-  }
   else
     //publish_stats();
     publish_sensors();
@@ -1130,7 +963,6 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
   printf("usart initialised!\n");
 
   leds_init();
-  SENSORS_ACTIVATE(pulse_sensor);
 
 #if RF230_DEBUG
   printf("RF230_CONF_FRAME_RETRIES: %d\n", RF230_CONF_FRAME_RETRIES);

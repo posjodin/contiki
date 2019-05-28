@@ -1,1 +1,1 @@
-mbus_src = contiki-mbus.c ringbuf-mbus.c usart1.c
+mbus_src = contiki-mbus.c ringbuf-mbus.c usart1.c mbus-supported-devices.c
