@@ -1,3 +1,14 @@
+/**
+ * \file
+ *         Header file for Contiki-OS M-Bus functionality
+ * \authors
+ *          Albert Asratyan https://github.com/Goradux
+ *          Mandar Joshi https://github.com/mandaryoshi
+ *
+ *
+ *
+ */
+
 #include "usart1.h"
 
 #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144

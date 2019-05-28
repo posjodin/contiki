@@ -1,3 +1,13 @@
+/**
+ * \file
+ *         Contiki-OS M-Bus functionality
+ * \authors
+ *          Albert Asratyan https://github.com/Goradux
+ *          Mandar Joshi https://github.com/mandaryoshi
+ *
+ *
+ */
+
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -56,7 +66,7 @@ strings. For names, recommended string length is 32, for units - 8, for data -
 */
 
 
-
+/*---------------------------------------------------------------------------*/
 
 int
 str_data_combiner(char *text, uint16_t value, char *text_data)
@@ -72,8 +82,17 @@ str_data_combiner_id(char *text, uint16_t value1, uint16_t value2, uint16_t valu
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
 
-
+/**
+ * \brief      Fills an empty array with names for KAM flowIQ2101 variables
+ * \param text_names[37][32]  Empty array that will be filled with names
+ * \retval 1   returns 1 on successfull completion
+ *
+ *             Fills the array with the Kamstrup official flowIQ2101 long
+ *             frame labels. Before calling this function, an array of strings
+ *             has to be declared with the exact same size as the argument.
+ */
 int
 mbus_parse_data_kamstrup_2101_names(char text_names[37][32])
 {
@@ -118,8 +137,17 @@ mbus_parse_data_kamstrup_2101_names(char text_names[37][32])
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
 
-
+/**
+ * \brief      Fills an empty array with units for KAM flowIQ2101 variables
+ * \param text_units[37][8]  Empty array that will be filled with units for data
+ * \retval 1   returns 1 on successfull completion
+ *
+ *             Fills the array with the Kamstrup official flowIQ2101 long
+ *             frame unit labels. Before calling this function, an array of strings
+ *             has to be declared with the exact same size as the argument.
+ */
 int
 mbus_parse_data_kamstrup_2101_units(char text_units[37][8])
 {
@@ -164,8 +192,21 @@ mbus_parse_data_kamstrup_2101_units(char text_units[37][8])
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
 
 
+/**
+ * \brief      Fills an empty array with data for KAM flowIQ2101 variables
+ * \param text_data[37][8]  Empty array that will be filled with units for data
+ * \retval 1   returns 1 on successfull completion
+ *
+ *             Fills the array with the Kamstrup official flowIQ2101 long
+ *             frame data values. Before calling this function, an array of strings
+ *             has to be declared with the exact same size as the argument.
+ *
+ *             Configuration number (text_data[33]) is not displayed correctly
+ *             because it is a 64 bit number, which can not be calculated properly.
+ */
 int
 mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][8])
 {
@@ -252,8 +293,19 @@ mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][8])
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
 
-
+/**
+ * \brief      Fills an empty array with data for KAM flowIQ2101 variables
+ * \param text_names[37][8]  Empty array that will be filled with names and data
+ * \uint16_t *data holds the raw hex M-Bus data
+ * \retval 1   returns 1 on successfull completion
+ * \retval -1   returns -1 if the first four bytes are wrong.
+ *
+ *             Fills the array with the Kamstrup official flowIQ2101 long
+ *             frame data names and values. Combines them both into one string
+ *             and writes that string into the text_data[37][32] array.
+ */
 int
 mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
 {
@@ -265,25 +317,15 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
     return -1;
   }
 
-
   // checksum check
   // implement later
 
-
   str_data_combiner("Control field", data[4], text_data[0]);
-
 
   str_data_combiner("Primary address",data[5], text_data[1]);
   str_data_combiner("CI field",data[6], text_data[2]);
 
-  // str_data_combiner(str_data_combiner(str_data_combiner(
-  //      str_data_combiner("ID number: ", data[10], text_data[7]), data[9],
-  //      text_data[7]), data[8], text_data[7]), data[7], text_data[7]);
-
   str_data_combiner_id("ID number",data[7], data[8], data[9], data[10], text_data[36]);
-
-
-
 
   tmp = data[11] + (data[12] << 8);
   str_data_combiner("Manufacturer ID", tmp, text_data[3]);
@@ -296,10 +338,10 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
   tmp = data[17] + (data[18] << 8);
   str_data_combiner("Config (not used)", tmp, text_data[8]);
 
-  tmp = (uint32_t) data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
+  tmp = data[21] + ((uint32_t) data[22] << 8) + ((uint32_t) data[23] << 16) + ((uint32_t) data[24] << 24);
   str_data_combiner("Volume(m3, 3 dec)", tmp, text_data[9]);
 
-  tmp =  data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
+  tmp = data[28] + ((uint32_t) data[29] << 8) + ((uint32_t) data[30] << 16) + ((uint32_t) data[31] << 24);
   str_data_combiner("Vol.Rev.(m3, 3 dec)", tmp, text_data[10]);
 
   tmp = data[34] + ((uint32_t) data[35] << 8) + ((uint32_t) data[36] << 16) + ((uint32_t) data[37] << 24);
@@ -370,3 +412,5 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
 
   return 1;
 }
+
+/*---------------------------------------------------------------------------*/

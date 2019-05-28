@@ -1,3 +1,12 @@
+/**
+ * \file
+ *         Contiki-OS M-Bus functionality
+ * \authors
+ *          Albert Asratyan https://github.com/Goradux
+ *          Mandar Joshi https://github.com/mandaryoshi
+ *
+ */
+
 #include "sys/etimer.h"
 #include <unistd.h>
 #include <string.h>
@@ -7,17 +16,6 @@
 #include "ringbuf-mbus.h"
 #include "usart1.h"
 #include "mbus-supported-devices.h"
-
-
-/*
-TODO list:
-
-add the frame check to every function
-
-*/
-
-// #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
-
 
 
 #define MBUS_FRAME_TYPE_ACK     1
@@ -62,51 +60,59 @@ add the frame check to every function
 #define MBUS_ANSWER_ACK                 0xE5
 
 
-
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Timeout period for M-Bus slave transmission.
+ * \retval 1   on success
+ * \retval -1  if the given baudrate is unsupported
+ *
+ *             M-Bus documentation specifies a timeout period of
+ *             11 bit times + (330 bit times + 50 ms)
+ *
+ */
 int
 wait_for_mbus()
 {
   int baudrate = 9600; // change later
-  if (baudrate == 300)
-  {
+  if (baudrate == 300) {
     clock_delay_msec(4000);
   } else
-  if (baudrate == 2400)
-  {
+  if (baudrate == 2400) {
     clock_delay_msec(1000);
   } else
-  if (baudrate == 9600)
-  {
+  if (baudrate == 9600) {
     clock_delay_msec(300);
-  } else
-  {
+  } else {
     printf("Unsupported baudrate!\n");
     return -1;
   }
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief       Verify the frame type: ACK, Short or Long
+ * \param *data
+ * \param reply_type
+ * \retval 1   on success
+ *
+ */
 
 int
 mbus_verify_frame(uint16_t *data, int reply_type)
 {
-  switch(reply_type)
-  {
+  switch(reply_type) {
     case MBUS_FRAME_TYPE_ACK:
-      if (data[0] == 0xE5)
-      {
+      if (data[0] == 0xE5) {
         return 1;
       }
     case MBUS_FRAME_TYPE_SHORT:
-      if (data[0] == 0x10 && data[4] == 0x16)
-      {
+      if (data[0] == 0x10 && data[4] == 0x16) {
         return 1;
       }
     //case MBUS_FRAME_TYPE_CONTROL:
     case MBUS_FRAME_TYPE_LONG:
-      if (data[0] == 0x10 && data[143] == 0x16)
-      {
+      if (data[0] == 0x10 && data[143] == 0x16) {
         return 1;
       }
     default:
@@ -116,29 +122,45 @@ mbus_verify_frame(uint16_t *data, int reply_type)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief           Ping the given address for an ACK
+ *                  send it the correct frame. Local function.
+ * \param address   Address of the M-Bus slave
+ * \retval -2   For invalid primary address input
+ * \retval 1    On success
+ *
+ *                 Pings a M-Bus slave device by transmitting a coressponding
+ *                 frame.
+ */
 
 int
 mbus_ping_frame(int address)
 {
+  int checksum;
   int ping = MBUS_CONTROL_MASK_SND_NKE;
-  if (address > 255)
-  {
+
+  if (address > 255) {
     printf("Invalid address!\n");
     return -2;
   }
-  int checksum = (MBUS_CONTROL_MASK_SND_NKE + address) % 0x100;
+
+  checksum = (MBUS_CONTROL_MASK_SND_NKE + address) % 0x100;
   uint8_t frame[MBUS_FRAME_SIZE_SHORT] = {MBUS_START_BIT_SHORT, ping,
                                           address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
       usart1_tx(&frame[i]);
-    }
+  }
   return 1;
 }
 
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to read an input of 1 ACK
+ * \return     The response, should be 0xE5 on success, everything else on failure
+ */
 
-// mb have like a char *
 int
 mbus_receive_ack()
 {
@@ -151,25 +173,36 @@ mbus_receive_ack()
   return response;
 }
 
-
+/**
+ * \brief      Scan for a M-Bus slave
+ * \param address    M-Bus slave address to scan
+ * \retval -1     On failure
+ * \retval 1      On successful ping
+ * \retval 0xE5   On M-Bus device found
+ *
+ *              Pings a M-Bus slave at a specific primary address. Waits some
+ *              time for a response and reads it. If a device was found, returns
+ *              its ACK hex value.
+ */
 
 int
 mbus_scan_primary_at_address(int address)
 {
-  int result = mbus_ping_frame(address);
-  if (result == -1)
-  {
+  int result, response;
+
+  result = mbus_ping_frame(address);
+  if (result == -1) {
     printf("Scan failed at the following address: %d\n.", address);
     return -1;
   }
 
-  if (wait_for_mbus() == -1)
+  if (wait_for_mbus() == -1) {
     return -1;
+  }
 
-  int response = mbus_receive_ack();
+  response = mbus_receive_ack();
 
-  if (response == MBUS_ANSWER_ACK)
-  {
+  if (response == MBUS_ANSWER_ACK) {
     printf("M-Bus device at %d has sent an ACK.\n\n", address);
     return response;
   } else {
@@ -179,29 +212,37 @@ mbus_scan_primary_at_address(int address)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to scan all M-Bus primary addresses
+ *
+ * \retval 1   on success
+ * \retval -1   on failure
+ *
+ *              Pings all possible M-Bus slaves (250 devices) one by one.
+ */
 
 int
 mbus_scan_primary_all()
 {
   int address = 0;
-  for (address = 0; address <= 250; address++)
-  {
-    int result = mbus_ping_frame(address);
-    if (result == -1)
-    {
+  int result, response;
+
+  for (address = 0; address <= 250; address++) {
+    result = mbus_ping_frame(address);
+    if (result == -1) {
       printf("Scan failed at the following address: %d\n", address);
     }
 
-    if (wait_for_mbus() == -1)
+    if (wait_for_mbus() == -1) {
       return -1;
+    }
 
-    int response = mbus_receive_ack();
+    response = mbus_receive_ack();
 
     clock_delay_msec(3);
 
-    if (response == MBUS_ANSWER_ACK)
-    {
+    if (response == MBUS_ANSWER_ACK) {
       printf("M-Bus device at %d has sent an ACK.\n\n", address);
     } else {
       printf("No M-Bus device found at the address %d\n", address);
@@ -212,29 +253,28 @@ mbus_scan_primary_all()
   return 1;
 }
 
-
-
-int
-mbus_scan_secondary_all()
-{
-  //to be added later
-  return 1;
-}
-
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      function that sends request data at a specific primary address
+               Internal.
+ * \param address Known primary address of M-Bus slave
+ * \retval -2   Invalid address
+ * \retval 1   On success
+ */
 
 int
 mbus_send_data_request(int address)
 {
-  int request = MBUS_CONTROL_MASK_REQ_UD2;
+  int request, checksum;
 
-  if (address > 250)
-  {
+  request = MBUS_CONTROL_MASK_REQ_UD2;
+
+  if (address > 250) {
     printf("Invalid address!\n");
     return -2;
   }
 
-  int checksum = request + address;
+  checksum = request + address;
 
   uint8_t frame[MBUS_FRAME_SIZE_SHORT] = {MBUS_START_BIT_SHORT, request,
                                           address, checksum, MBUS_END_BIT};
@@ -245,73 +285,93 @@ mbus_send_data_request(int address)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Read a long frame (data) from M-Bus slave
+ * \param data array to store the values to
+ * \param frame_length specifies the length of the long frame
+ * \retval 1   on completion
+ */
 
 int
 mbus_receive_long(uint16_t *data, int frame_length)
 {
-  uint16_t buff[frame_length]; // can be 0?
+  uint16_t buff[frame_length];
   memset((void *)buff, 0, sizeof(buff));
 
   for (int i = 0; i < frame_length; i++) {
      usart1_rx(buff);
-     data[i] = buff[0];     // buff[0] is it really correct? should be &buff
+     data[i] = buff[0];
   }
 
   return 1;
 }
 
-/*
- * Data array passed as an argument should have exactly 144 entries.
-*/
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to request data from M-Bus slave at given primary
+ *             Address
+ * \param address    Primary address of M-Bus slave
+ * \param data    Array to store data received to
+ * \param frame_length    Length of expected received frame
+ * \retval -1   Failure
+ * \retval 1   Success
+ *
+ *             Data array passed as an argument should
+ *             be of the same length as the value of the frame_length variable.
+ *
+ */
 int
 mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_length)
 {
-  int result = mbus_send_data_request(address);
-  if (result == -1)
-  {
+  int result;
+  uint16_t received_data[frame_length];
+
+  result = mbus_send_data_request(address);
+  if (result == -1) {
     printf("Failed to send a request to the address: %d\n.", address);
     return -1;
   }
 
-  if (wait_for_mbus() == -1)
+  if (wait_for_mbus() == -1) {
     return -1;
+  }
 
-  uint16_t received_data[frame_length];
   memset((void *)received_data, 0, sizeof(received_data));
 
   mbus_receive_long(received_data, frame_length);
 
-  for (int i = 0; i < frame_length; i++)
-  {
+  for (int i = 0; i < frame_length; i++) {
     data[i] = received_data[i];
   }
-
-  //data = received_data;
-
-  // or can be this?
-  //int response = mbus_receive_long(&data);
 
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to send the frame for address change. Internal.
+ * \param address Primary address
+ * \param new_address Address to change to
+ * \retval -1   Wrong inputs
+ * \retval 1   Frame sent.
+ */
 
 int
 mbus_send_address_change(int address, int new_address)
 {
-  int control = MBUS_CONTROL_MASK_SND_UD;
-  if (address > 250)
-  {
+  int control, checksum;
+
+  control = MBUS_CONTROL_MASK_SND_UD;
+  if (address > 250) {
     printf("Invalid old address!\n");
     return -1;
   }
-  if (new_address > 250)
-  {
+  if (new_address > 250) {
     printf("Invalid new address!\n");
     return -1;
   }
-  int checksum = (control + address + 0x51 + 0x01 + 0x7A + new_address) % 0x100;
+  checksum = (control + address + 0x51 + 0x01 + 0x7A + new_address) % 0x100;
 
   uint8_t frame[12] = {MBUS_START_BIT_CONTROL, 0x06, 0x06,
                       0x68, control, address, 0x51, 0x01, 0x7A,
@@ -323,31 +383,40 @@ mbus_send_address_change(int address, int new_address)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to change primary address of a M-Bus slave
+ * \param address Primary address
+ * \param new_address Address to change to
+ * \retval -1   Wrong input, failure to send
+ * \retval 1   Function completion
+ *
+ *              Changes primary address of a device, given the current address.
+ */
 
 int
 mbus_set_primary_address(int address, int new_address)
 {
-  if (address > 250)
-  {
+  int result, response;
+
+  if (address > 250) {
     printf("Invalid address!\n");
     return -1;
   }
 
-  int result = mbus_send_address_change(address, new_address);
-  if (result == -1)
-  {
+  result = mbus_send_address_change(address, new_address);
+  if (result == -1) {
     printf("Failed to send a control frame at the address: %d\n.", address);
     return -1;
   }
 
-  if (wait_for_mbus() == -1)
+  if (wait_for_mbus() == -1) {
     return -1;
+  }
 
-  int response = mbus_receive_ack();
+  response = mbus_receive_ack();
 
-  if (response == MBUS_ANSWER_ACK)
-  {
+  if (response == MBUS_ANSWER_ACK) {
     printf("Control frame sent successfully.\n");
     printf("M-Bus device at %d has sent an ACK.\n", address);
   } else {
@@ -357,19 +426,26 @@ mbus_set_primary_address(int address, int new_address)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to send frame to switch baudrate. Internal.
+ * \param address    Primary address for M-Bus slave
+ * \param baudrate    New baudrate for communication
+ * \retval -1   Wrong address
+ * \retval 1   Frame sent.
+ */
 
 int
 mbus_send_frame_switch_baudrate(int address, int baudrate)
 {
-  int control = MBUS_CONTROL_MASK_SND_UD;
-  if (address > 250)
-  {
+  int control, checksum;
+
+  control = MBUS_CONTROL_MASK_SND_UD;
+  if (address > 250) {
     printf("Invalid old address!\n");
     return -1;
   }
-  switch(baudrate)
-  {
+  switch(baudrate) {
     case 300:
       baudrate = 0xB8;
     case 2400:
@@ -377,7 +453,7 @@ mbus_send_frame_switch_baudrate(int address, int baudrate)
     case 9600:
       baudrate = 0xBD;
   }
-  int checksum = (control + address + baudrate) % 0x100;
+  checksum = (control + address + baudrate) % 0x100;
 
   uint8_t frame[9] = {MBUS_START_BIT_CONTROL, 0x03, 0x03,
                       0x68, control, address, baudrate, checksum, MBUS_END_BIT};
@@ -388,15 +464,27 @@ mbus_send_frame_switch_baudrate(int address, int baudrate)
   return 1;
 }
 
-
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Function to switch baudrate on M-Bus slave
+ * \param address    Primary address for M-Bus slave
+ * \param baudrate    New baudrate for communication
+ * \retval -1   Wrong address, failure to send
+ * \retval 1   Function completion.
+ *
+ *              Sends a control frame that request a change of the baudrate of
+ *              a M-Bus slave. The slave should reply with an ACK on the old
+ *              baudrate and start listening/sending on the new one right after.
+ */
 
 int
 mbus_switch_baudrate(int address, int baudrate)
 {
-  // 68 03 03 68 | 53 FE BD | 0E 16 to switch from 2400 to 9600
-  int result = mbus_send_frame_switch_baudrate(address, baudrate);
-  if (result == -1)
-  {
+
+  int result, response;
+
+  result = mbus_send_frame_switch_baudrate(address, baudrate);
+  if (result == -1) {
     printf("Failed to send a control frame at the address: %d\n.", address);
     return -1;
   }
@@ -404,26 +492,14 @@ mbus_switch_baudrate(int address, int baudrate)
   if (wait_for_mbus() == -1)
     return -1;
 
-  int response = mbus_receive_ack();
+  response = mbus_receive_ack();
 
-  if (response == MBUS_ANSWER_ACK)
-  {
+  if (response == MBUS_ANSWER_ACK) {
     printf("Baudrate change control frame sent successfully.\n");
     printf("M-Bus device at %d has sent an ACK.\n", address);
   } else {
     printf("No response from the M-Bus device at the address %d.\n", address);
   }
 
-  // should probably reinitialise the OS's baudrate here?
-
-  return 1;
-}
-
-
-
-int
-mbus_send_custom_message(uint8_t *message, int reply_type)
-{
-  // fill later
   return 1;
 }

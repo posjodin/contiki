@@ -1,5 +1,17 @@
+/**
+ * \file
+ *         Contiki-OS M-Bus functionality
+ * \authors
+ *          Albert Asratyan https://github.com/Goradux
+ *          Mandar Joshi https://github.com/mandaryoshi
+ *
+ *
+ *
+ */
+
+
 /*
- * Functon for parsing the data received from the long frame.
+ * Functons for parsing the data received from the long frame.
  * Can be used after mbus_request_data_at_primary_address();
  * Specific for Kamstrup 2101
 */
