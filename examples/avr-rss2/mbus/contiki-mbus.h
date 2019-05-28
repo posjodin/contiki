@@ -2,6 +2,8 @@
 
 #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
 
+uint16_t mbus_data[MBUS_FRAME_SIZE_KAMSTRUP_2101] = {0};
+
 /*
  * Request an ACK from a slave at param address
 */
@@ -40,6 +42,6 @@ int mbus_switch_baudrate(int address, int baudrate);
 */
 int mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32]);
 
-int mbus_parse_data_kamstrup_2101_units(char text_units[37][32]);
+int mbus_parse_data_kamstrup_2101_units(char text_units[37][8]);
 int mbus_parse_data_kamstrup_2101_names(char text_names[37][32]);
 int mbus_parse_data_kamstrup_2101_datas(uint16_t *data, char text_data[37][32]);

@@ -754,11 +754,12 @@ publish_sensors(void)
     //int res = mbus_scan_primary_at_address(67);
     uint16_t data[144];
     memset(data, 0, sizeof(data));
-    mbus_request_data_at_primary_address(67, data);
+    mbus_request_data_at_primary_address(67, data, 144);
 
+    //first two should be done only once
     char text_names[37][32];
     mbus_parse_data_kamstrup_2101_names(text_names);
-    char text_units[37][32];
+    char text_units[37][8];
     mbus_parse_data_kamstrup_2101_units(text_units);
     char text_data[37][32];
     mbus_parse_data_kamstrup_2101_datas(data, text_data);

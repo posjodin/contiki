@@ -15,7 +15,7 @@ add the frame check to every function
 
 */
 
-#define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
+// #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
 
 
 
@@ -60,6 +60,8 @@ add the frame check to every function
 
 #define MBUS_ANSWER_ACK                 0xE5
 
+
+// uint16_t mbus_data[MBUS_FRAME_SIZE_KAMSTRUP_2101] = {0};
 
 
 int
@@ -537,7 +539,7 @@ mbus_parse_data_kamstrup_2101_names(char text_names[37][32])
 
 
 int
-mbus_parse_data_kamstrup_2101_units(char text_units[37][32])
+mbus_parse_data_kamstrup_2101_units(char text_units[37][8])
 {
   sprintf(text_units[0],"%s", "num");
   sprintf(text_units[1],"%s", "num");
@@ -548,8 +550,8 @@ mbus_parse_data_kamstrup_2101_units(char text_units[37][32])
   sprintf(text_units[6],"%s", "num");
   sprintf(text_units[7],"%s", "num");
   sprintf(text_units[8],"%s", "num");
-  sprintf(text_units[9],"%s", "m3, 3 dec.");
-  sprintf(text_units[10],"%s", "m3, 3 dec.");
+  sprintf(text_units[9],"%s", "m3,3d");
+  sprintf(text_units[10],"%s", "m3,3d");
   sprintf(text_units[11],"%s", "hours");
   sprintf(text_units[12],"%s", "l/h");
   sprintf(text_units[13],"%s", "C");
@@ -562,7 +564,7 @@ mbus_parse_data_kamstrup_2101_units(char text_units[37][32])
   sprintf(text_units[20],"%s", "C");
   sprintf(text_units[21],"%s", "C");
   sprintf(text_units[22],"%s", "s");
-  sprintf(text_units[23],"%s", "m3, 3 dec.");
+  sprintf(text_units[23],"%s", "m3,3d");
   sprintf(text_units[24],"%s", "l/h");
   sprintf(text_units[25],"%s", "l/h");
   sprintf(text_units[26],"%s", "C");
@@ -785,4 +787,11 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
   tmp = 0;
 
   return 1;
+}
+
+
+int
+mbus_init_specific(int mbus_name)
+{
+
 }
