@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <string.h>
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 #define PUTFMT(...) { \
@@ -37,7 +37,7 @@ mqtt_rpl_pub(char *buf, int bufsize)  {
   int i;
 
   rpl_instance_t *inst = default_instance;
-  
+
   if(inst != NULL && inst->current_dag != NULL &&
       inst->of != NULL) {
 
@@ -48,7 +48,7 @@ mqtt_rpl_pub(char *buf, int bufsize)  {
       dag = &inst->dag_table[i];
       if(dag->used) {
 	PUTFMT(",{\"n\":\"rpl;dag\",\"vj\":{\"root\":\":%02x%02x\", \"inst\":%d, \"rank\":%d, \"ver\":%d, \"pref\":%d, \"status\":\"%s%s\"",
-	       dag->dag_id.u8[14], dag->dag_id.u8[15], 
+	       dag->dag_id.u8[14], dag->dag_id.u8[15],
 	       inst->instance_id,
 	       dag->rank, dag->version, dag->preference,
 	       dag->grounded ? "g": "",
@@ -82,7 +82,7 @@ mqtt_rpl_pub(char *buf, int bufsize)  {
     if (putcomma)
       PUTFMT(",");
     putcomma = 1;
-    
+
     PUTFMT("{\"prn\":");
     PUTIPADDR(rpl_get_parent_ipaddr(p));
     PUTFMT(",\"rank\":%u, \"of:link_metric\":%u, \"of:rank_via\":%u, \"fresh\":%u, \"status\":\"%c%c\", \"last_tx (min)\":%u, \"tx_tot_cnt\":%lu, \"tx_ok_cnt\":%lu, \"tx_num_sum\":%lu, \"tx_collision\":%lu, \"tx_deferred\":%lu, \"tx_error\":%lu, \"rssi\":%d, \"lqi\":%u",
@@ -102,9 +102,9 @@ mqtt_rpl_pub(char *buf, int bufsize)  {
 	   (stats != NULL) ? stats->rssi : 0,
 	   (stats != NULL) ? stats->lqi : 0
 	   );
-    PUTFMT("}");	   
+    PUTFMT("}");
     p = nbr_table_next(rpl_parents, p);
   }
-  PUTFMT("]}");	     
+  PUTFMT("]}");
   return buf_ptr - buf;
 }

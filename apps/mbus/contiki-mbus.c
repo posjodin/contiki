@@ -787,10 +787,3 @@ mbus_parse_data_kamstrup_2101(uint16_t *data, char text_data[37][32])
 
   return 1;
 }
-
-
-int
-mbus_init_specific(int mbus_name)
-{
-
-}
