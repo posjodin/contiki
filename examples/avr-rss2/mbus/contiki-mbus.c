@@ -278,7 +278,7 @@ mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_leng
   uint16_t received_data[frame_length];
   memset((void *)received_data, 0, sizeof(received_data));
 
-  mbus_receive_long(received_data);
+  mbus_receive_long(received_data, frame_length);
 
   for (int i = 0; i < frame_length; i++)
   {

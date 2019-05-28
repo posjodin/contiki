@@ -109,7 +109,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
       memset(text_data[i], 0, sizeof(text_data[i]));
     }
 
-    mbus_parse_data_kamstrup_2101(data, text_data, 144);
+    mbus_parse_data_kamstrup_2101(data, text_data);
 
 
     for (int i = 0; i < 37; i++)
