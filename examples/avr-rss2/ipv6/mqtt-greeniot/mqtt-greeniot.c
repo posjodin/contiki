@@ -764,10 +764,24 @@ publish_sensors(void)
     char text_data[37][32];
     mbus_parse_data_kamstrup_2101_datas(data, text_data);
 
-    for (int filler = 0; filler < 37; filler++)
-    {
-      PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[filler], text_units[filler], text_data[filler]);
-    }
+    // for (int filler = 0; filler < 37; filler++)
+    // {
+    //   PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[filler], text_units[filler], text_data[filler]);
+    // }
+
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[1], text_units[1], text_data[1]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[36], text_units[36], text_data[36]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[9], text_units[9], text_data[9]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[10], text_units[10], text_data[10]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[11], text_units[11], text_data[11]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[12], text_units[12], text_data[12]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[13], text_units[13], text_data[13]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[14], text_units[14], text_data[14]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[15], text_units[15], text_data[15]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[16], text_units[16], text_data[16]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[24], text_units[24], text_data[24]);
+    PUTFMT(",{\"n\":\"%s\",\"u\":\"%s\",\"v\":%s}", text_names[25], text_units[25], text_data[25]);
+
 
 
     //PUTFMT(",{\"n\":\"flowIQ2101\",\"u\":\"hex\",\"v\":%X}", res);

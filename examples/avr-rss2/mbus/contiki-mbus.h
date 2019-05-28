@@ -2,7 +2,7 @@
 
 #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
 
-uint16_t mbus_data[MBUS_FRAME_SIZE_KAMSTRUP_2101] = {0};
+
 
 /*
  * Request an ACK from a slave at param address

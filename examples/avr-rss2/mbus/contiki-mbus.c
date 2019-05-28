@@ -61,7 +61,6 @@ add the frame check to every function
 #define MBUS_ANSWER_ACK                 0xE5
 
 
-// uint16_t mbus_data[MBUS_FRAME_SIZE_KAMSTRUP_2101] = {0};
 
 
 int
