@@ -87,11 +87,11 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
 
 
     //-------------
-    uint16_t data[144];
+    uint16_t data[MBUS_FRAME_SIZE_KAMSTRUP_2101];
     memset(data, 0, sizeof(data));
-    mbus_request_data_at_primary_address(67, data);
+    mbus_request_data_at_primary_address(67, data, MBUS_FRAME_SIZE_KAMSTRUP_2101);
     printf("\n");
-    for (int i = 0; i < 144; i++) {
+    for (int i = 0; i < MBUS_FRAME_SIZE_KAMSTRUP_2101; i++) {
       printf("%0X ", data[i]);
       if ((i+1) % 32 == 0) {
         printf("\n");
@@ -109,7 +109,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
       memset(text_data[i], 0, sizeof(text_data[i]));
     }
 
-    mbus_parse_data_kamstrup_2101(data, text_data);
+    mbus_parse_data_kamstrup_2101(data, text_data, 144);
 
 
     for (int i = 0; i < 37; i++)

@@ -15,6 +15,8 @@ add the frame check to every function
 
 */
 
+#define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
+
 
 
 #define MBUS_FRAME_TYPE_ACK     1
@@ -28,7 +30,6 @@ add the frame check to every function
 #define MBUS_END_BIT 0x16
 
 #define MBUS_FRAME_SIZE_SHORT 5
-#define MBUS_FRAME_SIZE_LONG 144
 #define MBUS_FRAME_SIZE_CONTROL 9
 
 #define MBUS_CONTROL_FIELD_DIRECTION    0x07
@@ -245,12 +246,12 @@ mbus_send_data_request(int address)
 
 
 int
-mbus_receive_long(uint16_t *data)
+mbus_receive_long(uint16_t *data, int frame_length)
 {
-  uint16_t buff[MBUS_FRAME_SIZE_LONG]; // can be 0?
+  uint16_t buff[frame_length]; // can be 0?
   memset((void *)buff, 0, sizeof(buff));
 
-  for (int i = 0; i < MBUS_FRAME_SIZE_LONG; i++) {
+  for (int i = 0; i < frame_length; i++) {
      usart1_rx(buff);
      data[i] = buff[0];     // buff[0] is it really correct? should be &buff
   }
@@ -262,7 +263,7 @@ mbus_receive_long(uint16_t *data)
  * Data array passed as an argument should have exactly 144 entries.
 */
 int
-mbus_request_data_at_primary_address(int address, uint16_t *data)
+mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_length)
 {
   int result = mbus_send_data_request(address);
   if (result == -1)
@@ -274,12 +275,12 @@ mbus_request_data_at_primary_address(int address, uint16_t *data)
   if (wait_for_mbus() == -1)
     return -1;
 
-  uint16_t received_data[MBUS_FRAME_SIZE_LONG];
+  uint16_t received_data[frame_length];
   memset((void *)received_data, 0, sizeof(received_data));
 
   mbus_receive_long(received_data);
 
-  for (int i = 0; i < MBUS_FRAME_SIZE_LONG; i++)
+  for (int i = 0; i < frame_length; i++)
   {
     data[i] = received_data[i];
   }

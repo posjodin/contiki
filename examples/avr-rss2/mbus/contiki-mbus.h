@@ -15,7 +15,7 @@ int mbus_scan_primary_all();
  * requires an empty array of string to where the data is stored.
  * Has to be char data[144][64]
 */
-int mbus_request_data_at_primary_address(int address, uint16_t *data);
+int mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_length);
 
 /*
  * Set or change the primary address of a M-Bus slave
