@@ -1,30 +1,30 @@
 /*
  * Copyright (c) 2007, Swedish Institute of Computer Science
- * All rights reserved.
+ * All rights reserved. 
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions 
+ * are met: 
+ * 1. Redistributions of source code must retain the above copyright 
+ *    notice, this list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright 
+ *    notice, this list of conditions and the following disclaimer in the 
+ *    documentation and/or other materials provided with the distribution. 
+ * 3. Neither the name of the Institute nor the names of its contributors 
+ *    may be used to endorse or promote products derived from this software 
+ *    without specific prior written permission. 
  *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND 
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE 
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS 
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) 
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT 
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY 
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF 
+ * SUCH DAMAGE. 
  *
  */
 
@@ -55,8 +55,8 @@ struct cmod_info cmod_module[CMOD_NMODULES];
 int
 cmod_load(unsigned imod,
 	  cle_scratch scratch,
-	  int (*pread)(void *, int, off_t1),
-	  off_t1 off)
+	  int (*pread)(void *, int, off_t),
+	  off_t off)
 {
   struct cle_info h;
   int ret;
@@ -94,7 +94,7 @@ cmod_load(unsigned imod,
 
   PRINTF("cmod: copy text segment to RAM %p %p\n",
 	 h.text, h.text + h.textsize);
-  ret = pread((void *)h.text, h.textsize, off + h.textoff);
+  ret = pread((void *)h.text, h.textsize, off + h.textoff); 
   assert(ret > 0);
   if(h.textrelasize > 0) {
     PRINTF("cmod: relocate text in RAM\n");
@@ -111,7 +111,7 @@ cmod_load(unsigned imod,
 
   PRINTF("cmod: copy data segment to RAM %p %p\n",
 	 h.data, h.data + h.datasize);
-  ret = pread(h.data, h.datasize, off + h.dataoff);
+  ret = pread(h.data, h.datasize, off + h.dataoff); 
   assert(ret >= 0);
   if(h.datarelasize > 0) {
     PRINTF("cmod: relocate data segment\n");
