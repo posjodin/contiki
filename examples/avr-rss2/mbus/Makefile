@@ -1,5 +1,5 @@
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
-CONTIKI_PROJECT = hello-mbus
+CONTIKI_PROJECT = mbus-example
 all: $(CONTIKI_PROJECT)
 
 APPS += mbus

@@ -36,7 +36,7 @@
 
 /**
  * \file
- *         Example uses avr-rss2 platform
+ *         Uses avr-rss2 platform
  *
  */
 

@@ -2,8 +2,8 @@
  * \file
  *         Contiki-OS M-Bus functionality
  * \authors
- *          Albert Asratyan https://github.com/Goradux
- *          Mandar Joshi https://github.com/mandaryoshi
+ *          Albert Asratyan asratyan@kth.se
+ *          Mandar Joshi mandarj@kth.se
  *
  */
 
@@ -59,6 +59,10 @@
 
 #define MBUS_ANSWER_ACK                 0xE5
 
+#define  MBUS_BAUD_RATE                 300
+
+
+
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -73,14 +77,37 @@
 int
 wait_for_mbus()
 {
-  int baudrate = 9600; // change later
-  if (baudrate == 300) {
-    clock_delay_msec(4000);
-  } else
-  if (baudrate == 2400) {
+  if (MBUS_BAUD_RATE == 300) {
     clock_delay_msec(1000);
+
   } else
-  if (baudrate == 9600) {
+  if (MBUS_BAUD_RATE == 2400) {
+    clock_delay_msec(700);
+  } else
+  if (MBUS_BAUD_RATE == 9600) {
+    clock_delay_msec(300);
+  } else {
+    printf("Unsupported baudrate!\n");
+    return -1;
+  }
+  return 1;
+}
+int
+wait_for_mbus_data()
+{
+  if (MBUS_BAUD_RATE == 300) {
+    for (int i = 0; i < 80; i ++) {
+      clock_delay_msec(100);
+      watchdog_periodic();
+    }
+   } else
+  if (MBUS_BAUD_RATE == 2400) {
+    for (int i = 0; i < 10; i ++) {
+      clock_delay_msec(100);
+      watchdog_periodic();
+    }
+  } else
+  if (MBUS_BAUD_RATE == 9600) {
     clock_delay_msec(300);
   } else {
     printf("Unsupported baudrate!\n");
@@ -91,35 +118,20 @@ wait_for_mbus()
 
 /*---------------------------------------------------------------------------*/
 /**
- * \brief       Verify the frame type: ACK, Short or Long
+ * \brief       Verify the long frame
  * \param *data
- * \param reply_type
  * \retval 1   on success
  *
+ *             Verifies long frame starting and ending bits.
  */
 
 int
-mbus_verify_frame(uint16_t *data, int reply_type)
+mbus_verify_frame_long(uint16_t *data, int frame_length)
 {
-  switch(reply_type) {
-    case MBUS_FRAME_TYPE_ACK:
-      if (data[0] == 0xE5) {
-        return 1;
-      }
-    case MBUS_FRAME_TYPE_SHORT:
-      if (data[0] == 0x10 && data[4] == 0x16) {
-        return 1;
-      }
-    //case MBUS_FRAME_TYPE_CONTROL:
-    case MBUS_FRAME_TYPE_LONG:
-      if (data[0] == 0x10 && data[143] == 0x16) {
-        return 1;
-      }
-    default:
-      printf("Frame type not supported!\n");
-      return -1;
+  if (data[0] == 0x68 && data[frame_length-1] == 0x16) {
+    return 1;
   }
-  return 1;
+  return -1;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -281,6 +293,7 @@ mbus_send_data_request(int address)
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
     usart1_tx(&frame[i]);
+    watchdog_periodic();
   }
   return 1;
 }
@@ -333,7 +346,7 @@ mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_leng
     return -1;
   }
 
-  if (wait_for_mbus() == -1) {
+  if (wait_for_mbus_data() == -1) {
     return -1;
   }
 
@@ -343,6 +356,11 @@ mbus_request_data_at_primary_address(int address, uint16_t *data, int frame_leng
 
   for (int i = 0; i < frame_length; i++) {
     data[i] = received_data[i];
+  }
+
+  if (mbus_verify_frame_long(data, frame_length) == -1) {
+    printf("Corrupted frame!\n");
+    return -1;
   }
 
   return 1;

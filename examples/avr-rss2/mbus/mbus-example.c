@@ -46,12 +46,13 @@
 #include "dev/leds.h"
 #include "usart1.h"
 #include "dev/watchdog.h"
-#include "contiki-mbus.h"
+#include "mbus.h"
+#include "mbus-supported-devices.h"
 
 
 /*---------------------------------------------------------------------------*/
-PROCESS(hello_mbus_process, "Hello mbus process");
-AUTOSTART_PROCESSES(&hello_mbus_process);
+PROCESS(mbus_process, "mbus process");
+AUTOSTART_PROCESSES(&mbus_process);
 
 static struct etimer et;
 
@@ -59,8 +60,9 @@ static struct etimer et;
 
 
 
+
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(hello_mbus_process, ev, data)
+PROCESS_THREAD(mbus_process, ev, data)
 {
   PROCESS_BEGIN();
 
@@ -71,7 +73,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
   leds_on(LEDS_YELLOW);
 
   /*
-   * Delay 1/2 sec
+   * Delay 5 sec
    */
 
   etimer_set(&et, CLOCK_SECOND*5);
@@ -80,7 +82,7 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
 
     leds_toggle(LEDS_YELLOW);
 
-    //mbus_scan_primary_at_address(67);
+    mbus_scan_primary_at_address(67);
     //mbus_scan_primary_all();
 
 
@@ -99,23 +101,23 @@ PROCESS_THREAD(hello_mbus_process, ev, data)
     }
 
     printf("\n");
-
-    watchdog_periodic();
-
-    char text_data[37][32];
-    //memset(text_data, 0, sizeof(text_data));
-
-    for (int i = 0; i < 37; i++) {
-      memset(text_data[i], 0, sizeof(text_data[i]));
-    }
-
-    mbus_parse_data_kamstrup_2101(data, text_data);
-
-
-    for (int i = 0; i < 37; i++)
-    {
-      printf("%s\n", text_data[i]);
-    }
+    //
+    // watchdog_periodic();
+    //
+    // char text_data[37][32];
+    // //memset(text_data, 0, sizeof(text_data));
+    //
+    // for (int i = 0; i < 37; i++) {
+    //   memset(text_data[i], 0, sizeof(text_data[i]));
+    // }
+    //
+    // mbus_parse_data_kamstrup_2101(data, text_data);
+    //
+    //
+    // for (int i = 0; i < 37; i++)
+    // {
+    //   printf("%s\n", text_data[i]);
+    // }
     //-------------
 
     // mbus_switch_baudrate(67, 2400);

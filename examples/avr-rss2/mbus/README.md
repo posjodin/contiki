@@ -41,8 +41,8 @@ Needs M-Bus Master board to be connected to the sensor node and the water meter.
 
 ## Authors
 
-* **Albert Asratyan** - *Initial work* - [Goradux](https://github.com/goradux)
-* **Mandar Joshi** - *Initial work* - [mandaryoshi](https://github.com/mandaryoshi)
+* **Albert Asratyan** - [Goradux](https://github.com/goradux)
+* **Mandar Joshi** - [mandaryoshi](https://github.com/mandaryoshi)
 
 ## Acknowledgments
 

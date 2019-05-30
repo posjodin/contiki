@@ -2,10 +2,8 @@
  * \file
  *         Contiki-OS M-Bus functionality
  * \authors
- *          Albert Asratyan https://github.com/Goradux
- *          Mandar Joshi https://github.com/mandaryoshi
- *
- *
+ *          Albert Asratyan asratyan@kth.se
+ *          Mandar Joshi mandarj@kth.se
  *
  */
 

@@ -57,7 +57,7 @@
 #include <string.h>
 #include "i2c.h"
 #include "dev/serial-line.h"
-#include "contiki-mbus.h"
+#include "mbus.h"
 #include "usart1.h"
 #include "mbus-supported-devices.h"
 #include <dev/watchdog.h>
