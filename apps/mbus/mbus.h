@@ -7,8 +7,6 @@
  *
  */
 
-#include "usart1.h"
-
 #define MBUS_FRAME_SIZE_KAMSTRUP_2101 144
 
 

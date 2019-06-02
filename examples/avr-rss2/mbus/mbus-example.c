@@ -44,7 +44,8 @@
 #include <string.h>
 #include "adc.h"
 #include "dev/leds.h"
-#include "usart1.h"
+#include "dev/mbus/mbus-arch.h"
+// #include "dev/mbus-arch.h"
 #include "dev/watchdog.h"
 #include "mbus.h"
 #include "mbus-supported-devices.h"
@@ -62,7 +63,7 @@ PROCESS_THREAD(mbus_process, ev, data)
   PROCESS_BEGIN();
 
   // Initialize the UART1 port.
-  usart1_init();
+  mbus_arch_init();
 
   leds_init();
   leds_on(LEDS_RED);

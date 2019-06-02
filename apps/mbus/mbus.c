@@ -13,8 +13,8 @@
 #include "dev/watchdog.h"
 #include <stdio.h>
 
-#include "ringbuf-mbus.h"
-#include "usart1.h"
+//#include "dev/mbus-arch.h"
+#include "dev/mbus/mbus-arch.h"
 #include "mbus-supported-devices.h"
 
 
@@ -162,7 +162,7 @@ mbus_ping_frame(int address)
                                           address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
-      usart1_tx(&frame[i]);
+      mbus_arch_send_byte(&frame[i]);
   }
   return 1;
 }
@@ -179,7 +179,7 @@ mbus_receive_ack()
   int response = 0;
   uint16_t buff[1];
 
-  usart1_rx(buff);
+  mbus_arch_read_byte(buff);
   response = buff[0];
 
   return response;
@@ -241,6 +241,9 @@ mbus_scan_primary_all()
   int result, response;
 
   for (address = 0; address <= 250; address++) {
+
+    watchdog_periodic();
+
     result = mbus_ping_frame(address);
     if (result == -1) {
       printf("Scan failed at the following address: %d\n", address);
@@ -259,8 +262,6 @@ mbus_scan_primary_all()
     } else {
       printf("No M-Bus device found at the address %d\n", address);
     }
-
-    watchdog_periodic();
   }
   return 1;
 }
@@ -292,7 +293,7 @@ mbus_send_data_request(int address)
                                           address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < MBUS_FRAME_SIZE_SHORT; i++) {
-    usart1_tx(&frame[i]);
+    mbus_arch_send_byte(&frame[i]);
     watchdog_periodic();
   }
   return 1;
@@ -313,7 +314,7 @@ mbus_receive_long(uint16_t *data, int frame_length)
   memset((void *)buff, 0, sizeof(buff));
 
   for (int i = 0; i < frame_length; i++) {
-     usart1_rx(buff);
+     mbus_arch_read_byte(buff);
      data[i] = buff[0];
   }
 
@@ -396,7 +397,7 @@ mbus_send_address_change(int address, int new_address)
                       new_address, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < 12; i++) {
-      usart1_tx(&frame[i]);
+      mbus_arch_send_byte(&frame[i]);
     }
   return 1;
 }
@@ -477,7 +478,7 @@ mbus_send_frame_switch_baudrate(int address, int baudrate)
                       0x68, control, address, baudrate, checksum, MBUS_END_BIT};
 
   for (int i = 0; i < 9; i++) {
-      usart1_tx(&frame[i]);
+      mbus_arch_send_byte(&frame[i]);
     }
   return 1;
 }

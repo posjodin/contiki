@@ -1,44 +1,29 @@
-/*
- * Copyright (c) 2008, Swedish Institute of Computer Science.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
- *
- */
-
 /**
  * \file
- *         Ring buffer library implementation
- * \author
- *         Adam Dunkels <adam@sics.se>
+ *         Contiki-OS M-Bus functionality for avr-rss2
+ * \authors
+ *          Albert Asratyan asratyan@kth.se
+ *          Mandar Joshi mandarj@kth.se
+ *
  */
 
-#include "ringbuf-mbus.h"
+
+#include "contiki.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "dev/rs232.h"
 #include <sys/cc.h>
+#include "mbus-arch.h"
+
+/*---------------------------------------------------------------------------*/
+
+#define BUFSIZE 256
+struct ringbuf16 rxbuf;
+uint16_t rxbuf_data[BUFSIZE];
+uint8_t usart = RS232_PORT_1;
+
+
 /*---------------------------------------------------------------------------*/
 void
 ringbuf16_init(struct ringbuf16 *r, uint16_t *dataptr, uint16_t size)
@@ -54,7 +39,6 @@ ringbuf16_put(struct ringbuf16 *r, uint8_t c)
 {
   /* Check if buffer is full. If it is full, return 0 to indicate that
      the element was not inserted into the buffer.
-
      XXX: there is a potential risk for a race condition here, because
      the ->get_ptr field may be written concurrently by the
      ringbuf16_get() function. To avoid this, access to ->get_ptr must
@@ -80,11 +64,9 @@ int
 ringbuf16_get(struct ringbuf16 *r)
 {
   uint8_t c;
-
   /* Check if there are bytes in the buffer. If so, we return the
      first one and increase the pointer. If there are no bytes left, we
      return -1.
-
      XXX: there is a potential risk for a race condition here, because
      the ->put_ptr field may be written concurrently by the
      ringbuf16_put() function. To avoid this, access to ->get_ptr must
@@ -119,5 +101,42 @@ int
 ringbuf16_elements(struct ringbuf16 *r)
 {
   return (r->put_ptr - r->get_ptr) & r->mask;
+}
+/*---------------------------------------------------------------------------*/
+
+
+int
+usart_input_byte(unsigned char c)
+{
+  ringbuf16_put(&rxbuf, c);
+  return 1;
+}
+
+
+/*---------------------------------------------------------------------------*/
+void
+mbus_arch_init() {
+  ringbuf16_init(&rxbuf, rxbuf_data, sizeof(rxbuf_data));
+  rs232_set_input(usart, usart_input_byte);
+}
+
+/*---------------------------------------------------------------------------*/
+size_t
+mbus_arch_read_byte(uint16_t *buf) {
+  int c;
+
+  c = ringbuf16_get(&rxbuf);
+
+  if (c == -1)
+    return 0;
+  *buf = (uint8_t) c;
+  return 1;
+}
+/*---------------------------------------------------------------------------*/
+size_t
+mbus_arch_send_byte(uint8_t *buf) {
+  uint8_t p = *buf;
+  rs232_send(usart, p);
+  return 1;
 }
 /*---------------------------------------------------------------------------*/

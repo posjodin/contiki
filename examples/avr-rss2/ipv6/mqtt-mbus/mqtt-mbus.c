@@ -58,7 +58,7 @@
 #include "i2c.h"
 #include "dev/serial-line.h"
 #include "mbus.h"
-#include "usart1.h"
+#include "dev/mbus-arch.h"
 #include "mbus-supported-devices.h"
 #include <dev/watchdog.h>
 #ifndef RF230_DEBUG
@@ -959,8 +959,7 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
 {
 
   PROCESS_BEGIN();
-  usart1_init();
-  printf("usart initialised!\n");
+  mbus_arch_init();
 
   leds_init();
 
