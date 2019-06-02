@@ -652,11 +652,12 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
       str++;
     if (*str != '\0') {
       uint8_t *ip4addr, *ip4mask;
-      ip4addr = (uint8_t *) &status.ip4addr;       ip4mask = (uint8_t *) &status.ip4mask; 
+      ip4addr = (uint8_t *) &status.ip4addr;       
       n = sscanf(str, "%hhd.%hhd.%hhd.%hhd", 
                  &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3]);
-      if (n == 4)
-        printf("Got IP\n");
+      /* Don't know netmask */
+      status.ip4mask.u16[0] = 0; status.ip4mask.u16[1] = 0; 
+
       n = sscanf(str, "%d.%d.%d.%d", &b1, &b2, &b3, &b4);
       if (n == 4) {
 #if NETSTACK_CONF_WITH_IPV6
@@ -664,12 +665,6 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
 #else
         snprintf(status.ipaddr, sizeof(status.ipaddr), "%d.%d.%d.%d", b1, b2, b3, b4);
 #endif 
-#ifdef AT_PPP
-        PT_ATSTR2("ATO0\r");
-        PT_ATWAIT2(10, &wait_ok);
-        process_exit(&a6_reader);
-
-#endif /* AT_PPP */        
         PT_EXIT(pt);
       }
     }
@@ -846,6 +841,23 @@ PT_THREAD(at_radio_close_pt(struct pt *pt, struct at_radio_connection * at_radio
     at_radio_statistics.at_timeouts += 1;
   }
   at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
+  PT_END(pt);
+} 
+/*---------------------------------------------------------------------------*/
+/*
+ * datamode
+ *
+ * Protothread to put radio in data (transparent) mode 
+ */
+
+PT_THREAD(at_radio_datamode_pt(struct pt *pt, struct at_radio_connection * at_radioconn)) {
+  static struct at_wait *at;
+  PT_BEGIN(pt);
+
+  PT_ATSTR2("ATO0\r");
+  PT_ATWAIT2(10, &wait_ok);
+  /* Disable uart receiver -- application accesses it directly */
+  process_exit(&a6_reader);
   PT_END(pt);
 } 
 /*---------------------------------------------------------------------------*/

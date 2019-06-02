@@ -105,46 +105,26 @@ process_event_t at_radio_ev_init;
 process_event_t at_radio_ev_connection;
 process_event_t at_radio_ev_send;
 process_event_t at_radio_ev_close;
+process_event_t at_radio_ev_datamode;
 
-void
-at_radio_enqueue_event(process_event_t ev, void *data);
-struct at_radio_event *
-at_radio_dequeue_event();
-
-void
-at_radio_init();
-
-struct at_radio_connection *
-alloc_at_radio_connection();
-
-struct at_radio_connection *
-find_at_radio_connection(char connectionid);
-
-int
-at_radio_set_context(struct at_radio_context *gcontext, char *pdptype, char *apn);
-
-int
-at_radio_register(struct at_radio_connection *gconn,
-              void *callback_arg,
-              at_radio_data_callback_t input_callback,
-              at_radio_event_callback_t event_callback);
-
-int
-at_radio_unregister(struct at_radio_connection *gconn);
-
-struct at_radio_connection *
-at_radio_connection(struct at_radio_connection *at_radioconn, const char *proto, const uip_ipaddr_t *ipaddr,
-                uint16_t port);
-
-void
-at_radio_send(struct at_radio_connection *at_radioconn);
-
-void
-at_radio_close(struct at_radio_connection *gconn);
-
-void
-at_radio_call_event(struct at_radio_connection *at_radioconn, at_radio_conn_event_t event);
-
+void at_radio_enqueue_event(process_event_t ev, void *data);
+struct at_radio_event * at_radio_dequeue_event();
+void at_radio_init();
+struct at_radio_connection *alloc_at_radio_connection();
+struct at_radio_connection *find_at_radio_connection(char connectionid);
+int at_radio_set_context(struct at_radio_context *gcontext, char *pdptype, char *apn);
+int at_radio_register(struct at_radio_connection *gconn,
+                      void *callback_arg,
+                      at_radio_data_callback_t input_callback,
+                      at_radio_event_callback_t event_callback);
+int at_radio_unregister(struct at_radio_connection *gconn);
+struct at_radio_connection * at_radio_connection(struct at_radio_connection *at_radioconn,
+                                                 const char *proto, const uip_ipaddr_t *ipaddr,
+                                                 uint16_t port);
+void at_radio_send(struct at_radio_connection *at_radioconn);
+void at_radio_close(struct at_radio_connection *gconn);
+void at_radio_datamode(struct at_radio_connection *gconn);
+void at_radio_call_event(struct at_radio_connection *at_radioconn, at_radio_conn_event_t event);
 struct at_radio_status *at_radio_status();
 
 /* 
@@ -163,4 +143,5 @@ PT_THREAD(get_ipconfig(struct pt *pt));
 PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection *at_radioconn));
 PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioconn));
 PT_THREAD(at_radio_close_pt(struct pt *pt, struct at_radio_connection * at_radioconn));
+PT_THREAD(at_radio_datamode_pt(struct pt *pt, struct at_radio_connection * at_radioconn));
 #endif /* AT_RADIO_A6_H */

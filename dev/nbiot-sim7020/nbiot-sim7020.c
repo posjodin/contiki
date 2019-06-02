@@ -84,6 +84,8 @@ struct at_wait wait_csonmi = {"+CSONMI:", wait_csonmi_callback};
 static
 struct at_wait wait_ok = {"OK", wait_readline_pt};
 static
+struct at_wait wait_connect = {"CONNECT", wait_readline_pt};
+static
 struct at_wait wait_error = {"ERROR", NULL};
 static
 struct at_wait wait_sendprompt = {">", NULL};
@@ -264,6 +266,17 @@ size_t
 at_radio_sendbuf(uint8_t *buf, size_t len) {
   return nbiot_sim7020_tx(buf, len);
 }
+/*---------------------------------------------------------------------------*/
+#ifdef AT_PPP
+void ppp_arch_putchar(uint8_t c) {
+  while (1 != at_radio_sendbuf(&c, 1))
+    ;
+}
+
+uint8_t ppp_arch_getchar(uint8_t *c) {
+  return nbiot_sim7020_rx(c, 1);
+}
+#endif /* AT_PPP */
 /*---------------------------------------------------------------------------*/
 /* read_csq
  * Protothread to read rssi/csq with AT commands. Store result
@@ -654,3 +667,40 @@ PT_THREAD(at_radio_close_pt(struct pt *pt, struct at_radio_connection * at_radio
   at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
   PT_END(pt);
 } 
+/*---------------------------------------------------------------------------*/
+/*
+ * datamode
+ *
+ * Protothread to put radio in data (transparent) mode 
+ */
+
+PT_THREAD(at_radio_datamode_pt(struct pt *pt, struct at_radio_connection * at_radioconn)) {
+
+  static struct at_wait *at;
+  static int i;
+  PT_BEGIN(pt);
+  
+  while (1) {
+    PT_ATSTR2("atdt*99#\r");
+    PT_ATWAIT2(10, &wait_ok, &wait_error, &wait_connect);
+    if (at == &wait_connect) {
+      goto good;
+    }
+    else if (at == NULL) {
+      printf("No response");
+      goto good;
+    }
+    if (at == &wait_error) {
+      PT_ATSTR2("AT+CEER=1\r");
+      PT_ATWAIT2(10, &wait_ok, &wait_error);
+    }
+  }
+ good:
+  /* Disable uart receiver -- application accesses it directly */
+  
+  printf("Disable sim7020_reader\n");
+  process_exit(&sim7020_reader);
+  nbiot_sim7020_init(); /* Reset uart */
+  PT_END(pt);
+} 
+/*---------------------------------------------------------------------------*/

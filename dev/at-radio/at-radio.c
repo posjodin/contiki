@@ -261,6 +261,11 @@ at_radio_close(struct at_radio_connection *at_radioconn) {
   enqueue_event(at_radio_ev_close, at_radioconn);
 }
 /*---------------------------------------------------------------------------*/
+void
+at_radio_datamode(struct at_radio_connection *at_radioconn) {
+  enqueue_event(at_radio_ev_datamode, at_radioconn);
+}
+/*---------------------------------------------------------------------------*/
 struct at_radio_status *
 at_radio_status() {
   return &status;
@@ -310,13 +315,15 @@ PROCESS_THREAD(at_radio, ev, data) {
     else if (at_radio_event->ev == at_radio_ev_close) {
       ATSPAWN(at_radio_close_pt, at_radioconn);
     } /* ev == at_radio_ev_close */
+    else if (at_radio_event->ev == at_radio_ev_datamode) {
+      ATSPAWN(at_radio_datamode_pt, at_radioconn);
+    }
 #ifdef AT_RADIO_DEBUG
     else {
       printf("A6AT AT_RADIO Unknown event %d\n", at_radio_event->ev);
     }
 #endif /* AT_RADIO_DEBUG */
   }
-  ATSPAWN(read_csq);
   goto again;
   PROCESS_END();
 }
