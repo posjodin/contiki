@@ -206,7 +206,7 @@ void clock_adjust_ticks(clock_time_t howmany);
 /* #define MMEM_CONF_SIZE 256 */
 
 /* Starting address for code received via the codeprop facility. Not tested. */
-typedef unsigned long off_t1;
+typedef unsigned long off_t;
 /* #define EEPROMFS_ADDR_CODEPROP 0x8000 */
 
 /* Logging adds 200 bytes to program size. RS232 output slows down webserver. */
