@@ -70,9 +70,13 @@
 #define DEBUG2(...)
 #endif
 
-#define TIMER_expire()
-#define TIMER_set()
-#define TIMER_timeout(x) 1
+#ifndef LCP_INTERVAL
+#define LCP_INTERVAL 2*CLOCK_SECOND
+#endif 
+static struct timer timer;
+#define TIMER_expire() timer.start = 0
+#define TIMER_set() timer_set(&timer, LCP_INTERVAL)
+#define TIMER_timeout(x) (timer.start == 0 || timer_expired(&timer))
 
 /*uint8_t				tflag;
 uint8_t				*lcp_buffer;
@@ -93,12 +97,86 @@ uint8_t lcplist[] = {
   LPC_MAGICNUMBER,
   LPC_PFC,
   LPC_ACFC,
-  LPC_AUTH,
+  //LPC_AUTH,
   LPC_ACCM,
   LPC_MRU,
   0};	
 
-/*---------------------------------------------------------------------------*/
+char *ppp_codestr(uint8_t);
+void
+lcp_print(uint8_t *buffer, uint16_t count)
+{
+  uint8_t *bptr = buffer;
+  uint16_t len;
+  uip_ip4addr_t	ipaddr;
+  printf("%s ", ppp_codestr(*bptr++));
+  printf("id %d ", *bptr++);
+  len = *bptr++ << 8;
+  len |= *bptr++;
+  printf("len %d ", len);
+  
+  while(bptr < buffer + len) {
+    switch(*bptr) {
+
+    case LPC_MRU:	/* mru */
+      bptr++;
+      if(*bptr++ == 4) {
+        uint16_t ppp_tx_mru = ((*bptr++<<8) | (*bptr++));
+        PRINTF("<mru %d> ",ppp_tx_mru);
+      } else {
+        PRINTF("<mru }> ");
+      }
+      break;
+    case LPC_ACCM:	/*		*/
+      bptr++;
+      bptr++;		/* skip length */	
+      PRINTF("<asyncmap 0x");
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x> ", *bptr++);
+      break;
+    case LPC_AUTH:
+      bptr++;
+      bptr++;      
+      uint16_t auth;
+      auth = *bptr++<<8;
+      auth |= *bptr++;
+      if((auth == 0xc023)) {
+        PRINTF("<auth pap> ");
+
+      } else {
+        PRINTF("<auth 0x%04x>", auth);
+      }
+      break;
+    case LPC_MAGICNUMBER:
+      bptr++;
+      bptr++;
+      PRINTF("<magic ");
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x", *bptr++);
+      PRINTF("%02x> ", *bptr++);
+      break;
+    case LPC_PFC:
+      bptr++;
+      bptr++;
+      PRINTF("<pcomp> ");
+      break;
+    case LPC_ACFC:
+      bptr++;
+      bptr++;
+      PRINTF("<accomp> ");
+      break;
+    default:
+      printf("option %d", *(bptr++));
+      bptr += (*bptr-2); /* Skip option */
+    }
+  }
+  printf("\n");
+}
+
+
 /* lcp_init() - Initialize the LCP engine to startup values */
 /*---------------------------------------------------------------------------*/
 void
@@ -123,6 +201,7 @@ lcp_rx(uint8_t *buffer, uint16_t count)
   uint8_t id;
   uint16_t len, j;
 
+  lcp_print(buffer, count);
   switch(*bptr++) {
   case CONF_REQ:			/* config request */
     /* parce request and see if we can ACK it */
@@ -130,7 +209,6 @@ lcp_rx(uint8_t *buffer, uint16_t count)
     len = (*bptr++ << 8);
     len |= *bptr++;
     /*len -= 2;*/
-    PRINTF("received [LCP Config Request id %u\n",id);
     if(scan_packet((uint16_t)LCP, lcplist, buffer, bptr, (uint16_t)(len-4))) {
       /* must do the -4 here, !scan packet */
       
@@ -147,10 +225,10 @@ lcp_rx(uint8_t *buffer, uint16_t count)
 	  j = *bptr++;
 	  j -= 2;
 	  if(j == 2) {
-	    ppp_tx_mru = ((*bptr++<<8) || (*bptr++));
+	    ppp_tx_mru = ((*bptr++<<8) | (*bptr++));
 	    PRINTF("<mru %d> ",ppp_tx_mru);
 	  } else {
-	    PRINTF("<mru \}> ");
+	    PRINTF("<mru }> ");
 	  }
 	  break;
 	case LPC_ACCM:	/*		*/
@@ -178,13 +256,13 @@ lcp_rx(uint8_t *buffer, uint16_t count)
 	  break;
 	case LPC_AUTH:
 	  bptr++;
-	  if((*bptr++==0xc0) && (*bptr++==0x23)) {
+	  if(0 && (*bptr++==0xc0) && (*bptr++==0x23)) {
 	    PRINTF("<auth pap> ");
 	    /* negotiate PAP */
 	    lcp_state |= LCP_RX_AUTH;	
 	  } else {
 	    /* we only support PAP */
-	    PRINTF("<auth \}>");
+	    PRINTF("<auth }>");
 	    error = 1;
 	    *tptr++ = LPC_AUTH;
 	    *tptr++ = 0x4;
@@ -222,7 +300,8 @@ lcp_rx(uint8_t *buffer, uint16_t count)
       if(error) {
 	/* write the config NAK packet we've built above, take on the header */
 	bptr = buffer;
-	*bptr++ = CONF_NAK;		/* Write Conf_rej */
+	//*bptr++ = CONF_NAK;		/* Write Conf_rej */
+        *bptr++ = CONF_REJ;		/* Write Conf_rej */        
 	*bptr++;/*tptr++;*/		/* skip over ID */
 
 	/* Write new length */
@@ -231,16 +310,16 @@ lcp_rx(uint8_t *buffer, uint16_t count)
 
 	/* write the reject frame */
 	PRINTF("\nWriting NAK frame \n");
+
+        PRINTF("LCP_TX: "); lcp_print(buffer, (uint16_t)(tptr-buffer));
 	// Send packet ahdlc_txz(procol,header,data,headerlen,datalen);				
-	ahdlc_tx(LCP, 0, buffer, 0, (uint16_t)(tptr-buffer));
-	PRINTF("- end NAK Write frame\n");
+        ahdlc_tx(LCP, 0, buffer, 0, (uint16_t)(tptr-buffer));
 	
       } else {
 	/*
 	 * If we get here then we are OK, lets send an ACK and tell the rest
 	 * of our modules our negotiated config.
 	 */
-	PRINTF("\nSend ACK!\n");
 	bptr = buffer;
 	*bptr++ = CONF_ACK;		/* Write Conf_ACK */
 	bptr++;				/* Skip ID (send same one) */
@@ -251,10 +330,9 @@ lcp_rx(uint8_t *buffer, uint16_t count)
 	/* DEBUG2("SET- stuff -- are we up? c=%d dif=%d \n", count, (uint16_t)(bptr-buffer)); */
 	
 	/* write the ACK frame */
-	DEBUG2("Writing ACK frame \n");
+        PRINTF("LCP_TX: "); lcp_print(buffer, count);
 	/* Send packet ahdlc_txz(procol,header,data,headerlen,datalen);	*/
 	ahdlc_tx(LCP, 0, buffer, 0, count /*bptr-buffer*/);
-       DEBUG2("- end ACK Write frame\n");
 	
 	/* expire the timer to make things happen after a state change */
 	/*timer_expire();*/
@@ -263,7 +341,6 @@ lcp_rx(uint8_t *buffer, uint16_t count)
     }
     break;
   case CONF_ACK:			/* config Ack   Anytime we do an ack reset the timer to force send. */
-    PRINTF("LCP-ACK - ");
     /* check that ID matches one sent */
     if(*bptr++ == ppp_id) {	
       /* Change state to PPP up. */
@@ -279,26 +356,21 @@ lcp_rx(uint8_t *buffer, uint16_t count)
       PRINTF("*************++++++++++ bad id %d\n",ppp_id);
     break;
   case CONF_NAK:			/* Config Nack */
-    PRINTF("LCP-CONF NAK\n");
     ppp_id++;
     break;
   case CONF_REJ:			/* Config Reject */
-    PRINTF("LCP-CONF REJ\n");
     ppp_id++;
     break;
   case TERM_REQ:			/* Terminate Request */
-    PRINTF("LCP-TERM-REQ -");
     bptr = buffer;
     *bptr++ = TERM_ACK;			/* Write TERM_ACK */
     /* write the reject frame */
-    PRINTF("Writing TERM_ACK frame \n");
     /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen); */
-    ahdlc_tx(LCP, 0, buffer, 0, count);
+    PRINTF("LCP_TX: "); lcp_print(buffer, count);
     lcp_state &= ~LCP_TX_UP;	
     lcp_state |= LCP_TERM_PEER;
     break;
   case TERM_ACK:
-    PRINTF("LCP-TERM ACK\n");
     break;
   default:
     break;
@@ -324,7 +396,6 @@ lcp_task(uint8_t *buffer)
     /* Check if we have a request pending */
     /*t=get_seconds()-lcp_tx_time;*/
     if(1 == TIMER_timeout(LCP_TX_TIMEOUT)) {
-      PRINTF("\nSending LCP request packet - ");
       /*
        * No pending request, lets build one
        */
@@ -339,13 +410,12 @@ lcp_task(uint8_t *buffer)
       /* Write options */
       
       /* Write magic number */
-      PRINTF("LPC_MAGICNUMBER -");
       *bptr++ = LPC_MAGICNUMBER;
       *bptr++ = 0x6;
       *bptr++ = 0;
       *bptr++ = 0;
       *bptr++ = 0;
-      *bptr++ = 0;
+      *bptr++ = 1;
       
       /* ACCM */
 
@@ -402,6 +472,7 @@ lcp_task(uint8_t *buffer)
       
       /* Send packet */
       /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen); */
+      PRINTF("LCP_TX: "); lcp_print(buffer, t);
       ahdlc_tx(LCP, 0, buffer, 0, t);
       
       /* Set timer */

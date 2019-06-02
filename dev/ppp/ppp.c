@@ -52,13 +52,14 @@
 /*			*/ 
 
 
+#include <stdio.h>
+#include <dev/watchdog.h>
+
 #include "lcp.h"
 #include "pap.h"
 #include "ipcp.h"
 /*#include "time.h"*/
 /*#include "mip.h"*/
-
-#define DEBUG 1
 
 #if DEBUG
 #include <stdio.h>
@@ -109,6 +110,7 @@ uint8_t done;    /* temporary variable */
 #endif
 
 /*---------------------------------------------------------------------------*/
+#if 0
 static uint8_t
 check_ppp_errors(void)
 {
@@ -142,6 +144,7 @@ check_ppp_errors(void)
 
   return ret;
 }
+#endif
 /*---------------------------------------------------------------------------*/
 /*
  * Unknown Protocol Handler, sends reject
@@ -177,6 +180,24 @@ ppp_reject_protocol(uint16_t protocol, uint8_t *buffer, uint16_t count)
   ahdlc_tx(LCP, buffer, 0, (uint16_t)(count + 6), 0);
 }
 /*---------------------------------------------------------------------------*/
+char
+*ppp_codestr(uint8_t code) {
+  static char buf[10];
+
+  switch (code) {
+  case CONF_REQ: return("CONF_REQ"); 
+  case CONF_ACK: return("CONF_ACK"); 
+  case CONF_NAK: return("CONF_NAK"); 
+  case CONF_REJ: return("CONF_REJ"); 
+  case TERM_REQ: return("TERM_REQ"); 
+  case TERM_ACK: return("TERM_ACK"); 
+  case PROT_REJ: return("PROT_REJ"); 
+  default:
+    snprintf(buf, sizeof(buf), "code %d", code);
+    return buf;
+  }
+}
+/*---------------------------------------------------------------------------*/
 #if PACKET_RX_DEBUG
 void
 dump_ppp_packet(uint8_t *buffer, uint16_t len)
@@ -188,9 +209,9 @@ dump_ppp_packet(uint8_t *buffer, uint16_t len)
     if((i & 0x1f) == 0x10) {
       PRINTF("\n");
     }
-    PRINTF("0x%02x ",buffer[i]);
+    PRINTF("%02x ",buffer[i]);
   }
-  PRINTF("\n\n");
+  PRINTF("\n");
 }
 #endif
 /*---------------------------------------------------------------------------*/
@@ -277,9 +298,9 @@ ppp_connect(void)
 {
   /* Initialize PPP engine */
   /* init_ppp(); */
-  pap_init();
+  /*pap_init();
   ipcp_init();
-  lcp_init();
+  lcp_init();*/
   
   /* Enable PPP */
   ppp_flags = PPP_RX_READY;
@@ -295,10 +316,10 @@ ppp_send(void)
 }
 /*---------------------------------------------------------------------------*/
 void
+#define PPP_MAX_CONSEC_RX 92
 ppp_poll(void)
 {
   uint8_t c;
-
   uip_len = 0;
 
   if(!(ppp_flags & PPP_RX_READY)) {
@@ -307,6 +328,7 @@ ppp_poll(void)
 
   while(uip_len == 0 && ppp_arch_getchar(&c)) {
     ahdlc_rx(c);
+    watchdog_periodic();
   }
 
   /* If IPCP came up then our link should be up. */
@@ -336,8 +358,9 @@ void
 ppp_upcall(uint16_t protocol, uint8_t *buffer, uint16_t len)
 {
 #if PACKET_RX_DEBUG
+
   ++ppp_rx_frame_count;
-  dump_ppp_packet(buffer, len);
+  PRINTF("PPP upcall: "); dump_ppp_packet(buffer, len);
   if(ppp_rx_frame_count > 18) {
     done = 1;
   }
@@ -435,6 +458,7 @@ scan_packet(uint16_t protocol, uint8_t *list, uint8_t *buffer, uint8_t *options,
 		
     /* write the reject frame */
     PRINTF("Writing Reject frame --\n");
+
     ahdlc_tx(protocol, buffer, 0, (uint16_t)(tptr - buffer), 0);
     PRINTF("\nEnd writing reject \n");
     

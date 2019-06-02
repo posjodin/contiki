@@ -70,9 +70,13 @@
 #include "ipcp.h"
 #include "ahdlc.h"
 
-#define TIMER_expire()
-#define TIMER_set()
-#define TIMER_timeout(x) 1
+#ifndef IPCP_INTERVAL
+#define IPCP_INTERVAL 2*CLOCK_SECOND
+#endif 
+static struct timer timer;
+#define TIMER_expire() timer.start = 0
+#define TIMER_set() timer_set(&timer, IPCP_INTERVAL)
+#define TIMER_timeout(x) (timer.start == 0 || timer_expired(&timer))
 
 #ifdef IPCP_GET_PEER_IP
 uip_ip4addr_t	peer_ip_addr;
@@ -100,7 +104,7 @@ uint8_t ipcplist[] = {0x3, 0};
 void
 printip(uip_ip4addr_t ip)
 {
-PRINTF(" %d.%d.%d.%d ",ip.u8[0],ip.u8[1],ip.u8[2],ip.u8[3]);
+PRINTF("%d.%d.%d.%d",ip.u8[0],ip.u8[1],ip.u8[2],ip.u8[3]);
     }
  //#define printip(x)
 /*---------------------------------------------------------------------------*/
@@ -113,6 +117,49 @@ ipcp_init(void)
   our_ipaddr.u16[0] = our_ipaddr.u16[1] = 0;
 }
 /*---------------------------------------------------------------------------*/
+char *ppp_codestr(uint8_t);
+static void
+ipcp_print(uint8_t *buffer, uint16_t count)
+{
+  uint8_t *bptr = buffer;
+  uint16_t len;
+  uip_ip4addr_t	ipaddr;
+  printf("%s ", ppp_codestr(*bptr++));
+  printf("id %d ", *bptr++);
+  len = *bptr++ << 8;
+  len |= *bptr++;
+  printf("len %d ", len);
+  
+  while(bptr < buffer + len) {
+    switch(*bptr) {
+    case IPCP_IPADDRESS:
+      printf("ipaddr ");
+      goto praddr;
+    case IPCP_PRIMARY_DNS:
+      printf("primary ");
+      goto praddr;
+    case IPCP_SECONDARY_DNS:
+      printf("secondary ");
+    praddr:
+      /* dump type */
+      bptr++;
+      /* dump length */
+      bptr++;
+      ipaddr.u8[0] = *bptr++;
+      ipaddr.u8[1] = *bptr++;
+      ipaddr.u8[2] = *bptr++;
+      ipaddr.u8[3] = *bptr++;
+      printip(ipaddr);
+      printf(" ");
+      break;
+    default:
+      printf("option %d", *(bptr++));
+      bptr += (*bptr-2); /* Skip option */
+    }
+  }
+  printf("\n");
+}
+/*---------------------------------------------------------------------------*/
 /*
  * IPCP RX protocol Handler
  */
@@ -123,8 +170,8 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
   IPCPPKT *pkt=(IPCPPKT *)buffer;
   uint16_t len;
 
-  PRINTF("IPCP len %d\n",count);
-	
+  printf("ipcp_rx (%d): ", ppp_retry); ipcp_print(buffer, count);
+  
   switch(*bptr++) {
   case CONF_REQ:
     /* parce request and see if we can ACK it */
@@ -133,11 +180,9 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     len |= *bptr++;
     /* len-=2; */
 
-    PRINTF("check lcplist\n");
     if(scan_packet(IPCP, ipcplist, buffer, bptr, (uint16_t)(len - 4))) {
       PRINTF("option was bad\n");
     } else {
-      PRINTF("IPCP options are good\n");
       /*
        * Parse out the results
        */
@@ -146,24 +191,29 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
       /* Error? if we we need to send a config Reject ++++ this is
 	 good for a subroutine*/
       /* All we should get is the peer IP address */
-      if(IPCP_IPADDRESS == *bptr++) {
+    /* Parse ACK and set data */
+    while(bptr < buffer + len) {
+      switch(*bptr) {
+      case IPCP_IPADDRESS:
+        bptr++;
 	/* dump length */
-	++bptr;
+	bptr++;		
 #ifdef IPCP_GET_PEER_IP
 	peer_ip_addr.u8[0] = *bptr++;
 	peer_ip_addr.u8[1] = *bptr++;
 	peer_ip_addr.u8[2] = *bptr++;
 	peer_ip_addr.u8[3] = *bptr++;
-	PRINTF("Peer IP ");
-	/*	printip(peer_ip_addr);*/
-	PRINTF("\n");
 #else
-	bptr += 4;
-#endif
-      } else {
-	PRINTF("HMMMM this shouldn't happen IPCP1\n");
+      bptr += 4; /* skip */
+#endif /* IPCP_GET_PEER_IP */
+	break;
+      default:
+        printf("option %d", *bptr++);
+        bptr += *bptr - 1;
+        break;
       }
-      
+    }
+
 #if 0			
       if(error) {
 	/* write the config NAK packet we've built above, take on the header */
@@ -189,7 +239,6 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
        * of our modules our negotiated config.
        */
       ipcp_state |= IPCP_RX_UP;
-      PRINTF("Send IPCP ACK!\n");
       bptr = buffer;
       *bptr++ = CONF_ACK;		/* Write Conf_ACK */
       bptr++;				/* Skip ID (send same one) */
@@ -197,13 +246,13 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
        * Set stuff
        */
       /* ppp_flags |= tflag; */
-      PRINTF("SET- stuff -- are we up? c=%d dif=%d \n", count, (uint16_t)(bptr-buffer));
 	
       /* write the ACK frame */
-      PRINTF("Writing ACK frame \n");
+      PRINTF("IPCP tx: ");
+      ipcp_print(buffer, count);
+      
       /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen);	*/
       ahdlc_tx(IPCP, 0, buffer, 0, count /*bptr-buffer*/);
-      PRINTF("- End ACK Write frame\n");
 	
       /* expire the timer to make things happen after a state change */
       /*timer_expire(); */
@@ -212,7 +261,6 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     }
     break;
   case CONF_ACK:			/* config Ack */
-    PRINTF("CONF ACK\n");
     /*
      * Parse out the results
      *
@@ -231,8 +279,8 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
       case IPCP_IPADDRESS:
 	/* dump length */
 	bptr++;		
-	ipaddr.u8[0] = *bptr++;
-	ipaddr.u8[1] = *bptr++;
+	our_ipaddr.u8[0] = *bptr++;
+	our_ipaddr.u8[1] = *bptr++;
 	ipaddr.u8[2] = *bptr++;
 	ipaddr.u8[3] = *bptr++;
 	break;
@@ -271,7 +319,6 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     TIMER_expire();
     break;
   case CONF_NAK:			/* Config Nack */
-    PRINTF("CONF NAK\n");
     /* dump the ID */
     bptr++;
     /* get the length */
@@ -324,7 +371,6 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     TIMER_expire();
     break;
   case CONF_REJ:			/* Config Reject */
-    PRINTF("CONF REJ\n");
     /* Remove the offending options*/
     ppp_id++;
     /* dump the ID */
@@ -360,7 +406,7 @@ ipcp_rx(uint8_t *buffer, uint16_t count)
     /*timer_expire(); */
     break;
   default:
-    PRINTF("-Unknown 4\n");
+    PRINTF("-Unknown 4 (%d)\n", *(bptr-1));
   }
 }
   
@@ -428,8 +474,9 @@ ipcp_task(uint8_t *buffer)
       /* length here -  code and ID + */
       pkt->len = uip_htons(t);	
       
-      PRINTF("\n**Sending IPCP Request packet\n");
-      
+      PRINTF("IPCP tx: ");
+      ipcp_print(buffer, t);
+
       /* Send packet ahdlc_txz(procol,header,data,headerlen,datalen); */
       ahdlc_tx(IPCP, 0, buffer, 0, t);
 
@@ -442,8 +489,10 @@ ipcp_task(uint8_t *buffer)
       /*
        * Have we timed out? (combide the timers?)
        */
-      if(ppp_retry > IPCP_RETRY_COUNT)
+      if(ppp_retry > IPCP_RETRY_COUNT) {
+        printf("ipcp_task timeout\n");
 	ipcp_state &= IPCP_TX_TIMEOUT;	
+      }
     }
   }
 }
