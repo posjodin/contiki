@@ -169,8 +169,15 @@ lcp_print(uint8_t *buffer, uint16_t count)
       PRINTF("<accomp> ");
       break;
     default:
-      printf("option %d", *(bptr++));
-      bptr += (*bptr-2); /* Skip option */
+      {
+        uint8_t len;
+        printf("<type %d -", *(bptr++));
+        len = *bptr++;
+        while (len-- > 2) {
+          printf(" %02x", *bptr++);
+        }
+        printf(">");
+      }
     }
   }
   printf("\n");
@@ -462,6 +469,16 @@ lcp_task(uint8_t *buffer)
 	 */
 	*bptr++ = LPC_ACFC;
 	*bptr++ = 0x2;
+      }
+
+      if (0) {
+	/*
+	 * Negotiate smallest MRU allowed
+	 */
+	*bptr++ = LPC_MRU;
+	*bptr++ = 0x4;
+        *bptr++ = 0;
+        *bptr++ = 128;
       }
 
       /* Write length */
