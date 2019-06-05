@@ -12,8 +12,6 @@ CLIBS           = $(PRINTF_LIB)
 
 MODULES += dev/mbus
 
-#PROJECT_OBJECTFILES += dev/mbus-arch.o
-
 CUSTOM_RULE_LINK = 1
 
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a

@@ -28,14 +28,15 @@
  *
  * This file is part of the Contiki operating system.
  *
- *
- * Authors : Albert Asratyan and Mandar Joshi
  * Created : 2019-05-30
  */
 
 /**
  * \file
  *         A simple mbus application on RSS2 mote
+ * \authors
+ *          Albert Asratyan asratyan@kth.se
+ *          Mandar Joshi mandarj@kth.se
  */
 
 #include "contiki.h"
