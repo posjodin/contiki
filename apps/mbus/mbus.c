@@ -40,12 +40,10 @@
  */
 
 #include "sys/etimer.h"
-#include <unistd.h>
 #include <string.h>
 #include "dev/watchdog.h"
 #include <stdio.h>
 
-//#include "dev/mbus-arch.h"
 #include "dev/mbus/mbus-arch.h"
 #include "mbus-supported-devices.h"
 
