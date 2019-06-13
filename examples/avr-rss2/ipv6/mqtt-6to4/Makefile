@@ -1,18 +1,20 @@
 DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
 CONTIKI=../../../..
 
-MQTT=
-ifeq ($(MQTT),true)
 all: mqtt-at-radio
-else
-all: tcpdummy
-endif
+
+#MQTT=false
+MQTT=true
+
+ifeq ($(MQTT),true)
+CFLAGS += -DMQTT_CLIENT
+PROJECT_OBJECTFILES += mqtt-rpl-pub.o mqtt-i2c-pub.o
+PROJECT_OBJECTFILES += mqtt-client.o mqtt-cli.o
+APPS += mqtt
+APPS += cli
+endif # MQTT
 
 CONTIKI_WITH_IPV6 = 1
-ifeq ($(MQTT),true)
-
-APPS += mqtt
-endif
 #APPS += ping6
 #APPS += cli
 
@@ -22,26 +24,35 @@ PRINTF_LIB_MIN  = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB      = $(PRINTF_LIB_FLT)
 CLIBS           = $(PRINTF_LIB) 
 
-# Use a radio module for mobile data?
+
+# Define one to use radio module for cellular data
 #RADIO_MODULE=sim7020
 RADIO_MODULE=a6
 
-# Use TCP/IP stack on radio module? 
-RADIO_SOCKETS=
+# Set to true for TCP/IP stack on radio module
+#RADIO_SOCKETS=false
+RADIO_SOCKETS=true
 
-RADIO_TUNNEL=
+# Set to true for IPv6 tunnel over TCP/IPv4 (experimental)
+RADIO_TUNNEL=false
 
-RADIO_6TO4=
+#
+RADIO_6TO4=false
 
-RADIO_PPP=true
+# Set to true for 6to4 with IPv4/PPP/cellular
+RADIO_PPP=false
+#RADIO_PPP=true
+
+# Set to true for node to be RPL root
+RPL_BORDER_ROUTER=false
+#RPL_BORDER_ROUTER=true
 
 ifdef RADIO_MODULE
+CFLAGS+= -DAT_RADIO
 
 PROJECT_OBJECTFILES +=  at-wait.o at-radio.o
 MODULES += dev/at-radio
-ifeq ($(MQTT),true)
-CFLAGS += -DMQTT_AT_RADIO
-endif
+
 CFLAGS += -DAT_RADIO_CONF_STATS=1
 
 ifeq ($(RADIO_SOCKETS),true)
@@ -67,16 +78,16 @@ ifeq ($(RADIO_PPP),true)
 CFLAGS += -DAT_PPP
 CFLAGS += -DUIP_FALLBACK_INTERFACE=ip64_ppp_interface 
 MODULES += core/net/ip64/
+MODULES += dev/ppp
+CFLAGS += -DDEBUG=DEBUG_PRINT
 endif # RADIO_PPP
 
 ifeq ($(RADIO_MODULE),sim7020)
-
 PROJECT_OBJECTFILES +=  nbiot-sim7020.o nbiot-sim7020-arch.o
 MODULES += dev/nbiot-sim7020
 CFLAGS += -DNBIOT
 
 else ifeq ($(RADIO_MODULE),a6)
-
 PROJECT_OBJECTFILES +=  gprs-a6.o gprs-a6-arch.o sc16is-common.o 
 MODULES += dev/gprs-a6
 
@@ -86,9 +97,21 @@ else
 CFLAGS += -DAT_RADIO_CONF_STATS=0
 endif # RADIO_MODULE
 
+ifeq ($(MQTT),true)
+ifeq ($(RADIO_MODULE),true)
+CFLAGS += -DMQTT_AT_RADIO
+endif # RADIO_MODULE
+CFLAGS += -DMQTT_CLIENT
+MODULES += apps/mqtt
+else
+PROJECT_OBJECTFILES += tcpdummy.o
+endif
+
+ifeq ($(RPL_BORDER_ROUTER),true)
+CFLAGS += -DRPL_BORDER_ROUTER
+endif # RPL_BORDER_ROUTER
 
 #PROJECT_OBJECTFILES += mqtt-rpl-pub.o mqtt-i2c-pub.o mqtt-cli.o
-PROJECT_OBJECTFILES += mqtt-rpl-pub.o mqtt-i2c-pub.o
 CONTIKI=../../../..
 
 #CFLAGS += -DPMS5003
@@ -96,7 +119,6 @@ CONTIKI=../../../..
 MODULES += dev/bme280
 MODULES += dev/pms5003
 MODULES += dev/sc16is
-MODULES += dev/ppp
 
 CUSTOM_RULE_LINK = 1
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 

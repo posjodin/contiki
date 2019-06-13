@@ -644,29 +644,23 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
     /* Look for something like
      *     90.141.194.11
      */
-    int n;
-    int b1, b2, b3, b4;
     char *str;
     str = at_line;
     while (!isdigit(*str) && *str != '\0')
       str++;
     if (*str != '\0') {
-      uint8_t *ip4addr, *ip4mask;
+      uint8_t *ip4addr/*, *ip4mask*/;
       ip4addr = (uint8_t *) &status.ip4addr;       
-      n = sscanf(str, "%hhd.%hhd.%hhd.%hhd", 
-                 &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3]);
+      (void) sscanf(str, "%hhd.%hhd.%hhd.%hhd", 
+                    &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3]);
       /* Don't know netmask */
       status.ip4mask.u16[0] = 0; status.ip4mask.u16[1] = 0; 
-
-      n = sscanf(str, "%d.%d.%d.%d", &b1, &b2, &b3, &b4);
-      if (n == 4) {
 #if NETSTACK_CONF_WITH_IPV6
-        snprintf(status.ipaddr, sizeof(status.ipaddr), "::ffff:%d.%d.%d.%d", b1, b2, b3, b4);
+      snprintf(status.ipaddr, sizeof(status.ipaddr), "::ffff:%d.%d.%d.%d", ip4addr[0], ip4addr[1], ip4addr[2], ip4addr[3]);
 #else
-        snprintf(status.ipaddr, sizeof(status.ipaddr), "%d.%d.%d.%d", b1, b2, b3, b4);
+      snprintf(status.ipaddr, sizeof(status.ipaddr), "%d.%d.%d.%d", ip4addr[0], ip4addr[1], ip4addr[2], ip4addr[3]);
 #endif 
-        PT_EXIT(pt);
-      }
+      PT_EXIT(pt);
     }
   }
   printf("Could not get ipaddr from \"%s\"\n", at_line);

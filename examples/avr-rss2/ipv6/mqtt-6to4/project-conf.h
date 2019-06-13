@@ -119,8 +119,8 @@
 
 #else	/* KTH configuration: this is a default configuration */
 #define MQTT_DEMO_TOPIC_BASE 	"KTH/avr-rss2"
-//#define MQTT_DEMO_BROKER_IP_ADDR "0064:ff9b::c010:7dea"
-#define MQTT_DEMO_BROKER_IP_ADDR "2001:6b0:32:13:221:5aff:fe17:662e"
+#define MQTT_DEMO_BROKER_IP_ADDR "0064:ff9b::c010:7dea"
+//#define MQTT_DEMO_BROKER_IP_ADDR "2001:6b0:32:13:221:5aff:fe17:662e"
 #define RPL_CONF_DEFAULT_INSTANCE 0x1d
 #define IEEE802154_CONF_PANID 0xFEED
 #define CHANNEL_CONF_802_15_4 25

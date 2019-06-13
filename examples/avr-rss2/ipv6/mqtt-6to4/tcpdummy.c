@@ -64,6 +64,13 @@
 
 #include "dev/at-radio/at-radio.h"
 
+#define PPP_6TO4_STATS
+#ifdef PPP_6TO4_STATS
+#define REPORT 30
+struct timer reporttimer;
+uint16_t ppp_6to4good, ppp_6to4bad, ppp_4to6good, ppp_4to6bad;
+#endif /* PPP_6TO4_STATS */
+
 struct dummy_connection {
   /* Used by the list interface, must be first in the struct */
   struct timer t;
@@ -98,8 +105,6 @@ struct dummy_connection {
 /*---------------------------------------------------------------------------*/
 PROCESS(tcp_dummy_process, "TCP dummy process");
 /*---------------------------------------------------------------------------*/
-AUTOSTART_PROCESSES(&tcp_dummy_process);
-/*---------------------------------------------------------------------------*/
 /* Prototypes */
 static int
 tcp_input(struct tcp_socket *s, void *ptr, const uint8_t *input_data_ptr,
@@ -107,13 +112,6 @@ tcp_input(struct tcp_socket *s, void *ptr, const uint8_t *input_data_ptr,
 
 static void tcp_event(struct tcp_socket *s, void *ptr,
                       tcp_socket_event_t event);
-
-/*---------------------------------------------------------------------------*/
-static void
-abort_connection(struct dummy_connection *conn)
-{
-  tcp_socket_close(&conn->socket);
-}
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -134,31 +132,8 @@ connect_tcp(struct dummy_connection *conn)
   tcp_socket_connect(&(conn->socket), &(conn->server_ip), conn->server_port);
 #endif /* MQTT_GPRS */
 }
-/*---------------------------------------------------------------------------*/
-static void
-disconnect_tcp(struct dummy_connection *conn)
-{
-  tcp_socket_close(&(conn->socket));
-  tcp_socket_unregister(&conn->socket);
 
-  memset(&conn->socket, 0, sizeof(conn->socket));
-}
-/*---------------------------------------------------------------------------*/
-static void
-send_out_buffer(struct dummy_connection *conn)
-{
-  if(conn->out_buffer_ptr - conn->out_buffer == 0) {
-    conn->out_buffer_sent = 1;
-    return;
-  }
-  conn->out_buffer_sent = 0;
-
-  DBG("Dummy - (send_out_buffer) Space used in buffer: %i\n",
-      conn->out_buffer_ptr - conn->out_buffer);
-
-  tcp_socket_send(&conn->socket, conn->out_buffer,
-                  conn->out_buffer_ptr - conn->out_buffer);
-}
+uint16_t dummy_connections;
 /*---------------------------------------------------------------------------*/
 static int
 tcp_input(struct tcp_socket *s,
@@ -166,7 +141,6 @@ tcp_input(struct tcp_socket *s,
           const uint8_t *input_data_ptr,
           int input_data_len)
 {
-  struct dummy_connection *conn = ptr;
 
   if(input_data_len == 0) {
     return 0;
@@ -175,10 +149,15 @@ tcp_input(struct tcp_socket *s,
   DBG("tcp_input with %i bytes of data:\n", input_data_len);
   return 0;
 }
+enum state {
+  NONE, CONNECTING, CONNECTED, CLOSING
+} state;
+
 /*---------------------------------------------------------------------------*/
 /*
  * Handles TCP events from Simple TCP
  */
+uint16_t dummy_sent;
 static void
 tcp_event(struct tcp_socket *s, void *ptr, tcp_socket_event_t event)
 {
@@ -192,19 +171,23 @@ tcp_event(struct tcp_socket *s, void *ptr, tcp_socket_event_t event)
   case TCP_SOCKET_TIMEDOUT:
   case TCP_SOCKET_ABORTED: {
 
-    DBG("Dummy - Disconnected by tcp event %d\n", event);
+    printf("Dummy - Disconnected by tcp event %d\n", event);
     /* Clear socket */
+    state = NONE;
     tcp_socket_unregister(&conn->socket);
     memset(&conn->socket, 0, sizeof(conn->socket));
 
     break;
   }
   case TCP_SOCKET_CONNECTED: {
-    printf("Dummy -- connected\n");
+    state = CONNECTED;
+    dummy_connections++;
+    printf("Dummy -- connected (%d)\n", dummy_connections);
     break;
   }
   case TCP_SOCKET_DATA_SENT: {
-    DBG("Dummy - Got TCP_DATA_SENT\n");
+    dummy_sent++;
+    DBG("Dummy - Got TCP_DATA_SENT %d\n", dummy_sent);
 
     if(conn->socket.output_data_len == 0) {
       conn->out_buffer_sent = 1;
@@ -213,7 +196,6 @@ tcp_event(struct tcp_socket *s, void *ptr, tcp_socket_event_t event)
 
     break;
   }
-
   default: {
     DBG("Dummy - TCP Event %d is currently not managed by the tcp event callback\n",
         event);
@@ -225,13 +207,14 @@ tcp_event(struct tcp_socket *s, void *ptr, tcp_socket_event_t event)
 static char *host = "0064:ff9b::c010:7de8"; /* 192.16.125.232 */
 
 static uint16_t port = 7020;
-
 PROCESS_THREAD(tcp_dummy_process, ev, data)
 {
   static struct dummy_connection dummy_connection;
   static struct dummy_connection *conn = &dummy_connection;
   static struct etimer et;
 
+  static struct timer connect_timer;
+  
   PROCESS_BEGIN();
   uip_ip6addr_t ip6addr;
   uip_ipaddr_t *ipaddr;
@@ -249,35 +232,75 @@ PROCESS_THREAD(tcp_dummy_process, ev, data)
   uip_ipaddr_copy(&(conn->server_ip), ipaddr);
 
   printf("Here is dummy!\n");
-  at_radio_init();
-  while(1) {
-    static int i;
-    PROCESS_WAIT_EVENT();
+  dummy_sent = 0;
+  dummy_connections = 0;
+  timer_set(&connect_timer, 0);
 
-    if (ev == at_radio_ev_init) {
-      printf("Dummy: radio is init\n");
-      //connect_tcp(conn);
-      i = 0;
-      while (1) {
-        i++;
-        etimer_set(&et, 10*CLOCK_SECOND);
-        while (!etimer_expired(&et)) {
-          PROCESS_PAUSE();
-        } 
-        if (i == 2) {
-          printf("Dummy connect\n");
-          connect_tcp(conn);
-        }
-        else if (i > 3) {
-          static char buf[16];
-          sprintf(buf, "HEJ %d ", i);
-          tcp_socket_send(&conn->socket, buf, strlen(buf)-1);
-        }
+  static int i;
+  i = 0;
+  timer_set(&reporttimer, REPORT*CLOCK_SECOND);
+  while (1) {
+    i++;
+    etimer_set(&et, 5*CLOCK_SECOND);
+    while (!etimer_expired(&et)) {
+      PROCESS_PAUSE();
+    } 
+    static uint16_t attempt = 0;
+    if ((state != CONNECTED) && timer_expired(&connect_timer)) {
+      printf("Connect attempt %d\n", ++attempt);
+      if (state == CONNECTING) {
+        printf("dummy close\n");
+        tcp_socket_close(&conn->socket);
+        state = CLOSING;
+      }
+      else if (state == CLOSING) {
+        printf("DUmmy already closing -- do nothing \n");
+      }
+      else {
+        connect_tcp(conn);
+        timer_set(&connect_timer, 30*CLOCK_SECOND);
+        state = CONNECTING;
       }
     }
+    else if (state == CONNECTED) {
+      static char buf[16];
+      attempt = 0;
+      printf("Dummy - send %d\n", i);
+      sprintf(buf, "HEJ %d ", i);
+      tcp_socket_send(&conn->socket, (uint8_t *) buf, strlen(buf));
+    }
+#ifdef PPP_6TO4_STATS
+    if (timer_expired(&reporttimer)) {
+      extern uint16_t dummy_connections;
+      printf("Dummy 6to4: good %d bad %d. 4to6: good %d bad %d.", ppp_6to4good, ppp_6to4bad, ppp_4to6good, ppp_4to6bad);
+      printf(" %d connections", dummy_connections);
+      printf(".\n");
+      timer_reset(&reporttimer);
+      print_local_addresses();
+    }
+#endif /* PPP_6TO4_STATS */
   }
   PROCESS_END();
 }
+
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  printf("Server IPv6 addresses:\n");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(uip_ds6_if.addr_list[i].isused &&
+       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+      printf(" ");
+      uip_debug_ipaddr_print(&uip_ds6_if.addr_list[i].ipaddr);
+      printf("\n");
+    }
+  }
+}
+
 
 /*----------------------------------------------------------------------------*/
 /** @} */
