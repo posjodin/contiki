@@ -848,11 +848,11 @@ publish_stats(void)
     memset(def_rt_str, 0, sizeof(def_rt_str));
     ipaddr_sprintf(def_rt_str, sizeof(def_rt_str), uip_ds6_defrt_choose());
 
-#ifdef MQTT_AT_RADIO
+#ifdef AT_RADIO_SOCKETS
     PUTFMT(",{\"n\":\"def_route\",\"vs\":\"%s\"}", at_radio_status()->ipaddr);
 #else
     PUTFMT(",{\"n\":\"def_route\",\"vs\":\"%s\"}", def_rt_str);    
-#endif /* MQTT_AT_RADIO */
+#endif /* AT_RADIO_SOCKETS */
     PUTFMT(",{\"n\":\"rssi\",\"u\":\"dBm\",\"v\":%lu}", def_rt_rssi);
 
     extern uint32_t pms5003_valid_frames();
@@ -1045,11 +1045,11 @@ connect_to_broker(void)
 static void
 ping_parent(void)
 {
-#ifndef MQTT_AT_RADIO
+#ifndef AT_RADIO_SOCKETS
   if(uip_ds6_get_global(ADDR_PREFERRED) == NULL) {
     return;
   }
-#endif /* MQTT_AT_RADIO */
+#endif /* AT_RADIO_SOCKETS */
   uip_icmp6_send(uip_ds6_defrt_choose(), ICMP6_ECHO_REQUEST, 0,
                  ECHO_REQ_PAYLOAD_LEN);
 }
@@ -1086,22 +1086,11 @@ state_machine(void)
     DBG("Init\n");
     /* Continue */
   case STATE_REGISTERED:
-#ifdef MQTT_AT_RADIO
-    { static int said = AT_RADIO_STATE_ACTIVE;
-      if (at_radio_status()->state != AT_RADIO_STATE_ACTIVE) {
-        if (said != at_radio_status()->state)  {
-          printf("MQTT: AT_RADIO not active (%d)\n", at_radio_status()->state);
-          said = at_radio_status()->state;
-        }
-      }
-      else
-        said = at_radio_status()->state;
-    }
+#ifdef AT_RADIO_SOCKETS
     if (at_radio_status()->state == AT_RADIO_STATE_ACTIVE) {
-      printf("MQTT: AT_RADIO active\n");
 #else
     if(uip_ds6_get_global(ADDR_PREFERRED) != NULL) {
-#endif /* MQTT_AT_RADIO */
+#endif /* AT_RADIO_SOCKETS */
       /* Registered and with a public IP. Connect */
       DBG("Registered. Connect attempt %u\n", connect_attempt);
       ping_parent();
