@@ -59,6 +59,7 @@
 #include <string.h>
 #include <math.h> /* NO2 */
 #include "adc.h"
+#include "dev/button-sensor.h"
 #include "dev/pulse-sensor.h"
 #include "dev/pms5003/pms5003.h"
 #include "dev/pms5003/pms5003-sensor.h"
@@ -104,7 +105,7 @@ AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process, &serial_in);
 #else
 AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process);
 #endif
-SENSORS(&pms5003_sensor);
+SENSORS(&button_sensor, &pms5003_sensor);
 
 /*---------------------------------------------------------------------------*/
 #ifdef RPL_BORDER_ROUTER
