@@ -386,8 +386,10 @@ pub_handler(const char *topic, uint16_t topic_len, const uint8_t *chunk,
             uint16_t chunk_len)
 {
   
+#ifdef MQTT_CLI
   char *cmd_topic, *reply_topic;
-
+#endif /* MQTT_CLI */
+  
   DBG("Pub Handler: topic='%s' (len=%u), chunk_len=%u\n", topic, topic_len,
       chunk_len);
 
@@ -662,11 +664,11 @@ init_config()
 static void
 subscribe(void)
 {
+#ifdef MQTT_CLI
   /* Publish MQTT topic in IBM quickstart format */
   mqtt_status_t status;
   char *topic;
   
-#ifdef MQTT_CLI
   topic = construct_topic("cli/cmd");
   if (topic) {
     status = mqtt_subscribe(&conn, NULL, topic, MQTT_QOS_LEVEL_0);
