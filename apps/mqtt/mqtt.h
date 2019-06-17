@@ -94,13 +94,7 @@
 #include "net/ipv6/uip-ds6.h"
 #include "dev/leds.h"
 
-#ifdef MQTT_GPRS
-#include "gprs-a6.h" 
-#include "tcp-socket-gprs.h"
-#include "tcp-socket-gprs-compat.h"
-#else
 #include "tcp-socket.h"
-#endif /* MQTT_GPRS */
 #include "udp-socket.h"
 
 #ifdef CONTIKI_TARGET_AVR_RSS2
@@ -131,7 +125,7 @@
  * Debug configuration, this is similar but not exactly like the Debugging
  * System discussion at https://github.com/contiki-os/contiki/wiki.
  */
-#define DEBUG_MQTT 0
+#define DEBUG_MQTT 1
 
 #if DEBUG_MQTT == 1
 #ifdef CONTIKI_TARGET_AVR_RSS2

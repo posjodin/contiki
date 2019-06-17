@@ -42,6 +42,24 @@
 /* The observe client is required to subscribe to topics. Removing it can free memory. */
 #define COAP_OBSERVE_CLIENT 1
 
+/* KTH configuration: this is a default configuration */
+#define COAP_DEMO_TOPIC_BASE 	"KTH/avr-rss2"
+//#define COAP_DEMO_BROKER_IP_ADDR "0064:ff9b::c010:7dea"
+#define COAP_DEMO_BROKER_IP_ADDR "0064:ff9b::c010:7de8"
+//#define COAP_DEMO_BROKER_IP_ADDR "::ffff:c010:7de8"
+#define RPL_CONF_DEFAULT_INSTANCE 0x1d
+#define IEEE802154_CONF_PANID 0xFEED
+//#define CHANNEL_CONF_802_15_4 25
+#define CHANNEL_CONF_802_15_4 26
+#define RPL_CONF_WITH_DAO_ACK 1
+
+#define NETSTACK_CONF_RDC nullrdc_driver
+#define NETSTACK_CONF_MAC nullmac_driver
+
+#define NETSTACK_CONF_FRAMER      framer_802154
+#define NETSTACK_CONF_RADIO       rf230_driver
+
+
 /* The observer URL length needs to be set long enough to conation the topic URL. */
 /* This needs to be set in /apps/er-coap/er-coap-observe.h for the time being. */
 //#define COAP_OBSERVER_URL_LEN 32

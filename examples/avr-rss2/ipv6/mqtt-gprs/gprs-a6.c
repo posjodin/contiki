@@ -963,7 +963,11 @@ PROCESS_THREAD(a6at, ev, data) {
   event_queue_init();
   
  again:
+#ifdef NBIOT   
+  module_init(9600);
+#else
   module_init(115200);
+#endif    
   {
     uint8_t s;
 
@@ -1048,6 +1052,21 @@ PROCESS_THREAD(a6at, ev, data) {
     }
   }
 
+#ifdef NBIOT
+  ATSTR("AT+CPIN?\r");
+  ATWAIT2(10, &wait_ok);
+  ATSTR("AT+IPR?\r");
+  ATWAIT2(10, &wait_ok);
+  ATSTR("AT+GSV\r");
+  ATWAIT2(10, &wait_ok);
+  ATSTR("AT+CBAND=?\r");
+  ATWAIT2(10, &wait_ok);
+  //ATSTR("AT+CBAND=\"8\"\r");
+  //ATWAIT2(10, &wait_ok);
+  ATSTR("AT+CBAND?\r");
+  ATWAIT2(10, &wait_ok);
+#endif
+  
   /* Wait for registration status to become 1 (local registration)
    * or 5 (roaming) or 10 (roaming, non-preferred)
    */

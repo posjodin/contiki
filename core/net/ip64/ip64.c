@@ -59,6 +59,7 @@
 #include "ip64-special-ports.h"
 #include "ip64-eth-interface.h"
 #include "ip64-slip-interface.h"
+#include "ip64-ppp-interface.h"
 #include "ip64-dns64.h"
 #include "net/ipv6/uip-ds6.h"
 #include "ip64-ipv4-dhcp.h"

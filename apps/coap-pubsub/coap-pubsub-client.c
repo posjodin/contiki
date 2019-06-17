@@ -121,7 +121,7 @@ parse_next_link(char *out_buffer, link_param_t *params, uint8_t is_last)
     out_buffer[strlen(url_ptr) + 1] = '\0';
     PRINTF("Parsed link %s\n", out_buffer);
   } else {
-    PRINTF("No valid link start found: %.*s\n", sizeof(link_buffer), (char *)link_buffer);
+    PRINTF("No valid link start found: %s\n", (char *)link_buffer);
   }
 
   /* Compact the link buffer. This could probably be optimized. */

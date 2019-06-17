@@ -30,51 +30,61 @@
 
 /**
  * \file
- *         includes for i2c core functions
+ *         i2c core functions
  * \author
  *         Robert Olsson <robert@radio-sensors.com>
  */
 
-#include "contiki.h"
-#include "dev/bme280/bme280.h"
-#include "dev/sc16is/sc16is.h"
+#include "i2c.h"
+#include <stdio.h>
+#include <string.h>
 
-/* Here we define the i2c address for dev we support */
-#define I2C_AT24MAC_ADDR  0xB0 /* EUI64 ADDR */
-#define I2C_SHT2X_ADDR    (0x40 << 1) /* SHT2X ADDR */
-#define I2C_BME280_ADDR   BME280_ADDR
-#define I2C_BME680_ADDR   I2C_BME280_ADDR
-#define I2C_PMS5003_ADDR  (0x12 << 1) /* PM sensor */
-#define I2C_PM2105_ADDR   (0x28<<1) /* PM2105 sensor */
-#define I2C_SC16IS_ADDR    (0x9A) /* A0 & A1 to GND */
-/* Here we define a enumration for devices */
-#define I2C_AT24MAC       (1<<0)
-#define I2C_SHT2X         (1<<1)
-#define I2C_CO2SA         (1<<2)  /* Sense-Air CO2 */
-#define I2C_BME280        (1<<3)
-#define I2C_BME680        (1<<4)
-#define I2C_PMS5003       (1<<5)
-#define I2C_SC16IS        (1<<6)
-#define I2C_PM2105        (1<<7)
+#define PUTFMT(...) { \
+		len = snprintf(buf_ptr, remaining, __VA_ARGS__);	\
+		if (len < 0 || len >= remaining) { \
+			printf("Line %d: Buffer too short. Have %d, need %d + \\0\n", __LINE__, remaining, len); \
+			return bufsize + len; \
+		} \
+		remaining -= len; \
+		buf_ptr += len; \
+	}
 
-#define I2C_READ    1
-#define I2C_WRITE   0
+int
+mqtt_i2c_pub(char *buf, int bufsize)  {
+  int remaining = bufsize;
+  char *buf_ptr = buf;
+  int len;
+  char *delim = "";
 
-void i2c_init(uint32_t speed);
-uint8_t i2c_start(uint8_t addr);
-void i2c_start_wait(uint8_t addr);
-void i2c_stop(void);
-void i2c_write(uint8_t u8data);
-uint8_t i2c_readAck(void);
-uint8_t i2c_readNak(void);
-uint8_t i2c_getstatus(void);
-uint16_t i2c_probe(void);
-void i2c_read_mem(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes);
-void i2c_write_mem(uint8_t addr, uint8_t reg, uint8_t value);
-void i2c_write_mem_buf(uint8_t addr, uint8_t buf[], uint8_t bytes);
-void i2c_read_mem_buf(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes);
-void i2c_at24mac_read(char *buf, uint8_t eui64);
-extern uint16_t i2c_probed; /* i2c devices we have probed */
+  PUTFMT("{\"n\":\"i2c\", \"vj\":[");
 
+  if (i2c_probed & I2C_AT24MAC) {
+    PUTFMT("%s\"AT24MAC\"", delim);
+    delim = ",";
+  }
 
-
+  if (i2c_probed & I2C_SHT2X) {
+    PUTFMT("%s\"SHT2X\"", delim);
+    delim = ",";
+  }
+  if (i2c_probed & I2C_CO2SA) {
+  
+  PUTFMT("%s\"CO2SA\"", delim);
+  delim = ",";
+}
+  if (i2c_probed & I2C_BME280) {
+    PUTFMT("%s\"BME280\"", delim);
+    delim = ",";
+  }
+  if (i2c_probed & I2C_PMS5003) {
+  PUTFMT("%s\"PMS5003\"", delim);
+  delim = ",";
+}
+  if (i2c_probed & I2C_SC16IS) {
+  PUTFMT("%s\"SC16IS\"", delim);
+  delim = ",";
+}
+  PUTFMT("]}");
+  return buf_ptr - buf;
+}
+  

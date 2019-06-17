@@ -258,7 +258,7 @@ ps_post_handler(void *request, void *response, uint8_t *buffer, uint16_t preferr
 
   if(parent_topic) {
     payload_len = REST.get_request_payload(request, &payload);
-    PRINTF("CREATE on: %s, message: %.*s\n", parent_topic->resource->url, payload_len, payload);
+    PRINTF("CREATE on: %s, message: %s\n", parent_topic->resource->url, payload);
 
     /* Subtopics are only supported for topics with ct set to application/link-format. */
     if(parent_topic->content_format != APPLICATION_LINK_FORMAT) {
@@ -417,7 +417,7 @@ ps_put_handler(void *request, void *response, uint8_t *buffer, uint16_t preferre
 
   if(topic) {
     payload_len = REST.get_request_payload(request, &payload);
-    PRINTF("PUBLISH on: %s, content: %.*s\n", topic->resource->url, payload_len, payload);
+    PRINTF("PUBLISH on: %s, content: %s\n", topic->resource->url, payload);
 
     REST.get_header_content_type(request, &ct);
 
@@ -509,8 +509,8 @@ ps_get_handler(void *request, void *response, uint8_t *buffer, uint16_t preferre
         } else {
           REST.set_response_payload(response, topic->content + *offset, topic->content_len);
         }
-        PRINTF("Get on: %s, content: %.*s, length: %u\n", topic->resource->url,
-               topic->content_len, topic->content, (unsigned int)(topic->content_len - *offset));
+        PRINTF("Get on: %s, content: %s, length: %u\n", topic->resource->url,
+               topic->content, (unsigned int)(topic->content_len - *offset));
 
         if(topic->max_age.interval > 0) {
           REST.set_header_max_age(response, (uint32_t)(timer_remaining(&topic->max_age) / CLOCK_SECOND));

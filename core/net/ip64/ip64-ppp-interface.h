@@ -29,26 +29,11 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef IP64_CONF_H
-#define IP64_CONF_H
+#ifndef IP64_PPP_INTERFACE_H
+#define IP64_PPP_INTERFACE_H
 
-#if 0
-#include "net/ip64/ip64-eth-interface.h"
-//#include "dev/enc28j60/enc28j60-ip64-driver.h"
-#define IP64_CONF_UIP_FALLBACK_INTERFACE ip64_eth_interface
-#define IP64_CONF_INPUT                  ip64_eth_interface_input
-#define IP64_CONF_DHCP                   1
-#define IP64_CONF_ETH_DRIVER             enc28j60_ip64_driver
-#else
-//#include "at-6to4.h"
+void ip64_ppp_interface_input(uint8_t *packet, uint16_t len);
 
-#include "net/ip64/ip64-ppp-interface.h"
+extern const struct uip_fallback_interface ip64_ppp_interface;
 
-#define IP64_CONF_UIP_FALLBACK_INTERFACE ip64_ppp_interface
-#define IP64_CONF_INPUT                  ip64_ppp_interface_input
-#define IP64_CONF_DHCP                   0
-#include "net/ip64/ip64-null-driver.h"
-#define IP64_CONF_ETH_DRIVER             ip64_null_driver
-#endif
-
-#endif /* IP64_CONF_H */
+#endif /* IP64_SLIP_INTERFACE_H */

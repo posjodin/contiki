@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = pubsub-broker pubsub-client
+CONTIKI_PROJECT = pubsub-broker pubsub-client client 
 
 all: $(CONTIKI_PROJECT)
 

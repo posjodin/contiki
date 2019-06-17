@@ -1,0 +1,12 @@
+
+FAN  18
+LD   19
+MCU  16
+
+
+1            Close measurement
+2  1      18 Start measurement
+3  2      53 Cont
+4            Timing Funkar ej
+5  128/2  37/53  Dynamic
+7  128    37 Warm

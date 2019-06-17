@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, Thingsquare, http://www.thingsquare.com/.
+ * Copyright (c) 2012-2014, Thingsquare, http://www.thingsquare.com/.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -10,7 +10,6 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- *
  * 3. Neither the name of the copyright holder nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
@@ -29,26 +28,34 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef IP64_CONF_H
-#define IP64_CONF_H
 
-#if 0
-#include "net/ip64/ip64-eth-interface.h"
-//#include "dev/enc28j60/enc28j60-ip64-driver.h"
-#define IP64_CONF_UIP_FALLBACK_INTERFACE ip64_eth_interface
-#define IP64_CONF_INPUT                  ip64_eth_interface_input
-#define IP64_CONF_DHCP                   1
-#define IP64_CONF_ETH_DRIVER             enc28j60_ip64_driver
-#else
-//#include "at-6to4.h"
+#ifndef TCP_SOCKET_AT_RADIO_COMPAT_H
+#define TCP_SOCKET_AT_RADIO_COMPAT_H
 
-#include "net/ip64/ip64-ppp-interface.h"
+#include "../../../../core/net/ip/tcp-socket.h"
 
-#define IP64_CONF_UIP_FALLBACK_INTERFACE ip64_ppp_interface
-#define IP64_CONF_INPUT                  ip64_ppp_interface_input
-#define IP64_CONF_DHCP                   0
-#include "net/ip64/ip64-null-driver.h"
-#define IP64_CONF_ETH_DRIVER             ip64_null_driver
-#endif
+#ifdef AT_RADIO_SOCKETS
 
-#endif /* IP64_CONF_H */
+/* Use Contiki socket API to access builtin protocol
+ * stack on cellular data radio modules. 
+ * Lacking a generic interface between TCP sockets and protocol
+ * stack, rename socket operations to use functions from 
+ * tcp-socket-at-radio.h.
+ */
+
+#include "tcp-socket-at-radio.h"
+
+#define tcp_socket tcp_socket_at_radio 
+
+#define tcp_socket_register tcp_socket_at_radio_register
+#define tcp_socket_connect tcp_socket_at_radio_connect
+#define tcp_socket_listen tcp_socket_at_radio_listen
+#define tcp_socket_unlisten  tcp_socket_at_radio_unlisten
+#define tcp_socket_send tcp_socket_at_radio_send
+#define tcp_socket_send_str tcp_socket_at_radio_send_str 
+#define tcp_socket_close tcp_socket_at_radio_close 
+#define tcp_socket_unregister tcp_socket_at_radio_unregister 
+#define tcp_socket_max_sendlen tcp_socket_at_radio_max_sendlen 
+#define tcp_socket_queuelen tcp_socket_at_radio_queuelen
+#endif /* AT_RADIO_SOCKETS */
+#endif /* TCP_SOCKET_AT_RADIO_COMPAT_H */

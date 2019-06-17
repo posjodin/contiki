@@ -233,7 +233,7 @@ initialize(void)
 
   clock_init();
 
-  i2c_init(100000); /* 100 bit/s */
+  i2c_init(50000); /* 50kbit/s */
 
 #if STACKMONITOR
   /* Simple stack pointer highwater monitor. Checks for magic numbers in the main

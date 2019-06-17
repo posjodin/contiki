@@ -189,6 +189,32 @@ i2c_read_mem(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes)
   i2c_stop();
 }
 void
+i2c_write_mem_buf(uint8_t addr, uint8_t buf[], uint8_t bytes)
+{
+  uint8_t i = 0;
+  i2c_start(addr | I2C_WRITE);
+  i2c_readAck();
+  for(i = 0; i < bytes; i++) {
+      i2c_write(buf[i]);
+      i2c_readAck();
+  }
+  i2c_stop();
+}
+void
+i2c_read_mem_buf(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes)
+{
+  uint8_t i = 0;
+  i2c_start(addr | I2C_READ);
+  for(i = 0; i < bytes; i++) {
+    if(i == bytes - 1) {
+      buf[i] = i2c_readNak();
+    } else {
+      buf[i] = i2c_readAck();
+    }
+  }
+  i2c_stop();
+}
+void
 i2c_at24mac_read(char *buf, uint8_t eui64)
 {
   if(eui64) {
@@ -237,7 +263,6 @@ i2c_probe(void)
     probed |= I2C_BME680;
     print_delim(p++, "BME680", del);
   }
-
   watchdog_periodic();
   if(!i2c_start(I2C_PMS5003_ADDR)) {
     i2c_stop();
@@ -249,6 +274,12 @@ i2c_probe(void)
     i2c_stop();
     probed |= I2C_SC16IS;
     print_delim(p++, "SC16IS", del);
+  }
+  watchdog_periodic();
+  if(!i2c_start(I2C_PM2105_ADDR)) {
+    i2c_stop();
+    probed |= I2C_PM2105;
+    print_delim(p++, "PM2105", del);
   }
   return probed;
 }
