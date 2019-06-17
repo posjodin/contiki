@@ -91,9 +91,6 @@
 
 #include "net/rime/rime.h"
 
-#include "dev/button-sensor.h"
-SENSORS(&button_sensor);
-
 /* Track interrupt flow through mac, rdc and radio driver */
 /* #define DEBUGFLOWSIZE 32 */
 #if DEBUGFLOWSIZE
@@ -233,7 +230,7 @@ initialize(void)
 
   clock_init();
 
-  i2c_init(50000); /* 50kbit/s */
+  i2c_init(100000); /* 100 bit/s */
 
 #if STACKMONITOR
   /* Simple stack pointer highwater monitor. Checks for magic numbers in the main

@@ -1,18 +1,10 @@
 DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
 CONTIKI=../../../..
 
-all: mqtt-at-radio
+all: mqtt-publisher
 
 #MQTT=false
 MQTT=true
-
-ifeq ($(MQTT),true)
-CFLAGS += -DMQTT_CLIENT
-PROJECT_OBJECTFILES += mqtt-rpl-pub.o mqtt-i2c-pub.o
-PROJECT_OBJECTFILES += mqtt-client.o mqtt-cli.o
-APPS += mqtt
-APPS += cli
-endif # MQTT
 
 CONTIKI_WITH_IPV6 = 1
 #APPS += ping6
@@ -25,11 +17,11 @@ PRINTF_LIB      = $(PRINTF_LIB_FLT)
 CLIBS           = $(PRINTF_LIB) 
 
 
-# Define one to use radio module for cellular data
+# Define to use radio module for cellular data
 #RADIO_MODULE=sim7020
 RADIO_MODULE=a6
 
-# Set to true for TCP/IP stack on radio module
+# Set to true for sockets with TCP/IPv4 stack on radio module
 #RADIO_SOCKETS=false
 RADIO_SOCKETS=true
 
@@ -43,9 +35,17 @@ RADIO_6TO4=false
 RADIO_PPP=false
 #RADIO_PPP=true
 
-# Set to true for node to be RPL root
+# Set to true for RPL root with uplink
 RPL_BORDER_ROUTER=false
 #RPL_BORDER_ROUTER=true
+
+ifeq ($(MQTT),true)
+CFLAGS += -DMQTT_CLIENT -DMQTT_CLI
+PROJECT_OBJECTFILES += mqtt-rpl-pub.o mqtt-i2c-pub.o
+PROJECT_OBJECTFILES += mqtt-client.o mqtt-cli.o
+APPS += mqtt
+APPS += cli
+endif # MQTT
 
 ifdef RADIO_MODULE
 CFLAGS+= -DAT_RADIO
