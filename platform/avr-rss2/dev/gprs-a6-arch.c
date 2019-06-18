@@ -47,12 +47,9 @@
 #include "sc16is-common.h"
 #include "dev/at-radio/at-wait.h"
 
-PT_THREAD(gprs_a6_module_init(struct pt *pt, uint32_t baud)) {
-  uint8_t s;
-  static struct etimer et;
-
-  PT_BEGIN(pt);
-
+static int
+module_init(uint32_t baud)
+{
   if(i2c_probed & I2C_SC16IS) {
 
     sc16is_init();
@@ -61,12 +58,23 @@ PT_THREAD(gprs_a6_module_init(struct pt *pt, uint32_t baud)) {
     sc16is_gpio_set((G_LED_RED|G_LED_YELLOW));
     sc16is_uart_set_speed(baud);
     /* sc16is_arch_i2c_write_mem(I2C_SC16IS_ADDR, SC16IS_FCR, SC16IS_FCR_FIFO_BIT); */
+    //status.state = GPRS_STATE_IDLE;
     sc16is_tx((uint8_t *)"AT", sizeof("AT"-1));
-
+    return 1;
   }
+  return 0;
+}
+
+PT_THREAD(gprs_a6_module_init(struct pt *pt, uint32_t baud)) {
+  uint8_t s;
+  static struct etimer et;
+
+  PT_BEGIN(pt);
+
+  module_init(baud);
 
   set_board_5v(0); /* Power cycle the board */
-  etimer_set(&et, 2*CLOCK_SECOND);
+  etimer_set(&et, 4*CLOCK_SECOND);
   while (!etimer_expired(&et)) {
     PT_YIELD(pt);
   }
@@ -94,14 +102,51 @@ PT_THREAD(gprs_a6_module_init(struct pt *pt, uint32_t baud)) {
   while (!etimer_expired(&et)) {
     PT_YIELD(pt);
   }
-
   s = sc16is_gpio_get();
   set_bit(&s, G_PWR);
   sc16is_gpio_set(s);
 
+  PT_ATSTR2("AT\r");
+  //PT_ATWAIT2(10, &wait_ok);
 
+  /* 
+     Workaround and fix and
+     needs investigation. It seems like the A6 
+     module is not compatible with UART sleep mode.
+     Can be an A6 firmware issue.
+  */
+  { static int i;
+    extern struct at_wait wait_ok;
+    static struct at_wait *at;
+
+    for (i = 0; i < 10; i++) {
+      PT_ATSTR2("ATI\r");
+      atwait_record_on();
+      PT_ATWAIT2(10, &wait_ok);
+      atwait_record_off();
+      if (at == &wait_ok) {
+        const char *delim = "\r\n";  
+        char *p = strtok((char *)&at_line[0], (const char *) delim);
+        if (p == NULL) {
+          goto notfound;
+        }
+        for(i=0; i <  sizeof(at_line); i++) {
+          p = strtok(NULL, delim);
+          if (p == NULL) {
+            goto notfound;
+          }
+          else if(0 == strncmp(p, "A6", sizeof("A6")-1)) {
+            sc16is_sleep_mode(0);
+            goto done;
+          }
+        }
+      notfound:
+      done:
+        break;
+      }
+    }
+  }
   PT_END(pt);
-
 }
 
 size_t

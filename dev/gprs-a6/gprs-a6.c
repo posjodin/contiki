@@ -93,23 +93,15 @@ PT_THREAD(wait_tcpclosed_callback(struct pt *pt, struct at_wait *at, int c));
 static
 PT_THREAD(wait_gpsrd_callback(struct pt *pt, struct at_wait *at, int c));
 
-static
+
 struct at_wait wait_ciprcv = {"+CIPRCV:", wait_ciprcv_callback};
-static
 struct at_wait wait_ok = {"OK", wait_readline_pt};
-static
 struct at_wait wait_error = {"ERROR", NULL};
-static
 struct at_wait wait_connectok = {"CONNECT OK", NULL};
-static
 struct at_wait wait_cmeerror = {"+CME ERROR:", wait_readline_pt};
-static
 struct at_wait wait_commandnoresponse = {"COMMAND NO RESPONSE!", NULL};
-static
 struct at_wait wait_sendprompt = {">", NULL};
-static
 struct at_wait wait_tcpclosed = {"+TCPCLOSED:", wait_tcpclosed_callback};
-static
 struct at_wait wait_gpsrd = {"$GPRMC,", wait_gpsrd_callback};
 
 /*
@@ -569,14 +561,6 @@ PT_THREAD(get_moduleinfo(struct pt *pt)) {
     
     if(!strncmp(p, "A6", sizeof("A6")-1)) {
       status.module = AT_RADIO_MODULE_A6;
-
-      /* 
-         Workaround and fix and
-         needs investigation. It seems like the A6 
-         module is not compatible with UART sleep mode.
-         Can be an A6 firmware issue.
-      */
-      sc16is_sleep_mode(0);
       break;
     }
     if(0 == strncmp(p, "A7", sizeof("A7"))) {
