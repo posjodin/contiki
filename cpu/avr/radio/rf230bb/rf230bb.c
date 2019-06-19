@@ -1585,6 +1585,7 @@ rf230_on(void)
     return 1;
   }
 
+  rf230_set_rpc(0xFF); /* Enable all RPC features. Only XRFR2 radios */
   radio_on();
   return 1;
 }
