@@ -239,14 +239,14 @@ PROCESS_THREAD(coap_client, ev, data)
 	    }
 
 	    COAP_PUBSUB_CREATE(&topic_mcu_sleep);
-	    PRINTF("CREATE %s, return code %d\n", topic_mcu_sleep.url, topic_light.last_response_code);
+	    PRINTF("CREATE %s, return code %d\n", topic_mcu_sleep.url, topic_mcu_sleep.last_response_code);
 	    if(topic_mcu_sleep.last_response_code == CREATED_2_01 
 	       || topic_mcu_sleep.last_response_code == FORBIDDEN_4_03){
 	      found_broker = 1;
 	    }
 
 	    COAP_PUBSUB_CREATE(&topic_bootcause);
-	    PRINTF("CREATE %s, return code %d\n", topic_bootcause.url, topic_light.last_response_code);
+	    PRINTF("CREATE %s, return code %d\n", topic_bootcause.url, topic_bootcause.last_response_code);
 	    if(topic_bootcause.last_response_code == CREATED_2_01 
 	       || topic_bootcause.last_response_code == FORBIDDEN_4_03){
 	      found_broker = 1;
