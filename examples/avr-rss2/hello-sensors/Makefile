@@ -9,6 +9,7 @@ PRINTF_LIB      = $(PRINTF_LIB_FLT)
 CLIBS           = $(PRINTF_LIB) 
 
 MODULES += dev/bme280
+MODULES += dev/sht2x
 
 CUSTOM_RULE_LINK = 1
 
@@ -16,7 +17,6 @@ CUSTOM_RULE_LINK = 1
 
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 
 	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ $(CLIBS)
-
 
 
 CONTIKI = ../../..
