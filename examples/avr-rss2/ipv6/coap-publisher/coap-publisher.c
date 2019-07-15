@@ -56,6 +56,8 @@
 #include "dev/pms5003/pms5003-sensor.h"
 #include "dev/light-sensor.h"
 #include "mcu_sleep.h"
+#include "apps/no2/no2.h"
+#include "no2-arch.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -85,12 +87,11 @@ extern struct process mcu_sleep_process;
 
 static broker_t broker;
 static client_topic_t topic_dir, topic_bme, topic_pm, topic_light, topic_seconds;
-static client_topic_t topic_mcu_sleep, topic_bootcause;
+static client_topic_t topic_mcu_sleep, topic_bootcause, topic_no2;
 
 static uint8_t content_buffer[128];
 static struct etimer publish_timer;
 static char *buf_ptr;
-
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(coap_client, ev, data)
@@ -120,6 +121,7 @@ PROCESS_THREAD(coap_client, ev, data)
   topic_mcu_sleep.broker = &broker;
   topic_seconds.broker = &broker;
   topic_bootcause.broker = &broker;
+  topic_no2.broker = &broker;
 
   broker.port = UIP_HTONS(COAP_DEFAULT_PORT);
 
@@ -132,27 +134,31 @@ PROCESS_THREAD(coap_client, ev, data)
 
   topic_bme.content_type = 0;
   topic_bme.content = (uint8_t *)&content_buffer;
-  topic_bme.max_age = COAP_MAX_AGE;
+  topic_bme.max_age = COAP_MAX_AGE*4;
 
   topic_pm.content_type = 0;
   topic_pm.content = (uint8_t *)&content_buffer;
-  topic_pm.max_age = COAP_MAX_AGE;
+  topic_pm.max_age = COAP_MAX_AGE*4;
 
   topic_light.content_type = 0;
   topic_light.content = (uint8_t *)&content_buffer;
-  topic_light.max_age = COAP_MAX_AGE;
+  topic_light.max_age = COAP_MAX_AGE*4;
 
   topic_mcu_sleep.content_type = 0;
   topic_mcu_sleep.content = (uint8_t *)&content_buffer;
-  topic_mcu_sleep.max_age = COAP_MAX_AGE;
+  topic_mcu_sleep.max_age = COAP_MAX_AGE*4;
 
   topic_seconds.content_type = 0;
   topic_seconds.content = (uint8_t *)&content_buffer;
-  topic_seconds.max_age = COAP_MAX_AGE;
+  topic_seconds.max_age = COAP_MAX_AGE*4;
 
   topic_bootcause.content_type = 0;
   topic_bootcause.content = (uint8_t *)&content_buffer;
   topic_bootcause.max_age = COAP_MAX_AGE*4;
+
+  topic_no2.content_type = 0;
+  topic_no2.content = (uint8_t *)&content_buffer;
+  topic_no2.max_age = COAP_MAX_AGE*4;
 
   for(i = 0; i < 8; i++) {
     sprintf(((char *)&topic_dir.url) + 2 * i * sizeof(char), "%02x", uip_lladdr.addr[i]);
@@ -175,6 +181,10 @@ PROCESS_THREAD(coap_client, ev, data)
   strcpy(topic_bootcause.url, topic_dir.url);
   sprintf(((char *)&topic_bootcause.url) + strlen(topic_dir.url) * sizeof(char), "bootcause/");
   PRINTF("bootcause topic url = %s\n", topic_bootcause.url);
+
+  strcpy(topic_no2.url, topic_dir.url);
+  sprintf(((char *)&topic_no2.url) + strlen(topic_dir.url) * sizeof(char), "no2/");
+  PRINTF("no2 topic url = %s\n", topic_no2.url);
 
   
   if(i2c_probed & I2C_BME280 ) {
@@ -251,6 +261,13 @@ PROCESS_THREAD(coap_client, ev, data)
 	       || topic_bootcause.last_response_code == FORBIDDEN_4_03){
 	      found_broker = 1;
 	    }
+	    
+	    COAP_PUBSUB_CREATE(&topic_no2);
+	    PRINTF("CREATE %s, return code %d\n", topic_no2.url, topic_no2.last_response_code);
+	    if(topic_no2.last_response_code == CREATED_2_01 
+	       || topic_no2.last_response_code == FORBIDDEN_4_03){
+	      found_broker = 1;
+	    }
 
 	    if(i2c_probed & I2C_BME280 ) {
 	      COAP_PUBSUB_CREATE(&topic_bme);
@@ -320,6 +337,21 @@ PROCESS_THREAD(coap_client, ev, data)
 	PRINTF("PUBLISH finished, return code %d\n", topic_bootcause.last_response_code );
 	if(topic_bootcause.last_response_code == NOT_FOUND_4_04){
 	  PRINTF("No topic BOOTCAUSE!\n");
+	  found_broker = 0;
+	}
+
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_no2.content;
+	{
+	  double ppb =  no2(no2_sen_2);
+	  PUTFMT("%-5.0f %-5.0f", ppb, ppb2ugm3(ppb, NO2_MW, no2_temp()));
+	}
+	topic_no2.content_len = strlen((char *)topic_no2.content); 
+	PRINTF("PUBLISH NO2 value %s, len %u\n", topic_no2.content, topic_no2.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_no2);
+	PRINTF("PUBLISH finished, return code %d\n", topic_no2.last_response_code );
+	if(topic_no2.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic NO2!\n");
 	  found_broker = 0;
 	}
 
