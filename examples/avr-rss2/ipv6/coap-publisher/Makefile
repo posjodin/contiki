@@ -7,6 +7,7 @@ PRINTF_LIB_MIN  = -Wl,-u,vfprintf -lprintf_min
 PRINTF_LIB      = $(PRINTF_LIB_FLT)
 CLIBS           = $(PRINTF_LIB) 
 
+PROJECT_OBJECTFILES += no2-arch.o
 
 # Adds printf float support to read the temperature sensor value.
 CUSTOM_RULE_LINK = 1
@@ -21,12 +22,14 @@ CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 APPS += er-coap
 APPS += rest-engine
 APPS += coap-pubsub
+APPS += no2
 APPS += mcu_sleep
 
 MODULES += dev/bme280
 MODULES += dev/bme680
 MODULES += dev/pms5003
 MODULES += dev/pm2105
+MODULES += dev/sht25
 
 
 #CFLAGS += -DUIP_CONF_BUFFER_SIZE=1300
