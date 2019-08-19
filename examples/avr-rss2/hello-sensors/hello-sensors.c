@@ -53,6 +53,8 @@
 #include "dev/co2_sa_kxx-sensor.h"
 #include "dev/button-sensor.h"
 #include "dev/sht2x/sht2x.h"
+#include "apps/mcp342x/mcp342x.h"
+
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_sensors_process, "Hello sensor process");
 AUTOSTART_PROCESSES(&hello_sensors_process);
@@ -84,7 +86,7 @@ read_values(void)
 
   printf("\n");
   
-  if( i2c_probed & I2C_CO2SA ) {
+  if( 0 && i2c_probed & I2C_CO2SA ) {
     printf(" CO2=%-d", co2_sa_kxx_sensor.value( CO2_SA_KXX_CO2));
   }
 
@@ -108,6 +110,12 @@ read_values(void)
   if( i2c_probed & I2C_SHT2X ) {
     printf(" SHT2X_TEMP=%-d", sht2x_sensor.value(0));
     printf(" SHT2X_RH=%-d", sht2x_sensor.value(1));
+  }
+  if( i2c_probed & I2C_MCP342X ) {
+#define AD_BITS 18    
+    for(i=1; i<5; i++) {
+      printf("MCP342X_%-d=%-6.5f ",i, read_mcp342X(I2C_MCP342X_ADDR, i, AD_BITS, 1));
+    }
   }
 
   printf("\n\n");
