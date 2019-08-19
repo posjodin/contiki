@@ -45,6 +45,7 @@
 #define I2C_BME280_ADDR   BME280_ADDR
 #define I2C_BME680_ADDR   I2C_BME280_ADDR
 #define I2C_PMS5003_ADDR  (0x12 << 1) /* PM sensor */
+#define I2C_MCP342X_ADDR  (0x68<<1)
 //#define I2C_SC16IS_ADDR    (0x9A) /* A0 & A1 to GND */
 /* Here we define a enumration for devices */
 #define I2C_AT24MAC       (1<<0)
@@ -54,7 +55,7 @@
 #define I2C_BME680        (1<<4)
 #define I2C_PMS5003       (1<<5)
 #define I2C_SC16IS        (1<<6)
-
+#define I2C_MCP342X       (1<<7)
 #define I2C_READ    1
 #define I2C_WRITE   0
 

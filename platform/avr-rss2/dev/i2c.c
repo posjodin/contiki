@@ -220,7 +220,7 @@ i2c_probe(void)
     print_delim(p++, "SHT2X", del);
   }
   watchdog_periodic();
-  if(!i2c_start(I2C_CO2SA_ADDR)) {
+  if(0 && !i2c_start(I2C_CO2SA_ADDR)) {
     i2c_stop();
     probed |= I2C_CO2SA;
     print_delim(p++, "CO2SA", del);
@@ -249,6 +249,12 @@ i2c_probe(void)
     i2c_stop();
     probed |= I2C_SC16IS;
     print_delim(p++, "SC16IS", del);
+  }
+  watchdog_periodic();
+  if(!i2c_start(I2C_MCP342X_ADDR)) {
+    i2c_stop();
+    probed |= I2C_MCP342X;
+    print_delim(p++, "MCP342X", del);
   }
   return probed;
 }
