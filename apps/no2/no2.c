@@ -94,7 +94,7 @@ temp_compensation(double tg, int8_t *k)
   c4 = (k[i] + c3) / 10; /* Calc and downscale final result */
 
   if(debug) {
-    printf("T=%-5.2f %d Interpol: %-5.2f %-5.2f %-5.2f Final=%-5.3f\n",
+    printf("NO2: T=%-5.2f %d Interpol: %-5.2f %-5.2f %-5.2f Final=%-5.3f\n",
            tg, k[i], c1, c2, c3, c4);
   }
   return c4;
@@ -114,7 +114,7 @@ no2_ppb_a3(double we_u, double we_ez, double ae_u, double ae_ez, double we_0, do
   return ((we_u - we_ez) - (we_0 - ae_0) - tc * (ae_u - ae_ez)) / (sens / 1000);
 }
 double
-no2(int16_t no2_calibration[])
+no2(const int16_t no2_calibration[])
 {
   double a1, a3, we_u, ae_u, we_0, ae_0, tg;
   int16_t *t;
@@ -140,7 +140,7 @@ no2(int16_t no2_calibration[])
 
   if(debug) {
     a1 = no2_ppb_a1(we_u * 1000, t[we_ez], ae_u * 1000, t[aux_ez], t[sens], tg);
-    printf("we_u=%-5.2f ae_u=%-5.2f a1=%-5.0f a3=%-5.0f\n", we_u, ae_u, a1, a3);
+    printf("NO2: we_u=%-6.5f ae_u=%-6.5f a1=%-5.0f a3=%-5.0f\n", we_u, ae_u, a1, a3);
   }
   return a3;
 }

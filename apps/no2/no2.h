@@ -36,7 +36,7 @@
 double read_we_u(void);
 double read_ae_u(void);
 double no2_temp(void);
-double no2(int16_t no2_calibration[]);
+double no2(const int16_t no2_calibration[]);
 double ppb2ugm3(double ppb, double mw, double t);
 
 #define NO2_MW 46.0055 /* Molecular weight NO2 */
