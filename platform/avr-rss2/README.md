@@ -65,17 +65,26 @@ apt-get install gcc-avr avr-libc avrdude
 
 Toolchain alternative I
 -----------------------
-Otherwise if OS toolchain packages does not support the AtMega256RfR2 MCU. 
-An option is to use toolchain from Atmels web-site.
+Otherwise if OS toolchain packages do not support the AtMega256RfR2
+MCU, another option is to download the C compiler toolchain from
+Microchip.
 
-###### For Linux 
+### For Linux and MacOS
 
-1. See http://www.atmel.com/tools/ATMELAVRTOOLCHAINFORLINUX.aspx
-2. Download the proper 8-bit platform 32 or 64 bit.
-3. Unpack under `/usr/local`
-4. Add to your search PATH. For example add to `.bashrc`: `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86_64/bin` (for 64 bit systems) or `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86/bin` (for 32 birt systems).
-5. For flash programming you'll need `avrdude`. It can be installed with the command
-`apt-get install avrdude`
+2. Download the proper 8-bit C compiler AVR toolchain, 32 or 64-bit,
+   [from Microchip](https://www.microchip.com/mplab/avr-support/avr-and-arm-toolchains-c-compilers).
+3. Unpack under `/usr/local`.
+4. Add to your search PATH. For example add to `.bashrc`: `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86_64/bin` (for 64-bit systems) or `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86/bin` (for 32-bit systems).
+5. For flash programming, you need `avrdude`. On Ubuntu Linux, it can be installed with the command
+`apt-get install avrdude`. For MacOS, there is a [HomeBrew
+package for avrdude](https://formulae.brew.sh/formula/avrdude#default) that can be
+installed with the command `brew install avrdude`. (You first need to
+[install HomeBrew](https://brew.sh).)
+Install with
+
+>`brew install avrdude`
+
+thats it
 
 Toolchain alternative II
 ------------------------
