@@ -319,8 +319,14 @@ PT_THREAD(init_module(struct pt *pt)) {
   PT_ATWAIT2(10, &wait_ok);
   if (at == NULL)
   goto again;
+
+  /* Disable power save mode for now */
+  PT_ATSTR2("AT+CPSMS=0\r"); 
+  PT_ATWAIT2(10, &wait_ok);
+
   PT_ATSTR2("AT+CSORCVFLAG?\r");
   PT_ATWAIT2(10, &wait_ok);
+
   /* Receive data in hex */
 #ifdef SIM7020_RECVHEX
   /* Receive data as hex string */
@@ -330,6 +336,7 @@ PT_THREAD(init_module(struct pt *pt)) {
   PT_ATSTR2("AT+CSORCVFLAG=1\r"); 
 #endif /* SIM7020_RECVHEX */
   PT_ATWAIT2(10, &wait_ok);
+
   if (at == NULL) {
     status.state = AT_RADIO_STATE_NONE;
     at_radio_statistics.at_timeouts += 1;
@@ -342,7 +349,7 @@ PT_THREAD(init_module(struct pt *pt)) {
   PT_ATSTR2("AT+CENG?\r");
   PT_ATWAIT2(10, &wait_ok);
 
-  PT_DELAY(10);
+  PT_DELAY(5);
   PT_END(pt);
 }
 
@@ -398,9 +405,57 @@ PT_THREAD(apn_register(struct pt *pt)) {
  * we are activated, then update state.
  */
 PT_THREAD(apn_activate(struct pt *pt)) {
+  struct at_wait *at;
+  static char str[80];
+  static int major_tries, minor_tries;
   
   PT_BEGIN(pt);
-  status.state = AT_RADIO_STATE_ACTIVE;
+
+  PT_ATSTR2("AT+CIMI?\r");   
+  PT_ATWAIT2(20, &wait_ok, &wait_error);
+  
+  /* Then activate context */
+  again:
+  major_tries = 0;
+  while (major_tries++ < 10 && status.state != AT_RADIO_STATE_ACTIVE) {
+    static struct at_radio_context *gcontext;
+    gcontext = &at_radio_context;
+    /* Deactivate PDP context */
+  
+    minor_tries = 0;
+    while (minor_tries++ < 10) {
+      PT_ATSTR2("AT+CSTT?\r");   
+      PT_ATWAIT2(5, &wait_ok);
+      sprintf(str, "AT+CSGACT=1,1,%s\r", gcontext->apn); /* Start task and set APN */
+      PT_ATSTR2(str);   
+      PT_ATWAIT2(10, &wait_ok, &wait_error);
+      //sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
+      //PT_ATSTR2(str);   
+      //PT_ATWAIT2(10, &wait_ok, &wait_error);
+      if (at == NULL)
+        continue;
+      PT_ATSTR2("AT+CGATT=1\r");
+      PT_ATWAIT2(5, &wait_ok);
+      gcontext->active = 1;
+      status.state = AT_RADIO_STATE_ACTIVE;
+      break;
+    }
+    if (minor_tries++ >= 10) {
+      /* Failed to activate */
+      PT_ATSTR2("AT+CIPSHUT\r");
+      PT_ATWAIT2(10, &wait_ok);
+      continue;
+    }
+
+
+  } /* Context activated */
+  PT_DELAY(10);
+  if (major_tries >= 10) {
+    at_radio_statistics.resets += 1;
+    goto again;
+  }
+
+
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
@@ -514,7 +569,9 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
     at_radioconn->connectionid = sockid;
     
     hip4 = (uint8_t *) &at_radioconn->ipaddr + sizeof(at_radioconn->ipaddr) - 4;
-    sprintf(str, "AT+CSOCON=%d,%d,\"%d.%d.%d.%d\"\r",
+    //sprintf(str, "AT+CSOCON=%d,%d,\"%d.%d.%d.%d\"\r",
+    //        at_radioconn->connectionid, uip_ntohs(at_radioconn->port), hip4[0], hip4[1], hip4[2], hip4[3]);
+    sprintf(str, "AT+CSOCON=%d,%d,%d.%d.%d.%d\r",
             at_radioconn->connectionid, uip_ntohs(at_radioconn->port), hip4[0], hip4[1], hip4[2], hip4[3]);
     PT_ATSTR2(str);
     PT_ATWAIT2(60, &wait_ok, &wait_error);        
@@ -677,7 +734,6 @@ PT_THREAD(at_radio_close_pt(struct pt *pt, struct at_radio_connection * at_radio
 PT_THREAD(at_radio_datamode_pt(struct pt *pt, struct at_radio_connection * at_radioconn)) {
 
   static struct at_wait *at;
-  static int i;
   PT_BEGIN(pt);
   
   while (1) {

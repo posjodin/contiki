@@ -18,8 +18,8 @@ CLIBS           = $(PRINTF_LIB)
 
 
 # Define to use radio module for cellular data
-#RADIO_MODULE=sim7020
-RADIO_MODULE=a6
+RADIO_MODULE=sim7020
+#RADIO_MODULE=a6
 
 # Set to true for sockets with TCP/IPv4 stack on radio module
 #RADIO_SOCKETS=false
