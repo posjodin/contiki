@@ -71,20 +71,15 @@ Microchip.
 
 ### For Linux and MacOS
 
-2. Download the proper 8-bit C compiler AVR toolchain, 32 or 64-bit,
+1. Download the proper 8-bit C compiler AVR toolchain, 32 or 64-bit,
    [from Microchip](https://www.microchip.com/mplab/avr-support/avr-and-arm-toolchains-c-compilers).
-3. Unpack under `/usr/local`.
-4. Add to your search PATH. For example add to `.bashrc`: `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86_64/bin` (for 64-bit systems) or `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86/bin` (for 32-bit systems).
-5. For flash programming, you need `avrdude`. On Ubuntu Linux, it can be installed with the command
+2. Unpack under `/usr/local`.
+3. Add to your search PATH. For example add to `.bashrc`: `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86_64/bin` (for 64-bit systems) or `export PATH=$PATH:/usr/local/avr8-gnu-toolchain-linux_x86/bin` (for 32-bit systems).
+4. For flash programming, you need `avrdude`. On Ubuntu Linux, it can be installed with the command
 `apt-get install avrdude`. For MacOS, there is a [HomeBrew
-package for avrdude](https://formulae.brew.sh/formula/avrdude#default) that can be
+package](https://formulae.brew.sh/formula/avrdude#default) that can be
 installed with the command `brew install avrdude`. (You first need to
 [install HomeBrew](https://brew.sh).)
-Install with
-
->`brew install avrdude`
-
-thats it
 
 Toolchain alternative II
 ------------------------
