@@ -426,16 +426,18 @@ PT_THREAD(apn_activate(struct pt *pt)) {
     while (minor_tries++ < 10) {
       PT_ATSTR2("AT+CSTT?\r");   
       PT_ATWAIT2(5, &wait_ok);
-      sprintf(str, "AT+CSGACT=1,1,%s\r", gcontext->apn); /* Start task and set APN */
+      //sprintf(str, "AT+CSGACT=1,1,%s\r", gcontext->apn); /* Start task and set APN */
+      sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
       PT_ATSTR2(str);   
       PT_ATWAIT2(10, &wait_ok, &wait_error);
-      //sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
-      //PT_ATSTR2(str);   
-      //PT_ATWAIT2(10, &wait_ok, &wait_error);
       if (at == NULL)
         continue;
-      PT_ATSTR2("AT+CGATT=1\r");
-      PT_ATWAIT2(5, &wait_ok);
+      PT_ATSTR2("AT+CIICR\r");
+      PT_ATWAIT2(85, &wait_ok, &wait_error);
+      if (at == NULL)
+        continue;
+      if (at == &wait_error)
+        continue;
       gcontext->active = 1;
       status.state = AT_RADIO_STATE_ACTIVE;
       break;
@@ -446,16 +448,13 @@ PT_THREAD(apn_activate(struct pt *pt)) {
       PT_ATWAIT2(10, &wait_ok);
       continue;
     }
-
-
-  } /* Context activated */
-  PT_DELAY(10);
+  }
+  /* Context activated */
+  PT_DELAY(2);
   if (major_tries >= 10) {
     at_radio_statistics.resets += 1;
     goto again;
   }
-
-
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
