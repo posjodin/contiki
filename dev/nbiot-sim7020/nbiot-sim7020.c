@@ -419,14 +419,21 @@ PT_THREAD(apn_activate(struct pt *pt)) {
   major_tries = 0;
   while (major_tries++ < 10 && status.state != AT_RADIO_STATE_ACTIVE) {
     static struct at_radio_context *gcontext;
+
+    /* Attach */
+    PT_ATSTR2("AT+CGATT\r");
+    PT_ATWAIT2(10, &wait_ok, &wait_error);
+    if (at == NULL)
+      continue;
+
+    PT_ATSTR2("AT+CSTT?\r");   
+    PT_ATWAIT2(5, &wait_ok);
+
     gcontext = &at_radio_context;
-    /* Deactivate PDP context */
-  
     minor_tries = 0;
     while (minor_tries++ < 10) {
-      PT_ATSTR2("AT+CSTT?\r");   
-      PT_ATWAIT2(5, &wait_ok);
       //sprintf(str, "AT+CSGACT=1,1,%s\r", gcontext->apn); /* Start task and set APN */
+      /* Start start, set APN */
       sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
       PT_ATSTR2(str);   
       PT_ATWAIT2(10, &wait_ok, &wait_error);
