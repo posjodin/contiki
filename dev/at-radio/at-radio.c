@@ -305,6 +305,8 @@ PROCESS_THREAD(at_radio, ev, data) {
       goto again;
     }
 
+    ATSPAWN(read_csq);
+
     at_radioconn = (struct at_radio_connection *) at_radio_event->data;
     if (at_radio_event->ev == at_radio_ev_connection) {
       ATSPAWN(at_radio_connect_pt, at_radioconn);

@@ -231,7 +231,18 @@ dumpchar(int c) {
     putchar('*');
 }
 
- 
+int
+sim7020_rssi_to_dbm(int rssi)
+{
+  int lb = -48;
+  /* Link budget approximation from RSSI */
+  if(rssi >=0 && rssi <= 30)
+    lb = -110 + 2 * rssi;
+  else if(rssi == 99)   /* NO VALUE */
+    lb = -999;
+  return lb;
+}
+
 PROCESS_THREAD(sim7020_reader, ev, data)
 {
   static struct pt wait_pt;

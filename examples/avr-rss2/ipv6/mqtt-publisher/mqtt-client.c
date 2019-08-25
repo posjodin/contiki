@@ -205,6 +205,9 @@ double a = MIC2714_A;
 #define NO2_CONV_EC  1.9125
 #define NO2_CONV_WHO 1.88
 
+
+extern int sim7020_rssi_to_dbm(int);
+
 /*---------------------------------------------------------------------------*/
 extern int
 mqtt_rpl_pub(char *buf, int bufsize);
@@ -789,6 +792,10 @@ publish_sensors(void)
   }
 #endif
 
+  {
+    PUTFMT(",{\"n\":\"at_radio;linkbudget\",\"u\":\"dBm\",\"v\":%d}", sim7020_rssi_to_dbm(status.rssi));
+  }
+  
   PUTFMT("]");
 
   DBG("MQTT publish sensors %d: %d bytes\n", seq_nr_value, strlen(app_buffer));

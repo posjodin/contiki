@@ -7,7 +7,7 @@
 #define AT_RADIO_MAX_RECV_LEN 1024
 
 /* How long to wait for APN registration (sec) */
-#define AT_RADIO_APN_REGISTER_TIMEOUT 60
+#define AT_RADIO_APN_REGISTER_TIMEOUT 180
 /* How long to wait between each attempt (sec) */
 #define AT_RADIO_APN_REGISTER_REATTEMPT 10
 
