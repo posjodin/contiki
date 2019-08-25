@@ -506,8 +506,6 @@ handle_serial_input(const char *line)
         printf("PMS5003 warmup: %d sec\n", pms5003_get_warmup_interval());
       } else if(!strcmp(p, "pm_p") || !strcmp(p, "pm_period")) {
         printf("PMS5003 period: %d sec\n", pms5003_get_sample_period());
-      } else if(!strcmp(p, "no2") || !strcmp(p, "NO2")) {
-        printf("NO2 %-4.2f, a2 %-4.2f\n", no2(), adc_read_a2());
 #endif
       }
     }

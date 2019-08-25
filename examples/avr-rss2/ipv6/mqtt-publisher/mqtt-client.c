@@ -60,7 +60,6 @@
 #include "dev/temp-sensor.h"
 #include "dev/battery-sensor.h"
 #include <string.h>
-#include <math.h> /* NO2 */
 #ifdef CO2
 #include "dev/co2_sa_kxx-sensor.h"
 #endif
@@ -185,26 +184,6 @@ static struct {
 #endif /* MQTT_WATCHDOG */
 /* Publish statistics every N publication */
 #define PUBLISH_STATS_INTERVAL 8
-
-
-/*---------------------------------------------------------------------------*/
-/* NO2 settings */
-#define MIC2714_M  0.9986
-#define MIC2714_A  0.163
-double m = MIC2714_M;
-double a = MIC2714_A;
-
-/*
-  EC  20C 1013mB  NO2 1 ppb= 1.9125 μg/m**3 
-  WHO 25C 1013mB  NO2 1 ppb= 1.88   μg/m**3 
-
-  https://uk-air.defra.gov.uk/assets/documents/reports/cat06/0502160851_Conversion_Factors_Between_ppb_and.pdf
-
-*/
-
-#define NO2_CONV_EC  1.9125
-#define NO2_CONV_WHO 1.88
-
 
 extern int sim7020_rssi_to_dbm(int);
 
@@ -573,8 +552,6 @@ update_config(void)
 struct {
   uint8_t dustbin;
   uint8_t cca_test;
-  double no2_corr;
-  uint8_t no2_rev;
 } lc;
 
 /*---------------------------------------------------------------------------*/
@@ -594,42 +571,32 @@ init_node_local_config()
   if(memcmp(node_mac, n06aa, 8) == 0) {
     lc.dustbin = 1;
     lc.cca_test = 1;
-    lc.no2_corr = 20.9; /* Comparing SLB urban background sthlm with Kista */
   }
   else if(memcmp(node_mac, n050f, 8) == 0) {
     lc.dustbin = 1;
     lc.cca_test = 1;
-    lc.no2_corr = 0;
   }
   else if(memcmp(node_mac, n63a7, 8) == 0) {
     lc.dustbin = 1; /* 63a7 is at SLB station with dustbin enabled */
     lc.cca_test = 1;
-    lc.no2_corr = 1600; /* Experiment with SLB Uppsala */
-    lc.no2_rev = 1;
   }
   else if(memcmp(node_mac, n8554, 8) == 0) {
     lc.dustbin = 1; /* 63a7 is at SLB station with dustbin enabled */
     lc.cca_test = 1;
-    lc.no2_corr = 1; /* Experiment with SLB Uppsala */
-    lc.no2_rev = 1;
   }
   else if(memcmp(node_mac, n837e, 8) == 0) {
     lc.dustbin = 0; /*  */
     lc.cca_test = 0;
-    lc.no2_corr = 100; /* Comparing SLB urban background sthlm with Kista */
   }
   else if(memcmp(node_mac, n1242, 8) == 0) {
     lc.dustbin = 1; /*  */
     lc.cca_test = 0;
-    lc.no2_corr = 0; 
   }
   else {
     lc.dustbin = 0;
     lc.cca_test = 0;
-    lc.no2_corr = 0;
-    lc.no2_rev = 0;
   }
-  printf("Local node settings: Dustbin=%d, CCA_TEST=%d, NO2_CORR=%-4.2f\n", lc.dustbin, lc.cca_test, lc.no2_corr);
+  printf("Local node settings: Dustbin=%d, CCA_TEST=%d\n", lc.dustbin, lc.cca_test);
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -696,35 +663,6 @@ subscribe(void)
     buf_ptr += len; \
 }
 
-
-/* Converts to NO2 ppm according to MIC2714 NO2 curve 
-   We assume pure NO2 */
-
-double mics2714(double vcc, double v0, double corr)
-{
-  double no2, rsr0;
-  /* Voltage divider */
-
-  /* Experimental fix */
-  if( lc.no2_rev)
-    v0 = vcc - v0;
-
-  if(v0 == 0)
-    return 9999.99;
-  rsr0 = (vcc - v0)/v0;
-  rsr0 = rsr0 * corr;
-  /* Transfer function */
-  no2 = a * pow(rsr0, m);
-  return no2;
-}
-
-double no2(void) 
-{
-  double no2;
-  no2 = mics2714(5, adc_read_a2(), lc.no2_corr) * NO2_CONV_EC;
-  return no2;
-}
-
 static void
 publish_sensors(void)
 {
@@ -744,12 +682,6 @@ publish_sensors(void)
 #ifdef CO2
   PUTFMT(",{\"n\":\"co2\",\"u\":\"ppm\",\"v\":%d}", co2_sa_kxx_sensor.value(CO2_SA_KXX_CO2));
 #endif
-
-    if(lc.no2_corr) {
-      /* Assume 5V VCC and 0 correection */
-      PUTFMT(",{\"n\":\"no2\",\"u\":\"ug/m3\",\"v\":%-4.2f}", no2());
-      PUTFMT(",{\"n\":\"a2\",\"u\":\"V\",\"v\":%-4.2f}", adc_read_a2());
-    }
 
   if (pms5003_sensor.value(PMS5003_SENSOR_TIMESTAMP) != 0) {
     PUTFMT(",{\"n\":\"pms5003;tsi;pm1\",\"u\":\"ug/m3\",\"v\":%d}", pms5003_sensor.value(PMS5003_SENSOR_PM1));
