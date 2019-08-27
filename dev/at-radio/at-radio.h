@@ -10,6 +10,10 @@
 #define AT_RADIO_APN_REGISTER_TIMEOUT 180
 /* How long to wait between each attempt (sec) */
 #define AT_RADIO_APN_REGISTER_REATTEMPT 10
+/* How long to wait for APN attachment (sec) */
+#define AT_RADIO_APN_ATTACH_TIMEOUT 180
+/* How long to wait between each attempt (sec) */
+#define AT_RADIO_APN_ATTACH_REATTEMPT 10
 
 #define AT_RADIO_DEBUG
 

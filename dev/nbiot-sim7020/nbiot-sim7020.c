@@ -418,61 +418,50 @@ PT_THREAD(apn_register(struct pt *pt)) {
 PT_THREAD(apn_activate(struct pt *pt)) {
   struct at_wait *at;
   static char str[80];
-  static int major_tries, minor_tries;
+  static struct at_radio_context *gcontext;
+  static uint8_t waiting;
+
   
   PT_BEGIN(pt);
 
-  PT_ATSTR2("AT+CIMI?\r");   
-  PT_ATWAIT2(20, &wait_ok, &wait_error);
-  
-  /* Then activate context */
-  again:
-  major_tries = 0;
-  while (major_tries++ < 10 && status.state != AT_RADIO_STATE_ACTIVE) {
-    static struct at_radio_context *gcontext;
+  gcontext = &at_radio_context;
+  waiting = 0;
 
+  PT_ATSTR2("AT+CSTT?\r");   
+  PT_ATWAIT2(5, &wait_ok);
+
+  while (waiting < AT_RADIO_APN_ATTACH_TIMEOUT) {
     /* Attach */
-    PT_ATSTR2("AT+CGATT\r");
+    sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
+    PT_ATSTR2(str);   
     PT_ATWAIT2(10, &wait_ok, &wait_error);
-    if (at == NULL)
-      continue;
+    if (at == &wait_ok)
+      break;
+    /* Registration failed. Delay and try again */
+    PT_DELAY(AT_RADIO_APN_ATTACH_REATTEMPT);
+    waiting += AT_RADIO_APN_ATTACH_REATTEMPT;
+  }
 
-    PT_ATSTR2("AT+CSTT?\r");   
-    PT_ATWAIT2(5, &wait_ok);
-
-    gcontext = &at_radio_context;
-    minor_tries = 0;
-    while (minor_tries++ < 10) {
-      //sprintf(str, "AT+CSGACT=1,1,%s\r", gcontext->apn); /* Start task and set APN */
-      /* Start start, set APN */
-      sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
-      PT_ATSTR2(str);   
-      PT_ATWAIT2(10, &wait_ok, &wait_error);
-      if (at == NULL)
-        continue;
-      PT_ATSTR2("AT+CIICR\r");
-      PT_ATWAIT2(85, &wait_ok, &wait_error);
-      if (at == NULL)
-        continue;
-      if (at == &wait_error)
-        continue;
+  /* Bring up wireless */
+  while (waiting < AT_RADIO_APN_ATTACH_TIMEOUT) {
+    PT_ATSTR2("AT+CIICR\r");
+    PT_ATWAIT2(85, &wait_ok, &wait_error);
+    if (at == &wait_ok) {
       gcontext->active = 1;
       status.state = AT_RADIO_STATE_ACTIVE;
-      break;
+      PT_EXIT(pt);
     }
-    if (minor_tries++ >= 10) {
-      /* Failed to activate */
-      PT_ATSTR2("AT+CIPSHUT\r");
-      PT_ATWAIT2(10, &wait_ok);
-      continue;
-    }
+    PT_DELAY(AT_RADIO_APN_ATTACH_REATTEMPT);
+    waiting += AT_RADIO_APN_ATTACH_REATTEMPT;
   }
-  /* Context activated */
+
+  /* Failed to activate */
+  at_radio_statistics.at_timeouts += 1;
+  status.state = AT_RADIO_STATE_NONE;
+
+  PT_ATSTR2("AT+CIPSHUT\r");
+  PT_ATWAIT2(10, &wait_ok);
   PT_DELAY(2);
-  if (major_tries >= 10) {
-    at_radio_statistics.resets += 1;
-    goto again;
-  }
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
