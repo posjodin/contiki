@@ -51,6 +51,7 @@
 #include "at-wait.h"
 
 #include "nbiot-sim7020-arch.h"
+#include "rss2.h"
 
 #define APN GPRS_CONF_APN
 #define PDPTYPE "IP"
@@ -231,6 +232,24 @@ dumpchar(int c) {
     putchar('*');
 }
 
+/*
+ * PWR_1 == PE7 Programmable power pin Vcc via P-FET
+ */
+
+void
+toggle_pwrkey(uint16_t ms)
+{
+  uint16_t i;
+
+  DDRE |= (1 << PWR_1);
+
+  PORTE &= ~(1 << PWR_1);
+  for(i = 0; i < ms; i++) {
+    clock_delay_usec(1000);
+  }
+  PORTE |= (1 << PWR_1);
+}
+
 int
 sim7020_rssi_to_dbm(int rssi)
 {
@@ -323,6 +342,7 @@ PT_THREAD(init_module(struct pt *pt)) {
 
   PT_BEGIN(pt);
 
+  toggle_pwrkey(800); /* Start radio module */
   PT_ATSTR2("AT+CRESET\r");
   PT_ATWAIT2(10, &wait_ok);
  again:
@@ -332,7 +352,12 @@ PT_THREAD(init_module(struct pt *pt)) {
   goto again;
 
   /* Disable power save mode for now */
-  PT_ATSTR2("AT+CPSMS=0\r"); 
+  PT_ATSTR2("AT+CPSMS=0\r");
+  PT_ATWAIT2(10, &wait_ok);
+
+  /* Limit bands to speed up roaming */
+  /* WIP needs a generic solution */
+  PT_ATSTR2("AT+CBAND=20\r");
   PT_ATWAIT2(10, &wait_ok);
 
   PT_ATSTR2("AT+CSORCVFLAG?\r");
