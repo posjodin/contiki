@@ -72,7 +72,7 @@ PROCESS_THREAD(aes_crypto_process, ev, data)
   }
   printf(" Uncrypted \n");
 
-  res = rf230_aes_encrypt_ebc(aes_key, aes_s, aes_c);
+  res = rf230_aes_encrypt_ecb(aes_key, aes_s, aes_c);
   if(!res) {
     printf("ERR encryption\n");
     exit(0);
@@ -80,9 +80,9 @@ PROCESS_THREAD(aes_crypto_process, ev, data)
   for(i = 0; i < 16; i++) {
     printf("%02X", aes_c[i]);
   }
-  printf(" AES-128 EBC Crypted\n");
+  printf(" AES-128 ECB Crypted\n");
 
-  res = rf230_aes_decrypt_ebc(aes_key, aes_c, aes_p);
+  res = rf230_aes_decrypt_ecb(aes_key, aes_p, aes_c);
   if(!res) {
     printf("ERR decryption\n");
     exit(0);
