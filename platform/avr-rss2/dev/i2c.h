@@ -41,6 +41,7 @@
 
 /* Here we define the i2c address for dev we support */
 #define I2C_AT24MAC_ADDR  0xB0 /* EUI64 ADDR */
+#define I2C_ATECC608A_ADDR  0xC0 /* Crypto chip */
 #define I2C_SHT2X_ADDR    (0x40 << 1) /* SHT2X ADDR */
 #define I2C_BME280_ADDR   BME280_ADDR
 #define I2C_BME680_ADDR   I2C_BME280_ADDR
@@ -48,14 +49,16 @@
 #define I2C_MCP342X_ADDR  (0x68<<1)
 //#define I2C_SC16IS_ADDR    (0x9A) /* A0 & A1 to GND */
 /* Here we define a enumration for devices */
-#define I2C_AT24MAC       (1<<0)
-#define I2C_SHT2X         (1<<1)
-#define I2C_CO2SA         (1<<2)  /* Sense-Air CO2 */
-#define I2C_BME280        (1<<3)
-#define I2C_BME680        (1<<4)
-#define I2C_PMS5003       (1<<5)
-#define I2C_SC16IS        (1<<6)
-#define I2C_MCP342X       (1<<7)
+#define I2C_AT24MAC       (uint16_t) ((uint16_t) 1<<0)
+#define I2C_SHT2X         (uint16_t) ((uint16_t) 1<<1)
+#define I2C_CO2SA         (uint16_t) ((uint16_t) 1<<2)  /* Sense-Air CO2 */
+#define I2C_BME280        (uint16_t) ((uint16_t) 1<<3)
+#define I2C_BME680        (uint16_t) ((uint16_t) 1<<4)
+#define I2C_PMS5003       (uint16_t) ((uint16_t) 1<<5)
+#define I2C_SC16IS        (uint16_t) ((uint16_t) 1<<6)
+#define I2C_MCP342X       (uint16_t) ((uint16_t) 1<<7)
+#define I2C_ATECC608A     (uint16_t) ((uint16_t) 1<<8)
+
 #define I2C_READ    1
 #define I2C_WRITE   0
 
