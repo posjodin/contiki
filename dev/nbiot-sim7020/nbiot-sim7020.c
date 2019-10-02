@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "dev/watchdog.h"
 #include "uip.h"
 #include "at-radio.h"
 #include "at-wait.h"
@@ -57,11 +58,18 @@
 #define PDPTYPE "IP"
 //#define PDPTYPE "IPV6"
 
-#define RAWIP
-struct at_radio_context at_radio_context;
-
 static void
 wait_init();
+
+/* Power save mode */
+/* Activate power save mode on module */
+#define POWER_SAVE_MODULE 
+#ifdef POWER_SAVE_MODULE
+uint8_t powersaving = 0;
+#endif /* POWER_SAVE_MODULE */
+struct at_radio_context at_radio_context;
+
+#define MAXATTEMPTS 6
 
 PROCESS(sim7020_reader, "Sim7020 UART input process");
 
@@ -75,27 +83,23 @@ at_radio_module_init() {
   process_start(&sim7020_reader, NULL);
 }
 /*---------------------------------------------------------------------------*/
-static
-PT_THREAD(wait_csonmi_callback(struct pt *pt, struct at_wait *at, int c));
-static
-PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c));
+static PT_THREAD(wait_csonmi_callback(struct pt *pt, struct at_wait *at, int c));
+static PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c));
+#ifdef POWER_SAVE_MODULE
+static PT_THREAD(wait_cpsmstatus_callback(struct pt *pt, struct at_wait *at, int c));
+#endif /* POWER_SAVE_MODULE */
 
-static
-struct at_wait wait_csonmi = {"+CSONMI:", wait_csonmi_callback};
-static
-struct at_wait wait_ok = {"OK", wait_readline_pt};
-static
-struct at_wait wait_connect = {"CONNECT", wait_readline_pt};
-static
-struct at_wait wait_error = {"ERROR", NULL};
-static
-struct at_wait wait_sendprompt = {">", NULL};
-static
-struct at_wait wait_csoerr = {"+CSOERR:", wait_csoerr_callback};
-static
-struct at_wait wait_csq = {"+CSQ:", wait_readline_pt};
-static
-struct at_wait wait_dataaccept = {"DATA ACCEPT: ", wait_readline_pt};
+static struct at_wait wait_csonmi = {"+CSONMI:", wait_csonmi_callback};
+static struct at_wait wait_ok = {"OK", wait_readline_pt};
+static struct at_wait wait_connect = {"CONNECT", wait_readline_pt};
+static struct at_wait wait_error = {"ERROR", NULL};
+static struct at_wait wait_sendprompt = {">", NULL};
+static struct at_wait wait_csoerr = {"+CSOERR:", wait_csoerr_callback};
+static struct at_wait wait_csq = {"+CSQ:", wait_readline_pt};
+static struct at_wait wait_dataaccept = {"DATA ACCEPT: ", wait_readline_pt};
+#ifdef POWER_SAVE_MODULE
+static struct at_wait wait_cpsmstatus = {"+CPSMSTATUS: ", wait_cpsmstatus_callback};
+#endif /* POWER_SAVE_MODULE */
 
 /*
  * +CSONMI: sock,len,<data>
@@ -125,7 +129,7 @@ PT_THREAD(wait_csonmi_callback(struct pt *pt, struct at_wait *at, int c)) {
   PT_YIELD(pt);
   int nm;
   if ((nm = sscanf(at_line, " %hhd,%hd,", &csock, &nbytes)) != 2) {
-    printf("csoerr scan error: %d", nm);
+    at_radio_statistics.at_errors++;
     goto done;
   }
 
@@ -198,7 +202,7 @@ PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c)) {
   atwait_record_off();
   restart_at(&wait_csoerr); /* restart */
   if (2 != sscanf(at_line, "%hhd,%hhd", &csock, &cerr)) {
-    printf("csoerr: csock fail\n");
+    at_radio_statistics.at_errors++;
     PT_EXIT(pt);
   }
   at_radioconn = find_at_radio_connection(csock);
@@ -208,10 +212,48 @@ PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c)) {
   PT_END(pt);
 }
 
+#ifdef POWER_SAVE_MODULE
+/* 
+ * Callback for matching +CPSMSTATUS keyword 
+ */
+static
+PT_THREAD(wait_cpsmstatus_callback(struct pt *pt, struct at_wait *at, int c)) {
+  static struct pt rlpt;
+  
+  PT_BEGIN(pt);
+  atwait_record_on();
+  PT_INIT(&rlpt);
+  while (wait_readline_pt(&rlpt, at, c) < PT_EXITED) {
+    PT_YIELD(pt);
+  }
+  atwait_record_off();
+  restart_at(&wait_cpsmstatus); /* restart */
+  if (strstr(at_line, "EXIT PSM") != NULL) {
+    powersaving = 0;
+  }
+  else if (strstr(at_line, "ENTER PSM") != NULL) {
+    powersaving = 1;
+  }
+  else {
+    printf("Unknown: %s\n", at_line);
+  }
+  PT_END(pt);
+}
+#endif /* POWER_SAVE_MODULE */
+
 static void
 wait_init() {
   /* The following are to detect async events -- permanently active */
+#ifdef POWER_SAVE_MODULE
+  atwait_start_atlist(1, &wait_csonmi, &wait_csoerr, &wait_cpsmstatus, NULL);
+#else
   atwait_start_atlist(1, &wait_csonmi, &wait_csoerr, NULL);
+#endif /* POWER_SAVE_MODULE */  
+}
+
+static void
+printbol() {
+  printf("%6lu: ", clock_seconds());
 }
 
 static void
@@ -219,7 +261,7 @@ dumpchar(int c) {
   static char atbol = 1; /* at beginning of line */
   
   if (atbol) {
-    printf("    ");
+    printbol();
     atbol = 0;
   }
   if (c == '\n') {
@@ -245,9 +287,18 @@ toggle_pwrkey(uint16_t ms)
 
   PORTE &= ~(1 << PWR_1);
   for(i = 0; i < ms; i++) {
+    watchdog_periodic();
     clock_delay_usec(1000);
   }
   PORTE |= (1 << PWR_1);
+}
+
+void sim7020_power_on() {
+  toggle_pwrkey(800);
+}
+
+void sim7020_power_off() {
+  toggle_pwrkey(2000);
 }
 
 int
@@ -326,66 +377,76 @@ PT_THREAD(read_csq(struct pt *pt)) {
   else {
     char *csq;
     csq = strstr(at_line, "+CSQ:") + strlen("+CSQ:");    
-    status.rssi = atoi((char *) csq /*foundbuf*/);
-    printf("Got CSQ: %d\n", status.rssi);
+    status.rssi = atoi((char *) csq);
     PT_ATWAIT2(5, &wait_ok);
   }
   PT_END(pt);
 }
 
 /*---------------------------------------------------------------------------*/
+/* module_restart
+ * Force restart of module. Notify all active sockets and power off.
+ */ 
+static void module_restart() {
+  status.state = AT_RADIO_STATE_NONE;
+  at_radio_statistics.resets += 1;
+  at_radio_reset();
+  sim7020_power_off();
+}
+/*---------------------------------------------------------------------------*/
 /* init_module
  * Protothread to initialize mobile data radio unit.
  */
 PT_THREAD(init_module(struct pt *pt)) {
   struct at_wait *at;
+  static unsigned long start_seconds = 0;
 
   PT_BEGIN(pt);
-
-  toggle_pwrkey(800); /* Start radio module */
+  start_seconds = clock_seconds();
+  sim7020_power_on(); /* Start radio module */
   PT_ATSTR2("AT+CRESET\r");
   PT_ATWAIT2(10, &wait_ok);
- again:
-  PT_ATSTR2("AT+CPIN?\r");
-  PT_ATWAIT2(10, &wait_ok);
-  if (at == NULL)
-  goto again;
+  while  (clock_seconds() - start_seconds < AT_RADIO_INIT_TIMEOUT) {
+    /* Module active? */
+    PT_ATSTR2("AT\r");
+    PT_ATWAIT2(10, &wait_ok);
+    if (at == NULL) {
+      at_radio_statistics.at_timeouts += 1;
+      continue;
+    }
+    /* Disable power save mode for now */
+    PT_ATSTR2("AT+CPSMS=0\r");
+    PT_ATWAIT2(10, &wait_ok);
+#ifdef POWER_SAVE_MODULE
+    powersaving = 0;
+#endif /* POWER_SAVE_MODULE */  
 
-  /* Disable power save mode for now */
-  PT_ATSTR2("AT+CPSMS=0\r");
-  PT_ATWAIT2(10, &wait_ok);
+    /* Limit bands to speed up roaming */
+    /* WIP needs a generic solution */
+    PT_ATSTR2("AT+CBAND=20\r");
+    PT_ATWAIT2(10, &wait_ok);
 
-  /* Limit bands to speed up roaming */
-  /* WIP needs a generic solution */
-  PT_ATSTR2("AT+CBAND=20\r");
-  PT_ATWAIT2(10, &wait_ok);
+    PT_ATSTR2("AT+CSORCVFLAG?\r");
+    PT_ATWAIT2(20, &wait_ok);
 
-  PT_ATSTR2("AT+CSORCVFLAG?\r");
-  PT_ATWAIT2(10, &wait_ok);
-
-  /* Receive data in hex */
 #ifdef SIM7020_RECVHEX
-  /* Receive data as hex string */
-  PT_ATSTR2("AT+CSORCVFLAG=0\r");
+    /* Receive data as hex string */
+    PT_ATSTR2("AT+CSORCVFLAG=0\r");
 #else  
-  /* Receive binary data */
-  PT_ATSTR2("AT+CSORCVFLAG=1\r"); 
+    /* Receive binary data */
+    PT_ATSTR2("AT+CSORCVFLAG=1\r"); 
 #endif /* SIM7020_RECVHEX */
-  PT_ATWAIT2(10, &wait_ok);
-
-  if (at == NULL) {
-    status.state = AT_RADIO_STATE_NONE;
-    at_radio_statistics.at_timeouts += 1;
-  }
-  else 
+    PT_ATWAIT2(10, &wait_ok);
+    if (at == NULL) {
+      at_radio_statistics.at_timeouts += 1;
+      continue;
+    }
+    /* Module initialization done */
     status.state = AT_RADIO_STATE_IDLE;
-
-  PT_ATSTR2("AT+CGCONTRDP\r");
-  PT_ATWAIT2(10, &wait_ok);
-  PT_ATSTR2("AT+CENG?\r");
-  PT_ATWAIT2(10, &wait_ok);
-
-  PT_DELAY(5);
+    PT_EXIT(pt);
+  }
+  /* End up here if it took too long */
+  module_restart();
   PT_END(pt);
 }
 
@@ -396,27 +457,28 @@ PT_THREAD(init_module(struct pt *pt)) {
  */
 PT_THREAD(apn_register(struct pt *pt)) {
   struct at_wait *at;
+  static unsigned long start_seconds;
 
   PT_BEGIN(pt);
-
-  static uint8_t waiting;
-  waiting = 0;
-  while (waiting < AT_RADIO_APN_REGISTER_TIMEOUT) {
+  start_seconds = clock_seconds();
+  while (clock_seconds() - start_seconds < AT_RADIO_APN_REGISTER_TIMEOUT) {
     static uint8_t creg;
 
     PT_ATSTR2("AT+CREG?\r");
     atwait_record_on();
     PT_ATWAIT2(10, &wait_ok);
     atwait_record_off();
-    if (at == NULL)
-      goto timeout;
+    if (at == NULL) {
+      at_radio_statistics.at_timeouts += 1;
+      continue;
+    }
     int n;
     /* AT+CREG?
      *  +CREG: 0,0*
      */
     if (1 != (n = sscanf(at_line, "%*[^:]: %*d,%hhd", &creg))) {
       at_radio_statistics.at_errors += 1;
-      break;
+      continue;
     }
     if (creg == 1 || creg == 5 || creg == 10) {/* Wait for registration */
       status.state = AT_RADIO_STATE_REGISTERED;
@@ -424,15 +486,9 @@ PT_THREAD(apn_register(struct pt *pt)) {
     }
     /* Registration failed. Delay and try again */
     PT_DELAY(AT_RADIO_APN_REGISTER_REATTEMPT);
-    waiting += AT_RADIO_APN_REGISTER_REATTEMPT;
   }
-  /* Timeout expired without registering */
-  status.state = AT_RADIO_STATE_NONE;
-  at_radio_statistics.resets += 1;
-  PT_EXIT(pt);
- timeout:
-  at_radio_statistics.at_timeouts += 1;
-  status.state = AT_RADIO_STATE_NONE;
+  /* End up here if it took too long */
+  module_restart();
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
@@ -444,49 +500,49 @@ PT_THREAD(apn_activate(struct pt *pt)) {
   struct at_wait *at;
   static char str[80];
   static struct at_radio_context *gcontext;
-  static uint8_t waiting;
+  static unsigned long start_seconds;
 
-  
   PT_BEGIN(pt);
-
+  start_seconds = clock_seconds();
   gcontext = &at_radio_context;
-  waiting = 0;
 
-  PT_ATSTR2("AT+CSTT?\r");   
-  PT_ATWAIT2(5, &wait_ok);
-
-  while (waiting < AT_RADIO_APN_ATTACH_TIMEOUT) {
+  while (clock_seconds() - start_seconds < AT_RADIO_APN_ATTACH_TIMEOUT) {
     /* Attach */
     sprintf(str, "AT+CSTT=\"%s\",\"\",\"\"\r", gcontext->apn); /* Start task and set APN */
     PT_ATSTR2(str);   
     PT_ATWAIT2(10, &wait_ok, &wait_error);
     if (at == &wait_ok)
       break;
+    else if (at == NULL)
+      at_radio_statistics.at_timeouts++;
     /* Registration failed. Delay and try again */
     PT_DELAY(AT_RADIO_APN_ATTACH_REATTEMPT);
-    waiting += AT_RADIO_APN_ATTACH_REATTEMPT;
   }
 
   /* Bring up wireless */
-  while (waiting < AT_RADIO_APN_ATTACH_TIMEOUT) {
+  while ( clock_seconds() - start_seconds < AT_RADIO_APN_ATTACH_TIMEOUT) {
     PT_ATSTR2("AT+CIICR\r");
-    PT_ATWAIT2(85, &wait_ok, &wait_error);
+    PT_ATWAIT2(600, &wait_ok, &wait_error);
     if (at == &wait_ok) {
+      /* Enable power save mode */
+      PT_ATSTR2("AT+CPSMS=1\r");
+      PT_ATWAIT2(120, &wait_ok, &wait_error);
+      /* Recover socket config when module exits PSM mode */
+      PT_ATSTR2("AT+RETENTION=1\r");
+      PT_ATWAIT2(10, &wait_ok);
+      PT_ATSTR2("AT+CPSMS?\r");
+      PT_ATWAIT2(120, &wait_ok, &wait_error);
+
       gcontext->active = 1;
       status.state = AT_RADIO_STATE_ACTIVE;
       PT_EXIT(pt);
     }
     PT_DELAY(AT_RADIO_APN_ATTACH_REATTEMPT);
-    waiting += AT_RADIO_APN_ATTACH_REATTEMPT;
   }
-
-  /* Failed to activate */
-  at_radio_statistics.at_timeouts += 1;
-  status.state = AT_RADIO_STATE_NONE;
-
+  /* End up here if too many errors, or it took too long time */
   PT_ATSTR2("AT+CIPSHUT\r");
   PT_ATWAIT2(10, &wait_ok);
-  PT_DELAY(2);
+  module_restart();
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
@@ -539,7 +595,7 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
   atwait_record_off();
   if (at == NULL) {
     at_radio_statistics.at_timeouts += 1;
-    printf("No IP address found\n");
+    printf("No IP address\n");
   }
   else {
     /* Look for something like
@@ -564,10 +620,7 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
       n = sscanf(at_line, "%*[^:]: %*d,%*d,\"%*[-.a-zA-Z0-9_]\",\"%hhd.%hhd.%hhd.%hhd.%hhd.%hhd.%hhd.%hhd",
                  &ip4addr[0], &ip4addr[1], &ip4addr[2], &ip4addr[3],
                  &ip4mask[0], &ip4mask[1], &ip4mask[2], &ip4mask[3]);
-      printf("Scanned %d address byte\n", n);
     }
-    else
-      printf("Could not get ipaddr (%d)\n", n);
   }
   PT_END(pt);
 }
@@ -577,19 +630,51 @@ PT_THREAD(get_ipconfig(struct pt *pt)) {
  *
  * Protothread to set up TCP connection with AT commands
  */
+
 PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_radioconn)) {
   static struct at_wait *at;
-  static int minor_tries;
   char str[80];
   uint8_t *hip4;
+  static unsigned long start_seconds;
+  static uint8_t attempts;
 
   PT_BEGIN(pt);
-  minor_tries = 0;
-  while (minor_tries++ < 10) {
+  start_seconds = clock_seconds();
+  attempts = 0;
+  while (attempts++ < MAXATTEMPTS && clock_seconds() - start_seconds < AT_RADIO_CONNECT_TIMEOUT) {
 	
+#ifdef POWER_SAVE_MODULE
+    /* If in PSM, wakeup.
+     * Also, if no response, assume module is in PSM and try wakeup 
+     */ 
+    if (powersaving || attempts > 2) {
+      sim7020_power_on();
+    }
+    /* Probe module */
+    PT_ATSTR2("AT\r");
+    PT_ATWAIT2(10, &wait_ok);
+    if (at == &wait_ok) {
+      powersaving = 0;
+    }
+    else {
+      continue;
+    }
+
+#ifndef SIM7020_RECVHEX
+    {
+      /* RCVFLAG gets reset after PSM, so set it again. */
+      PT_ATSTR2("AT+CSORCVFLAG=1\r");
+      PT_ATWAIT2(20, &wait_ok);
+      if (at == NULL) {
+        /* No response, make another attempt */
+        continue;
+      }
+    }
+#endif /* not SIM7020_RECVHEX */
+#endif /* POWER_SAVE_MODULE */  
+
     hip4 = (uint8_t *) &at_radioconn->ipaddr + sizeof(at_radioconn->ipaddr) - 4;
-    //#undef RAWIP
-    PT_ATSTR2("AT+CSOC=1,1,1\r");
+    PT_ATSTR2("AT+CSOC=1,1,1\r"); /* IPv4, TCP, IP */
     atwait_record_on();
     PT_ATWAIT2(10, &wait_ok, &wait_error);
     atwait_record_off();
@@ -598,7 +683,6 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
       continue;
     }
     at_radioconn->connectionid = sockid;
-    
     hip4 = (uint8_t *) &at_radioconn->ipaddr + sizeof(at_radioconn->ipaddr) - 4;
     //sprintf(str, "AT+CSOCON=%d,%d,\"%d.%d.%d.%d\"\r",
     //        at_radioconn->connectionid, uip_ntohs(at_radioconn->port), hip4[0], hip4[1], hip4[2], hip4[3]);
@@ -609,44 +693,23 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
     if (at == &wait_ok) {
       at_radio_statistics.connections += 1;
       at_radio_call_event(at_radioconn, AT_RADIO_CONN_CONNECTED);
-      break;
+      PT_EXIT(pt);
     }
-    /* If we ended up here, we failed to set up connection */
-    if (at == NULL) {
-      /* Timeout */
-      at_radio_statistics.connfailed += 1;
-      status.state = AT_RADIO_STATE_NONE;
-      sprintf(str, "AT+CSOCL=%d\r", at_radioconn->connectionid);
-      PT_ATSTR2(str);
-      PT_ATWAIT2(10, &wait_ok, &wait_error);        
-      at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_TIMEDOUT);
-      break;
-    }        
-    else if (at == &wait_error) {
-      /* COMMAND NO RESPONSE! timeout. Sometimes it take longer though and have seen COMMAND NON RESPONSE! followed by CONNECT OK */ 
-      /* Seen +CME ERROR:53 */
-      PT_ATSTR2("AT+CREG?\r");
-      PT_ATWAIT2(2, &wait_ok);
-      at_radio_statistics.at_errors += 1;
-      sprintf(str, "AT+CSOCL=%d\r", at_radioconn->connectionid);
-      PT_ATSTR2(str);
-      PT_ATWAIT2(15, &wait_ok);//ATWAIT2(5, &wait_ok, &wait_cmeerror);
-
-      /* Test to cure deadlock when closing/shutting down  --ro */
-      if (minor_tries++ > 10) {
-        at_radio_statistics.connfailed += 1;
-        break;
-      }
-      else {
-        continue;
-      }
-    }
-  } /* minor_tries */
-  if (minor_tries >= 10) {
+    /* If we end up here, we failed to set up connection */
     at_radio_statistics.connfailed += 1;
-    at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_TIMEDOUT);
-    break;
-  }
+    sprintf(str, "AT+CSOCL=%d\r", at_radioconn->connectionid);
+    PT_ATSTR2(str);
+    PT_ATWAIT2(10, &wait_ok, &wait_error);        
+    PT_DELAY(AT_RADIO_CONNECT_REATTEMPT);
+  } /* minor_tries */
+  /* End up here if too many errors, or it took too long time */
+#ifdef AT_RADIO_DEBUG
+  printf("%d: connect reset: %lu (%d attempts)\n", __LINE__, clock_seconds() - start_seconds, attempts);
+#endif /* AT_RADIO_DEBUG */
+  module_restart();
+  at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
+  at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_TIMEDOUT);
+  break;
   PT_END(pt);
 }
 
@@ -661,38 +724,55 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
   static uint16_t remain;
   static uint16_t len;
   static uint8_t *ptr;
-
+  static uint8_t attempts;
+  
   PT_BEGIN(pt);
 #ifdef AT_RADIO_DEBUG
-  printf("A6AT AT_RADIO Send\n");
+  printf("A6AT AT_RADIO Send @%lu sec\n", clock_seconds());
 #endif /* AT_RADIO_DEBUG */
 
+#ifdef POWER_SAVE_MODULE
+  attempts = 0;
+  while (attempts++ < MAXATTEMPTS) {
+
+    /* If in PSM, wakeup.
+     * Also, if probed module but no response, assume module is
+     * in PSM and try wakeup 
+     */ 
+    if (powersaving || attempts > 2) {
+      sim7020_power_on();
+    }
+    /* Probe module */
+    PT_ATSTR2("AT\r");
+    PT_ATWAIT2(30, &wait_ok);
+    if (at == NULL) {
+      at_radio_statistics.at_timeouts++;
+    }
+    else {
+      powersaving = 0;
+      break;
+    }
+  }
+  if (attempts > MAXATTEMPTS) {
+    module_restart();
+    PT_EXIT(pt);
+  }
+#endif /* POWER_SAVE_MODULE */  
+
   ptr = at_radioconn->output_data_ptr;
-  //socket = at_radioconn->socket;
-  //remain = socket->output_data_len;
   remain = at_radioconn->output_data_len;
-#if 0
-  PT_ATSTR2("ATE0\r\n");
-  PT_ATWAIT2(5, &wait_ok);
-  if (at == NULL)
-    goto timeout;
-#endif
+
   while (remain > 0) {
     static char buf[40];
 
     len = (remain <= AT_RADIO_MAX_SEND_LEN ? remain : AT_RADIO_MAX_SEND_LEN);
     sprintf((char *) buf, "AT+CSODSEND=%d,%d\r", at_radioconn->connectionid, len);
-    PT_ATSTR2((char *) buf); /* sometimes CME ERROR:516 */
+    PT_ATSTR2((char *) buf); 
     PT_ATWAIT2(5, &wait_ok, &wait_sendprompt, &wait_error);
-    if (at == NULL) {
-      PT_ATSTR2("ATE1\r\n");
-      PT_ATWAIT2(5, &wait_ok);
-      goto timeout;
-    }
-    else if (at == &wait_error) {
+    if (at != &wait_sendprompt) {
       goto disconnect;
     }
-    PT_ATBUF2(&ptr[at_radioconn->output_data_len-remain], len);
+#ifdef AT_RADIO_DEBUG
     {
       int i;
       printf("\n");
@@ -700,38 +780,45 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
         printf("%02x ", ptr[at_radioconn->output_data_len-remain+i]);
       printf("\n");
     }
+#endif /* AT_RADIO_DEBUG */
+    PT_ATBUF2(&ptr[at_radioconn->output_data_len-remain], len);
     PT_ATWAIT2(30, &wait_ok, &wait_error, &wait_dataaccept);
+    /* Should goto disconnect here ? */
     if (at == NULL || at == &wait_error) {
-      at_radio_statistics.at_timeouts += 1;
-      PT_EXIT(pt);
-    }        
+      goto disconnect;
 #if 0
-    if (remain > len) {
-      memcpy(&socket->output_data_ptr[0],
-             &socket->output_data_ptr[len],
-             remain - len);
-    }
-    socket->output_data_len -= len;
+      if (remain > len) {
+        memcpy(&socket->output_data_ptr[0],
+               &socket->output_data_ptr[len],
+               remain - len);
+      }
+      socket->output_data_len -= len;
 #endif
+    }
     remain -= len;
   }
-  //call_event(socket, AT_RADIO_CONN_DATA_SENT);
   at_radio_call_event(at_radioconn, AT_RADIO_CONN_DATA_SENT);      
 #if 0
-  PT_ATSTR2("ATE1\r\n");
+  PT_ATSTR2("ATE1\r");
   PT_ATWAIT2(5, &wait_ok);
 #endif
   PT_EXIT(pt);
 
  disconnect:
-  at_radio_statistics.at_errors += 1;
+  if (at == NULL)
+    at_radio_statistics.at_timeouts += 1;
+  else
+    at_radio_statistics.at_errors += 1;
+  {
+    char str[32];
+    sprintf(str, "AT+CSOCL=%d\r", at_radioconn->connectionid);
+    PT_ATSTR2(str);
+  }
+  PT_ATWAIT2(10, &wait_ok, &wait_error);        
+
+  at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
   at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
   PT_EXIT(pt);
-
- timeout:
-  at_radio_statistics.at_timeouts += 1;
-  at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_TIMEDOUT);
-  status.state = AT_RADIO_STATE_NONE;
 
   PT_END(pt);
 } 
@@ -746,13 +833,21 @@ PT_THREAD(at_radio_close_pt(struct pt *pt, struct at_radio_connection * at_radio
   char str[20];
   PT_BEGIN(pt);
 
-  snprintf(str, sizeof(str), "AT+CSOCL=%d\r", at_radioconn->connectionid);
-  PT_ATSTR2(str);
-  PT_ATWAIT2(15, &wait_ok, &wait_error);
-  if (at == NULL) {
-    at_radio_statistics.at_timeouts += 1;
+  if (0 == verify_at_radio_connection(at_radioconn)) {
+    printf("close: invalid radioconn @0x%x\n", (unsigned) at_radioconn);
+    PT_EXIT(pt);
   }
-  at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
+
+  if (at_radioconn->connectionid != AT_RADIO_CONNECTIONID_NONE) {
+    snprintf(str, sizeof(str), "AT+CSOCL=%d\r", at_radioconn->connectionid);
+    PT_ATSTR2(str);
+    PT_ATWAIT2(15, &wait_ok, &wait_error);
+    if (at == NULL) {
+      at_radio_statistics.at_timeouts += 1;
+    }
+    at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
+    //at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
+  }
   PT_END(pt);
 } 
 /*---------------------------------------------------------------------------*/
