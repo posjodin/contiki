@@ -217,7 +217,7 @@ reset_defaults(struct mqtt_connection *conn)
 }
 /*---------------------------------------------------------------------------*/
 static void
-abort_connection(struct mqtt_connection *conn)
+abort_connection(struct mqtt_connection *conn, int doclose)
 {
   conn->out_buffer_ptr = conn->out_buffer;
   conn->out_queue_full = 0;
@@ -225,7 +225,9 @@ abort_connection(struct mqtt_connection *conn)
   /* Reset outgoing packet */
   memset(&conn->out_packet, 0, sizeof(conn->out_packet));
 
-  tcp_socket_close(&conn->socket);
+  if (doclose)
+    tcp_socket_close(&conn->socket);
+  tcp_socket_unregister(&conn->socket);
 
   conn->state = MQTT_CONN_STATE_NOT_CONNECTED;
 }
@@ -233,17 +235,18 @@ abort_connection(struct mqtt_connection *conn)
 static void
 connect_tcp(struct mqtt_connection *conn)
 {
-  conn->state = MQTT_CONN_STATE_TCP_CONNECTING;
-
   reset_defaults(conn);
-  tcp_socket_register(&(conn->socket),
-                      conn,
-                      conn->in_buffer,
-                      MQTT_TCP_INPUT_BUFF_SIZE,
-                      conn->out_buffer,
-                      MQTT_TCP_OUTPUT_BUFF_SIZE,
-                      tcp_input,
-                      tcp_event);
+  if (-1 == tcp_socket_register(&(conn->socket),
+                                conn,
+                                conn->in_buffer,
+                                MQTT_TCP_INPUT_BUFF_SIZE,
+                                conn->out_buffer,
+                                MQTT_TCP_OUTPUT_BUFF_SIZE,
+                                tcp_input,
+                                tcp_event))
+    return;
+
+  conn->state = MQTT_CONN_STATE_TCP_CONNECTING;
 #ifdef MQTT_GPRS 
   /* GPRS takes IP addresses as strings */
   tcp_socket_gprs_connect_strhost(&(conn->socket), conn->server_host, conn->server_port);
@@ -368,7 +371,7 @@ keep_alive_callback(void *ptr)
   /* The flag is set when the PINGREQ has been sent */
   if(conn->waiting_for_pingresp) {
     PRINTF("MQTT - Disconnect due to no PINGRESP from broker.\n");
-    abort_connection(conn);
+    abort_connection(conn, 1);
     return;
   }
 
@@ -675,6 +678,7 @@ PT_THREAD(publish_pt(struct pt *pt, struct mqtt_connection *conn))
     PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.mid << 8));
     PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.mid & 0x00FF));
   }
+  else
   /* Write Payload */
   PT_MQTT_WRITE_BYTES(conn,
                       conn->out_packet.payload,
@@ -699,7 +703,7 @@ PT_THREAD(publish_pt(struct pt *pt, struct mqtt_connection *conn))
     if(timer_expired(&conn->t)) {
       DBG("Timeout waiting for PUBACK\n");
     }
-    if(conn->in_packet.mid != conn->out_packet.mid) {
+    else if(conn->in_packet.mid != conn->out_packet.mid) {
       DBG("MQTT - Warning, got PUBACK with none matching MID. Currently there "
           "is no support for several concurrent PUBLISH messages.\n");
     }
@@ -750,6 +754,7 @@ PT_THREAD(pingreq_pt(struct pt *pt, struct mqtt_connection *conn))
 static void
 handle_connack(struct mqtt_connection *conn)
 {
+    
   DBG("MQTT - Got CONNACK\n");
 
   if(conn->in_packet.payload[1] != 0) {
@@ -758,7 +763,7 @@ handle_connack(struct mqtt_connection *conn)
     call_event(conn,
                MQTT_EVENT_CONNECTION_REFUSED_ERROR,
                &conn->in_packet.payload[1]);
-    abort_connection(conn);
+    abort_connection(conn, 1);
     return;
   }
 
@@ -1171,7 +1176,7 @@ PROCESS_THREAD(mqtt_process, ev, data)
       conn = data;
       conn->state = MQTT_CONN_STATE_ABORT_IMMEDIATE;
 
-      abort_connection(conn);
+      abort_connection(conn, 0);
     }
     if(ev == mqtt_do_connect_tcp_event) {
       conn = data;
@@ -1203,7 +1208,7 @@ PROCESS_THREAD(mqtt_process, ev, data)
                 disconnect_pt(&conn->out_proto_thread, conn) < PT_EXITED) {
             PT_MQTT_WAIT_SEND();
           }
-          abort_connection(conn);
+          abort_connection(conn, 1);
           call_event(conn, MQTT_EVENT_DISCONNECTED, &ev);
         } else {
           process_post(&mqtt_process, mqtt_do_disconnect_mqtt_event, conn);
@@ -1365,6 +1370,8 @@ void
 mqtt_disconnect(struct mqtt_connection *conn)
 {
   if(conn->state != MQTT_CONN_STATE_CONNECTED_TO_BROKER) {
+    abort_connection(conn, 1);
+    call_event(conn, MQTT_EVENT_DISCONNECTED, NULL);
     return;
   }
 
