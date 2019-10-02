@@ -241,7 +241,7 @@ PT_THREAD(atwait(int lineno, struct pt *pt, struct at_wait **atp, int seconds, .
   PT_BEGIN(pt);
   at_wait_match = (struct at_wait *) 0;
   
-  printf("---start_atlist:%d: ", lineno);
+  printf("%6lu: ---start_atlist:%d: ", clock_seconds(), lineno);
   va_start(valist, seconds);
   vstart_atlist(valist);
   printf("\n"); 
@@ -249,14 +249,14 @@ PT_THREAD(atwait(int lineno, struct pt *pt, struct at_wait **atp, int seconds, .
   etimer_set(&et, (seconds)*CLOCK_SECOND);
   while (1) {
     if(etimer_expired(&et)) {
-      printf("---timeout:%d\n", lineno);
+      printf("%6lu: ---timeout:%d\n", clock_seconds(), lineno);
       *atp = NULL;
       break; 
     } 
     else if (at_wait_match != NULL) {
       etimer_stop(&et); 
       *atp = at_wait_match;
-      printf("\n---got:%d '%s'\n", lineno, (*atp)->str); 
+      printf("\n%6lu: ---got:%d '%s'\n", clock_seconds(), lineno, (*atp)->str); 
       break;
     }      
     PT_YIELD(pt);

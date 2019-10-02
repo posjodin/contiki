@@ -111,12 +111,12 @@ while (atwait(__LINE__, &pt, &at, SEC, __VA_ARGS__, NULL) < PT_EXITED) { \
 
 
 #define ATSTR2(str) { \
-    printf("-->%s\n", str); \
+    printf("%6lu: -->%s\n", clock_seconds(), str);                \
     ATSPAWN(at_sendbuf, (unsigned char *) str, strlen(str));    \
 }
 
 #define PT_ATSTR2(str) {\
-    printf("-->%s\n", str); \
+    printf("%6lu: -->%s\n", clock_seconds(), str);                  \
     PT_ATSPAWN(at_sendbuf, (unsigned char *) str, strlen(str));    \
   }
 

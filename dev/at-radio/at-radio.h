@@ -6,6 +6,10 @@
 //#define AT_RADIO_MAX_SEND_LEN 512
 #define AT_RADIO_MAX_RECV_LEN 1024
 
+/* How long to wait for RADIO_INITIALIZATION (sec) */
+#define AT_RADIO_INIT_TIMEOUT 180
+/* How long to wait between each attempt (sec) */
+#define AT_RADIO_INIT_REATTEMPT 10
 /* How long to wait for APN registration (sec) */
 #define AT_RADIO_APN_REGISTER_TIMEOUT 180
 /* How long to wait between each attempt (sec) */
@@ -14,6 +18,10 @@
 #define AT_RADIO_APN_ATTACH_TIMEOUT 180
 /* How long to wait between each attempt (sec) */
 #define AT_RADIO_APN_ATTACH_REATTEMPT 10
+/* How long to wait for socket connect operations (sec) */
+#define AT_RADIO_CONNECT_TIMEOUT 180
+/* How long to wait between each attempt (sec) */
+#define AT_RADIO_CONNECT_REATTEMPT 10
 
 #define AT_RADIO_DEBUG
 
@@ -42,10 +50,11 @@ typedef void (* at_radio_event_callback_t)(void *callback_arg,
                                        at_radio_conn_event_t event);
 
 #define AT_RADIO_MAX_CONNECTION 1
+#define AT_RADIO_CONNECTIONID_NONE -1
 struct at_radio_connection {
   struct at_radio_context *context;
   uint8_t reserved;
-  uint8_t connectionid;
+  int8_t connectionid;
   const char *proto;
   const char *host;
   uip_ipaddr_t ipaddr;
@@ -109,6 +118,7 @@ process_event_t at_radio_ev_init;
 process_event_t at_radio_ev_connection;
 process_event_t at_radio_ev_send;
 process_event_t at_radio_ev_close;
+process_event_t at_radio_ev_unregister;
 process_event_t at_radio_ev_datamode;
 
 void at_radio_enqueue_event(process_event_t ev, void *data);
@@ -130,6 +140,8 @@ void at_radio_close(struct at_radio_connection *gconn);
 void at_radio_datamode(struct at_radio_connection *gconn);
 void at_radio_call_event(struct at_radio_connection *at_radioconn, at_radio_conn_event_t event);
 struct at_radio_status *at_radio_status();
+void at_radio_reset();
+int verify_at_radio_connection(struct at_radio_connection *at_radioconn);
 
 /* 
  * Radio module functions 
