@@ -61,7 +61,8 @@ event_init() {
   at_radio_ev_init = process_alloc_event();
   at_radio_ev_connection = process_alloc_event();
   at_radio_ev_send = process_alloc_event();
-  at_radio_ev_close = process_alloc_event();  
+  at_radio_ev_close = process_alloc_event();
+  at_radio_ev_unregister = process_alloc_event();    
 }
 
 #define AT_RADIO_MAX_NEVENTS 8
@@ -86,7 +87,8 @@ char *eventstr(process_event_t ev) {
   if (ev == at_radio_ev_init) sprintf(buf, " at_radio_ev_init (%d)", ev); 
   else if (ev == at_radio_ev_connection) sprintf(buf, "at_radio_ev_connection (%d)", ev); 
   else if (ev == at_radio_ev_send) sprintf(buf, "at_radio_ev_send (%d)", ev); 
-  else if (ev == at_radio_ev_close) sprintf(buf, "at_radio_ev_close (%d)", ev); 
+  else if (ev == at_radio_ev_close) sprintf(buf, "at_radio_ev_close (%d)", ev);
+  else if (ev == at_radio_ev_unregister) sprintf(buf, "at_radio_ev_unregister (%d)", ev);   
   else if (ev == at_match_event) sprintf(buf, "at_match_event (%d)", ev); 
 
   else sprintf(buf, "unknown)(%d)", ev); 
@@ -139,6 +141,22 @@ at_radio_init() {
   process_start(&at_radio, NULL);
 }
 /*---------------------------------------------------------------------------*/
+void
+at_radio_reset() {
+  int i;
+  struct at_radio_connection *at_radioconn;
+
+  for (i = 0; i < AT_RADIO_MAX_CONNECTION; i++) { 
+    at_radioconn = &at_radio_connections[i];
+    if (AT_RADIO_CONNECTION_RESERVED(at_radioconn) &&
+        at_radioconn->connectionid != AT_RADIO_CONNECTIONID_NONE) {
+      at_radio_call_event(at_radioconn, AT_RADIO_CONN_SOCKET_CLOSED);
+      at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
+    }
+  }
+}
+/*---------------------------------------------------------------------------*/
+
 struct at_radio_connection *
 alloc_at_radio_connection() {
   int i;
@@ -147,6 +165,7 @@ alloc_at_radio_connection() {
     at_radioconn = &at_radio_connections[i];
     if (!AT_RADIO_CONNECTION_RESERVED(at_radioconn)) {
         AT_RADIO_CONNECTION_RESERVE(at_radioconn);
+        at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
         return at_radioconn;
     }
   }
@@ -156,8 +175,8 @@ alloc_at_radio_connection() {
 /*---------------------------------------------------------------------------*/
 static void
 free_at_radio_connection(struct at_radio_connection *at_radioconn) {
+  at_radioconn->connectionid = AT_RADIO_CONNECTIONID_NONE;
   AT_RADIO_CONNECTION_RELEASE(at_radioconn);
-  return;
 }
 /*---------------------------------------------------------------------------*/
 struct at_radio_connection *
@@ -167,12 +186,28 @@ find_at_radio_connection(char connectionid) {
 
   for (i = 0; i < AT_RADIO_MAX_CONNECTION; i++) {
     at_radioconn = &at_radio_connections[i];
-    if (at_radioconn->connectionid == connectionid) {
+    if (AT_RADIO_CONNECTION_RESERVED(at_radioconn) &&
+        at_radioconn->connectionid == connectionid) {
       return at_radioconn;
     }
   }
   printf("AT-RADIO: No such connection: %d\n", connectionid);
   return NULL;
+}
+/*---------------------------------------------------------------------------*/
+int
+verify_at_radio_connection(struct at_radio_connection *at_radioconn) {
+  int i;
+
+  for (i = 0; i < AT_RADIO_MAX_CONNECTION; i++) {
+    if (at_radioconn == &at_radio_connections[i]) {
+      if (AT_RADIO_CONNECTION_RESERVED(at_radioconn))
+        return 1;
+      else
+        return 0;
+    }
+  }
+  return 0;
 }
 /*---------------------------------------------------------------------------*/
 #ifdef AT_RADIO_DEBUG
@@ -230,9 +265,9 @@ at_radio_register(struct at_radio_connection *gconn,
 }
 /*---------------------------------------------------------------------------*/
 int
-at_radio_unregister(struct at_radio_connection *gconn) {
-
-  free_at_radio_connection(gconn);
+at_radio_unregister(struct at_radio_connection *at_radioconn) {
+  /* Send to worker process for serialization */
+  enqueue_event(at_radio_ev_unregister, at_radioconn);
   return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -305,20 +340,22 @@ PROCESS_THREAD(at_radio, ev, data) {
       goto again;
     }
 
-    ATSPAWN(read_csq);
-
     at_radioconn = (struct at_radio_connection *) at_radio_event->data;
     if (at_radio_event->ev == at_radio_ev_connection) {
       ATSPAWN(at_radio_connect_pt, at_radioconn);
-    } /* ev == at_radio_ev_connection */
+    } 
     else if (at_radio_event->ev == at_radio_ev_send) {
       ATSPAWN(at_radio_send_pt, at_radioconn);
-    } /* ev == at_radio_ev_send */
+    } 
     else if (at_radio_event->ev == at_radio_ev_close) {
       ATSPAWN(at_radio_close_pt, at_radioconn);
-    } /* ev == at_radio_ev_close */
+    }  
     else if (at_radio_event->ev == at_radio_ev_datamode) {
       ATSPAWN(at_radio_datamode_pt, at_radioconn);
+    }
+    else if (at_radio_event->ev == at_radio_ev_unregister) {
+      /* For serialization only - no radio interaction involved  */
+      free_at_radio_connection(at_radioconn);
     }
 #ifdef AT_RADIO_DEBUG
     else {
