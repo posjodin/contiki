@@ -179,14 +179,15 @@ static struct etimer checktimer;
 static struct {
   unsigned int stale_publishing; 
   unsigned int stale_connecting;
-  unsigned int closed_connection;
-} watchdog_stats = {0, 0, 0};
+} watchdog_stats = {0, 0};
 #endif /* MQTT_WATCHDOG */
 /* Publish statistics every N publication */
 #define PUBLISH_STATS_INTERVAL 8
 
 extern int sim7020_rssi_to_dbm(int);
 
+/* Connection management: publish then disconnect */
+#define PUBLISH_DISCONNECT
 /*---------------------------------------------------------------------------*/
 extern int
 mqtt_rpl_pub(char *buf, int bufsize);
@@ -460,6 +461,9 @@ mqtt_event(struct mqtt_connection *m, mqtt_event_t event, void *data)
   case MQTT_EVENT_PUBACK: {
     DBG("APP - Publishing complete.\n");
     mqtt_stats.pubacked++;
+#ifdef PUBLISH_DISCONNECT
+  mqtt_disconnect(&conn);
+#endif /* PUBLISH_DISCONNECT */
     break;
   }
   default:
@@ -733,9 +737,16 @@ publish_sensors(void)
   DBG("MQTT publish sensors %d: %d bytes\n", seq_nr_value, strlen(app_buffer));
   //printf("%s\n", app_buffer);
   topic = construct_topic("sensors");
+#ifdef PUBLISH_DISCONNECT
+  /* QOS = 1 so there will be a PUBACK and we know that it is
+   * safe to disconnect
+   */
+  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
+               strlen(app_buffer), MQTT_QOS_LEVEL_1, MQTT_RETAIN_OFF);
+#else
   mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
                strlen(app_buffer), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
-
+#endif /* PUBLISH_DISCONNECT */  
 /*
   if(lc.cca_test) {
     int i; 
@@ -817,7 +828,6 @@ publish_stats(void)
 #ifdef MQTT_WATCHDOG
     PUTFMT(",{\"n\":\"mqtt;wd;stale_pub\",\"v\":%u}", watchdog_stats.stale_publishing);
     PUTFMT(",{\"n\":\"mqtt;wd;stale_conn\",\"v\":%u}", watchdog_stats.stale_connecting);
-    PUTFMT(",{\"n\":\"mqtt;wd;close_conn\",\"v\":%u}", watchdog_stats.closed_connection);
 #endif
 
 #ifdef CONTIKI_TARGET_AVR_RSS2
@@ -905,9 +915,16 @@ publish_stats(void)
   DBG("MQTT publish stats part %d, seq %d, %d bytes:\n", stats, seq_nr_value, strlen(app_buffer));
   //printf("%s\n", app_buffer);
   topic = construct_topic("status");
+#ifdef PUBLISH_DISCONNECT
+  /* QOS = 1 so there will be a PUBACK and we know that it is
+   * safe to disconnect
+   */
+  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
+               strlen(app_buffer), MQTT_QOS_LEVEL_1, MQTT_RETAIN_OFF);
+#else
   mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
                strlen(app_buffer), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
-
+#endif /* PUBLISH_DISCONNECT */  
   if (++stats > ENDSTATS)
     stats = STARTSTATS;
   
@@ -921,8 +938,16 @@ publish_now(void)
 
   printf("-----Publish now to %s: \n%s\n", pub_now_topic, pub_now_message);
   if (pub_now_message) {
+#ifdef PUBLISH_DISCONNECT
+  /* QOS = 1 so there will be a PUBACK and we know that it is
+   * safe to disconnect
+   */
     mqtt_publish(&conn, NULL, pub_now_topic, (uint8_t *)pub_now_message,
-                 strlen(pub_now_message), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
+                 strlen(pub_now_message), MQTT_QOS_LEVEL_1, MQTT_RETAIN_OFF);
+#else
+    mqtt_publish(&conn, NULL, pub_now_topic, (uint8_t *)pub_now_message,
+                 strlen(pub_now_message), MQTT_QOS_LEVEL_1, MQTT_RETAIN_OFF);
+#endif /* PUBLISH_DISCONNECT */    
     pub_now_message = NULL;
     pub_now_topic = NULL;
   }
@@ -952,8 +977,16 @@ publish_cca_test(void)
   topic = construct_topic("cca_test");
   printf("TOPIC: %s\n", topic);
   printf("PAYLOAD: %s\n", app_buffer);
+#ifdef PUBLISH_DISCONNECT
+  /* QOS = 1 so there will be a PUBACK and we know that it is
+   * safe to disconnect
+   */
+  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
+               strlen(app_buffer), MQTT_QOS_LEVEL_1, MQTT_RETAIN_OFF);
+#else
   mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
                strlen(app_buffer), MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
+#endif /* PUBLISH_DISCONNECT */  
 }
 
 static void
@@ -1025,6 +1058,11 @@ state_machine(void)
 
     state = STATE_REGISTERED;
     DBG("Init\n");
+#ifdef PUBLISH_DISCONNECT
+    /* Wait for publish timer before connecting */
+    etimer_set(&publish_periodic_timer, conf.pub_interval);
+    return;
+#endif /* PUBLISH_DISCONNECT */
     /* Continue */
   case STATE_REGISTERED:
 #ifdef AT_RADIO_SOCKETS
@@ -1061,6 +1099,10 @@ state_machine(void)
       DBG("Using 'quickstart': Skipping subscribe\n");
       state = STATE_PUBLISHING;
     }
+#ifdef PUBLISH_DISCONNECT
+    /* Skip subscribing and go directly to publishing state */
+    state = STATE_PUBLISHING;
+#endif /* PUBLISH_DISCONNECT */    
     /* Continue */
   case STATE_PUBLISHING:
     /* If the timer expired, the connection is stable. */
@@ -1108,6 +1150,12 @@ state_machine(void)
     break;
   case STATE_DISCONNECTED:
     DBG("Disconnected\n");
+#ifdef PUBLISH_DISCONNECT
+    /* Done publish and disconnect -- restart publication timer */
+    etimer_set(&publish_periodic_timer, conf.pub_interval);
+    state = STATE_REGISTERED;
+    return;
+#endif /* PUBLISH_DISCONNECT */
     if(connect_attempt < RECONNECT_ATTEMPTS ||
        RECONNECT_ATTEMPTS == RETRY_FOREVER) {
       /* Disconnect and backoff */
@@ -1199,6 +1247,36 @@ PROCESS_THREAD(mqtt_client_process, ev, data)
 
 #ifdef MQTT_WATCHDOG
 
+static char *statestr(uint8_t state) {
+  switch (state) {
+  case STATE_INIT: return("INIT");
+  case STATE_REGISTERED: return("REGISTERED");
+  case STATE_CONNECTING: return("CONNECTING");
+  case STATE_CONNECTED: return("CONNECTED");
+  case STATE_PUBLISHING: return("PUBLISHING");
+  case STATE_DISCONNECTED: return("DISCONNECTED");
+  case STATE_NEWCONFIG: return("NEWCONFIG");
+  default: return("?");
+  }
+}
+
+static char *connstatestr(mqtt_conn_state_t connstate) {
+  switch (connstate) {
+  case MQTT_CONN_STATE_ERROR: return("ERROR");
+  case MQTT_CONN_STATE_DNS_ERROR: return("DNS_ERROR");
+  case MQTT_CONN_STATE_DISCONNECTING: return("DISCONNECTING");
+  case MQTT_CONN_STATE_ABORT_IMMEDIATE: return("ABORT_IMMEDIATE");
+  case MQTT_CONN_STATE_NOT_CONNECTED: return("NOT_CONNECTED");
+  case MQTT_CONN_STATE_DNS_LOOKUP: return("DNS_LOOKUP");
+  case MQTT_CONN_STATE_TCP_CONNECTING: return("TCP_CONNECTING");
+  case MQTT_CONN_STATE_TCP_CONNECTED: return("TCP_CONNECTED");
+  case MQTT_CONN_STATE_CONNECTING_TO_BROKER: return("CONNECTING_TO_BROKER");
+  case MQTT_CONN_STATE_CONNECTED_TO_BROKER: return("CONNECTED_TO_BROKER");
+  case MQTT_CONN_STATE_SENDING_MQTT_DISCONNECT: return("SENDING_MQTT_DISCONNECT");
+  default: return("?");
+  }
+}
+
 PROCESS_THREAD(mqtt_checker_process, ev, data)
 {
   static uint16_t stale_publishing = 0, stale_connecting = 0;
@@ -1213,7 +1291,7 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
     PROCESS_YIELD();
 
     if((ev == PROCESS_EVENT_TIMER) && (data == &checktimer)) {
-      printf("MQTT: state %d conn.state %d\n", state, conn.state);
+      printf("MQTT client: state %s (%d) conn.state %s (%d)\n", statestr(state), state, connstatestr(conn.state), conn.state);
       if (state == STATE_PUBLISHING) { 
        stale_connecting = 0;
        if (seq_nr_value > seen_seq_nr_value) {
@@ -1233,20 +1311,18 @@ PROCESS_THREAD(mqtt_checker_process, ev, data)
        seen_seq_nr_value = seq_nr_value;
       }
       else {
-	stale_connecting++;
-       if (stale_connecting > STALE_CONNECTING_WATCHDOG) {
          if(conn.state > MQTT_CONN_STATE_NOT_CONNECTED) {
-           /* Waiting for mqtt connection, but nothing happened for a while.
-            * Trigger communication error by closing TCP socket 
-            */
-           tcp_socket_close(&conn.socket);
-	   watchdog_stats.stale_connecting++;
-         }       
-         else {
-	   watchdog_stats.closed_connection++;	   
-	 }
-         stale_connecting = 0;
-       }
+           stale_connecting++;
+           if (stale_connecting > STALE_CONNECTING_WATCHDOG) {
+             /* Waiting for mqtt connection, but nothing happened for a while.
+              * Trigger communication error by closing TCP socket 
+              */
+             tcp_socket_close(&conn.socket);
+             watchdog_stats.stale_connecting++;
+           }       
+         }
+         else
+           stale_connecting = 0;
       }
       etimer_reset(&checktimer);
     }
