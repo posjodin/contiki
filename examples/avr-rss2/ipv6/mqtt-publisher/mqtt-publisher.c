@@ -105,7 +105,7 @@ AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process, &serial_in);
 #else
 AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process);
 #endif
-SENSORS(&button_sensor, &pms5003_sensor);
+//SENSORS(&button_sensor, &pms5003_sensor);
 
 /*---------------------------------------------------------------------------*/
 #ifdef RPL_BORDER_ROUTER
