@@ -160,6 +160,10 @@ PROCESS_THREAD(coap_client, ev, data)
   topic_no2.content = (uint8_t *)&content_buffer;
   topic_no2.max_age = COAP_MAX_AGE*4;
 
+  topic_light.content_type = 0;
+  topic_light.content = (uint8_t *)&content_buffer;
+  topic_light.max_age = COAP_MAX_AGE/2;
+
   for(i = 0; i < 8; i++) {
     sprintf(((char *)&topic_dir.url) + 2 * i * sizeof(char), "%02x", uip_lladdr.addr[i]);
   }
@@ -245,6 +249,7 @@ PROCESS_THREAD(coap_client, ev, data)
 	    PRINTF("CREATE %s, return code %d\n", topic_light.url, topic_light.last_response_code);
 	    if(topic_light.last_response_code == CREATED_2_01 
 	       || topic_light.last_response_code == FORBIDDEN_4_03){
+
 	      found_broker = 1;
 	    }
 
