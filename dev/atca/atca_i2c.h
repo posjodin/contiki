@@ -30,91 +30,21 @@
  *
  *
  * Author  : Robert Olsson robert@radio-sensors.com
- * Created : 2015-11-22
+ * Created : 2019-10-10
  */
 
 /**
  * \file
- *         A simple application showing sensor reading on RSS2 mote
+ *         i2c and executecute command for atecc608a chip
  */
 
 #include "contiki.h"
 #include "sys/etimer.h"
 #include <stdio.h>
 #include <string.h>
-#include "adc.h"
 #include "i2c.h"
-#include "dev/leds.h"
-#include "dev/button-sensor.h"
 #include "atca_command.h"
 #include "atca_devtypes.h"
-#include "atca_i2c.h"
 
-PROCESS(read_atca_process, "Read atca process");
-AUTOSTART_PROCESSES(&read_atca_process);
-
-static struct etimer et;
-
-//ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device);
 ATCA_STATUS atca_execute_command(ATCAPacket* packet, uint8_t addr);
-
-ATCAPacket packet;
-ATCACommand ca_cmd;
-ATCA_STATUS atca_status;
-
-static void
-test_command(void)
-{
-  if( I2C_ATECC608A ) {
-
-    memset(&packet, 0x00, sizeof(packet));
-    // build an info command
-
-    //packet.param1 = INFO_MODE_REVISION;
-    //packet.param2 = 0;
-    //atca_status = atInfo(ca_cmd, &packet);
-    //atca_status = atCounter(ca_cmd, &packet);
-
-    //packet.param2 = SELFTEST_MODE_ALL;
-    //atca_status = atSelfTest(ca_cmd, &packet);
-    atca_status = atRandom(ca_cmd, &packet);
-     if(atca_status != ATCA_SUCCESS)
-       printf("ERROR\n");
-     atca_command_dump(&packet);
-
-     atca_execute_command(&packet, I2C_ATECC608A_ADDR);
-  }
-  printf("\n\n");
-}
-
-PROCESS_THREAD(read_atca_process, ev, data)
-{
-  PROCESS_BEGIN();
-  SENSORS_ACTIVATE(button_sensor);
-  
-  leds_init(); 
-  leds_on(LEDS_RED);
-  leds_on(LEDS_YELLOW);
-
-  /* 
-   * Delay 5 sec 
-   * Gives a chance to trigger some pulses
-   */
-
-  etimer_set(&et, CLOCK_SECOND * 5);
-  
-  while(1) {
-    PROCESS_YIELD();
-    //PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-
-    if (ev == sensors_event && data == &button_sensor) {
-      leds_on(LEDS_YELLOW);
-      printf("Button pressed\n");
-    }
-
-    test_command();
-    etimer_reset(&et);
-  }
-
-  PROCESS_END();
-}
+void atca_command_dump(ATCAPacket *p);

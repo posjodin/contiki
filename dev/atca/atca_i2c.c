@@ -30,91 +30,101 @@
  *
  *
  * Author  : Robert Olsson robert@radio-sensors.com
- * Created : 2015-11-22
+ * Created : 2019-10-10
  */
 
 /**
  * \file
- *         A simple application showing sensor reading on RSS2 mote
+ *         i2c and executecute command for atecc608a chip
  */
 
 #include "contiki.h"
 #include "sys/etimer.h"
 #include <stdio.h>
 #include <string.h>
-#include "adc.h"
 #include "i2c.h"
-#include "dev/leds.h"
-#include "dev/button-sensor.h"
 #include "atca_command.h"
 #include "atca_devtypes.h"
 #include "atca_i2c.h"
 
-PROCESS(read_atca_process, "Read atca process");
-AUTOSTART_PROCESSES(&read_atca_process);
-
-static struct etimer et;
-
-//ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device);
 ATCA_STATUS atca_execute_command(ATCAPacket* packet, uint8_t addr);
 
 ATCAPacket packet;
 ATCACommand ca_cmd;
 ATCA_STATUS atca_status;
+ATCADeviceType device_type = ATECC608A;
 
-static void
-test_command(void)
+static void wake(uint8_t addr)
 {
-  if( I2C_ATECC608A ) {
+  int i;
+  i2c_start(addr | I2C_WRITE);
 
-    memset(&packet, 0x00, sizeof(packet));
-    // build an info command
-
-    //packet.param1 = INFO_MODE_REVISION;
-    //packet.param2 = 0;
-    //atca_status = atInfo(ca_cmd, &packet);
-    //atca_status = atCounter(ca_cmd, &packet);
-
-    //packet.param2 = SELFTEST_MODE_ALL;
-    //atca_status = atSelfTest(ca_cmd, &packet);
-    atca_status = atRandom(ca_cmd, &packet);
-     if(atca_status != ATCA_SUCCESS)
-       printf("ERROR\n");
-     atca_command_dump(&packet);
-
-     atca_execute_command(&packet, I2C_ATECC608A_ADDR);
+  /* 60 us */
+  for(i=0; i < 20; i++) {
+    i2c_write(0);
   }
-  printf("\n\n");
+  i2c_stop();
+
+  /* 1500 us */
+  clock_delay_usec(1500);
 }
 
-PROCESS_THREAD(read_atca_process, ev, data)
+ATCA_STATUS atca_execute_command(ATCAPacket* p, uint8_t addr)
 {
-  PROCESS_BEGIN();
-  SENSORS_ACTIVATE(button_sensor);
+  uint8_t i = 0;
+  uint8_t bytes;
+  uint8_t buf[36];
+
+  wake(addr);
   
-  leds_init(); 
-  leds_on(LEDS_RED);
-  leds_on(LEDS_YELLOW);
+  i2c_start(addr | I2C_WRITE);
+  i2c_write(0x03);
+  i2c_write(p->txsize);
+  i2c_write(p->opcode);
+  i2c_write(p->param1);
+  i2c_write(p->param2 & 0xFF);
+  i2c_write((p->param2)>>8 & 0xFF);
+  for(i=0; i < p->txsize-5; i++) {
+    i2c_write(p->data[i]);
+  }
+    for(i = 0; i < 10; i++) {
+    clock_delay_usec(1000);
+  }
 
-  /* 
-   * Delay 5 sec 
-   * Gives a chance to trigger some pulses
-   */
-
-  etimer_set(&et, CLOCK_SECOND * 5);
-  
-  while(1) {
-    PROCESS_YIELD();
-    //PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-
-    if (ev == sensors_event && data == &button_sensor) {
-      leds_on(LEDS_YELLOW);
-      printf("Button pressed\n");
+  bytes = 2;
+    
+  i2c_start(addr | I2C_READ);
+  for(i = 0; i < bytes; i++) {
+    if(i == bytes - 1) {
+      buf[i] = i2c_readNak();
+    } else {
+      buf[i] = i2c_readAck();
     }
-
-    test_command();
-    etimer_reset(&et);
+    if(i == 0)
+      bytes = buf[0];
   }
+  i2c_stop();
 
-  PROCESS_END();
-}
+  atca_status = atCheckCrc(buf);
+
+  if(atca_status == ATCA_SUCCESS) {
+    for(i=0; i < bytes; i++)
+      printf("%02x", buf[i]);
+  }
+  return ATCA_SUCCESS;
+}  
+
+void atca_command_dump(ATCAPacket *p)
+{
+  int i;
+  printf("_reserved=%d\n", p->_reserved);
+  printf("txsize=%d\n", p->txsize);
+  printf("opcode=0x%02x\n", p->opcode);
+  printf("param1=0x%02x\n", p->param1);
+  printf("param2=0x%04x\n", p->param2);
+  for(i=0; i < p->txsize-5; i++) {
+    printf("data[%-d]=0x%02x\n", i, p->data[i]);
+  }
+  //data[192]
+}  
+
