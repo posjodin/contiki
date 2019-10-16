@@ -42,17 +42,45 @@
 #include "sys/etimer.h"
 #include <stdio.h>
 #include <string.h>
+#include <avr/sleep.h>
+#include <dev/watchdog.h>
 #include "i2c.h"
 #include "atca_command.h"
 #include "atca_devtypes.h"
 #include "atca_i2c.h"
+#include "atca_execution.h"
 
-ATCA_STATUS atca_execute_command(ATCAPacket* packet, uint8_t addr);
-
+ATCA_STATUS atca_execute_command(ATCAPacket* packet, ATCADevice device);
 ATCAPacket packet;
 ATCACommand ca_cmd;
 ATCA_STATUS atca_status;
 ATCADeviceType device_type = ATECC608A;
+
+/*Execution times for ATECC608A-M0 supported commands...*/
+static const device_execution_time_t device_execution_time_608_m0[] = {
+    { ATCA_AES,          27},
+    { ATCA_CHECKMAC,     40},
+    { ATCA_COUNTER,      25},
+    { ATCA_DERIVE_KEY,   50},
+    { ATCA_ECDH,         75},
+    { ATCA_GENDIG,       25},
+    { ATCA_GENKEY,       115},
+    { ATCA_INFO,         5},
+    { ATCA_KDF,          165},
+    { ATCA_LOCK,         35},
+    { ATCA_MAC,          55},
+    { ATCA_NONCE,        20},
+    { ATCA_PRIVWRITE,    50},
+    { ATCA_RANDOM,       23},
+    { ATCA_READ,         5},
+    { ATCA_SECUREBOOT,   80},
+    { ATCA_SELFTEST,     250},
+    { ATCA_SHA,          36},
+    { ATCA_SIGN,         115},
+    { ATCA_UPDATE_EXTRA, 10},
+    { ATCA_VERIFY,       105},
+    { ATCA_WRITE,        45}
+};
 
 static void wake(uint8_t addr)
 {
@@ -66,17 +94,25 @@ static void wake(uint8_t addr)
   i2c_stop();
 
   /* 1500 us */
-  clock_delay_usec(1500);
+  for(i = 0; i < 3; i++) {
+    watchdog_periodic();
+    clock_delay_usec(500);
+  }
 }
 
-ATCA_STATUS atca_execute_command(ATCAPacket* p, uint8_t addr)
+ATCA_STATUS atca_execute_command(ATCAPacket* p, ATCADevice device)
 {
-  uint8_t i = 0;
-  uint8_t bytes;
-  uint8_t buf[36];
+  ATCA_STATUS status;
+  uint16_t i = 0;
+  uint8_t pktlen;
+  uint16_t rxsize;
+  uint8_t addr = I2C_ATECC608A_ADDR;
+
+  if(0)
+    atca_command_dump(p);
 
   wake(addr);
-  
+
   i2c_start(addr | I2C_WRITE);
   i2c_write(0x03);
   i2c_write(p->txsize);
@@ -84,34 +120,57 @@ ATCA_STATUS atca_execute_command(ATCAPacket* p, uint8_t addr)
   i2c_write(p->param1);
   i2c_write(p->param2 & 0xFF);
   i2c_write((p->param2)>>8 & 0xFF);
+  
   for(i=0; i < p->txsize-5; i++) {
     i2c_write(p->data[i]);
   }
-    for(i = 0; i < 10; i++) {
-    clock_delay_usec(1000);
+  i2c_stop();
+  
+  for(i = 0; i < 400; i++) {
+    watchdog_periodic();
+    clock_delay_usec(500);
   }
 
-  bytes = 2;
-    
+  /* Receive the response */
+  pktlen = 2; /* Bougus */
+  memset(p->data, 0, sizeof(p->data));
+  rxsize = sizeof(p->data);
+
   i2c_start(addr | I2C_READ);
-  for(i = 0; i < bytes; i++) {
-    if(i == bytes - 1) {
-      buf[i] = i2c_readNak();
+  for(i = 0; i < pktlen; i++) {
+    watchdog_periodic();
+    if(i == pktlen - 1) {
+      p->data[i] = i2c_readNak();
     } else {
-      buf[i] = i2c_readAck();
+      p->data[i] = i2c_readAck();
     }
-    if(i == 0)
-      bytes = buf[0];
+    if(i == 0) {
+      pktlen = p->data[0];
+      if(pktlen > rxsize || pktlen < 4) {
+	i2c_stop();
+	status = ATCA_RX_FAIL;
+	goto out;
+      }
+    }
   }
   i2c_stop();
-
-  atca_status = atCheckCrc(buf);
+  
+  if ((status = atCheckCrc(p->data)) != ATCA_SUCCESS) {
+    goto out;
+  }
+  
+  if ((status = isATCAError(p->data)) != ATCA_SUCCESS) {
+    goto out;
+  }
 
   if(atca_status == ATCA_SUCCESS) {
-    for(i=0; i < bytes; i++)
-      printf("%02x", buf[i]);
+    if(1) for(i=0; i < pktlen; i++)
+	    printf("%02x", p->data[i]);
   }
-  return ATCA_SUCCESS;
+
+ out:
+  /* atidle(device->mIface); */
+  return status;
 }  
 
 void atca_command_dump(ATCAPacket *p)
@@ -125,6 +184,5 @@ void atca_command_dump(ATCAPacket *p)
   for(i=0; i < p->txsize-5; i++) {
     printf("data[%-d]=0x%02x\n", i, p->data[i]);
   }
-  //data[192]
 }  
 

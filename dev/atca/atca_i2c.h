@@ -46,5 +46,5 @@
 #include "atca_command.h"
 #include "atca_devtypes.h"
 
-ATCA_STATUS atca_execute_command(ATCAPacket* packet, uint8_t addr);
+#define ATCA_NO_POLL
 void atca_command_dump(ATCAPacket *p);
