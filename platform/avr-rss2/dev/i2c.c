@@ -262,5 +262,12 @@ i2c_probe(void)
     print_delim(p++, "ATECC608A", del);
   }
 
+  watchdog_periodic();
+  if(!i2c_start(0x30<<1)) {
+    i2c_stop();
+    probed |= I2C_ATECC608A;
+    print_delim(p++, "0x30<<1", del);
+  }
+
   return probed;
 }
