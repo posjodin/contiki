@@ -63,10 +63,10 @@ wait_init();
 
 /* Power save mode */
 /* Activate power save mode on module */
-#define POWER_SAVE_MODULE 
-#ifdef POWER_SAVE_MODULE
+//#define SIM7020_PSM_ENABLE 
+#ifdef SIM7020_PSM_ENABLE
 uint8_t powersaving = 0;
-#endif /* POWER_SAVE_MODULE */
+#endif /* SIM7020_PSM_ENABLE */
 struct at_radio_context at_radio_context;
 
 #define MAXATTEMPTS 6
@@ -85,9 +85,9 @@ at_radio_module_init() {
 /*---------------------------------------------------------------------------*/
 static PT_THREAD(wait_csonmi_callback(struct pt *pt, struct at_wait *at, int c));
 static PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c));
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
 static PT_THREAD(wait_cpsmstatus_callback(struct pt *pt, struct at_wait *at, int c));
-#endif /* POWER_SAVE_MODULE */
+#endif /* SIM7020_PSM_ENABLE */
 
 static struct at_wait wait_csonmi = {"+CSONMI:", wait_csonmi_callback};
 static struct at_wait wait_ok = {"OK", wait_readline_pt};
@@ -97,9 +97,9 @@ static struct at_wait wait_sendprompt = {">", NULL};
 static struct at_wait wait_csoerr = {"+CSOERR:", wait_csoerr_callback};
 static struct at_wait wait_csq = {"+CSQ:", wait_readline_pt};
 static struct at_wait wait_dataaccept = {"DATA ACCEPT: ", wait_readline_pt};
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
 static struct at_wait wait_cpsmstatus = {"+CPSMSTATUS: ", wait_cpsmstatus_callback};
-#endif /* POWER_SAVE_MODULE */
+#endif /* SIM7020_PSM_ENABLE */
 
 /*
  * +CSONMI: sock,len,<data>
@@ -212,7 +212,7 @@ PT_THREAD(wait_csoerr_callback(struct pt *pt, struct at_wait *at, int c)) {
   PT_END(pt);
 }
 
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
 /* 
  * Callback for matching +CPSMSTATUS keyword 
  */
@@ -239,16 +239,16 @@ PT_THREAD(wait_cpsmstatus_callback(struct pt *pt, struct at_wait *at, int c)) {
   }
   PT_END(pt);
 }
-#endif /* POWER_SAVE_MODULE */
+#endif /* SIM7020_PSM_ENABLE */
 
 static void
 wait_init() {
   /* The following are to detect async events -- permanently active */
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
   atwait_start_atlist(1, &wait_csonmi, &wait_csoerr, &wait_cpsmstatus, NULL);
 #else
   atwait_start_atlist(1, &wait_csonmi, &wait_csoerr, NULL);
-#endif /* POWER_SAVE_MODULE */  
+#endif /* SIM7020_PSM_ENABLE */  
 }
 
 static void
@@ -417,9 +417,9 @@ PT_THREAD(init_module(struct pt *pt)) {
     /* Disable power save mode for now */
     PT_ATSTR2("AT+CPSMS=0\r");
     PT_ATWAIT2(10, &wait_ok);
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
     powersaving = 0;
-#endif /* POWER_SAVE_MODULE */  
+#endif /* SIM7020_PSM_ENABLE */  
 
     /* Limit bands to speed up roaming */
     /* WIP needs a generic solution */
@@ -524,6 +524,7 @@ PT_THREAD(apn_activate(struct pt *pt)) {
     PT_ATSTR2("AT+CIICR\r");
     PT_ATWAIT2(600, &wait_ok, &wait_error);
     if (at == &wait_ok) {
+#ifdef SIM7020_PSM_ENABLE
       /* Enable power save mode */
       PT_ATSTR2("AT+CPSMS=1\r");
       PT_ATWAIT2(120, &wait_ok, &wait_error);
@@ -532,7 +533,7 @@ PT_THREAD(apn_activate(struct pt *pt)) {
       PT_ATWAIT2(10, &wait_ok);
       PT_ATSTR2("AT+CPSMS?\r");
       PT_ATWAIT2(120, &wait_ok, &wait_error);
-
+#endif /* SIM7020_PSM_ENABLE */
       gcontext->active = 1;
       status.state = AT_RADIO_STATE_ACTIVE;
       PT_EXIT(pt);
@@ -574,8 +575,6 @@ PT_THREAD(get_moduleinfo(struct pt *pt)) {
       printf("No module version in '%s'\n", at_line);
     }
   }
-  PT_ATSTR2("AT+GSV\r");
-  PT_ATWAIT2(10, &wait_ok);
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
@@ -643,7 +642,7 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
   attempts = 0;
   while (attempts++ < MAXATTEMPTS && clock_seconds() - start_seconds < AT_RADIO_CONNECT_TIMEOUT) {
 	
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
     /* If in PSM, wakeup.
      * Also, if no response, assume module is in PSM and try wakeup 
      */ 
@@ -671,7 +670,7 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
       }
     }
 #endif /* not SIM7020_RECVHEX */
-#endif /* POWER_SAVE_MODULE */  
+#endif /* SIM7020_PSM_ENABLE */  
 
     hip4 = (uint8_t *) &at_radioconn->ipaddr + sizeof(at_radioconn->ipaddr) - 4;
     PT_ATSTR2("AT+CSOC=1,1,1\r"); /* IPv4, TCP, IP */
@@ -724,14 +723,14 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
   static uint16_t remain;
   static uint16_t len;
   static uint8_t *ptr;
-  static uint8_t attempts;
   
   PT_BEGIN(pt);
 #ifdef AT_RADIO_DEBUG
   printf("A6AT AT_RADIO Send @%lu sec\n", clock_seconds());
 #endif /* AT_RADIO_DEBUG */
 
-#ifdef POWER_SAVE_MODULE
+#ifdef SIM7020_PSM_ENABLE
+  static uint8_t attempts;
   attempts = 0;
   while (attempts++ < MAXATTEMPTS) {
 
@@ -757,7 +756,7 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
     module_restart();
     PT_EXIT(pt);
   }
-#endif /* POWER_SAVE_MODULE */  
+#endif /* SIM7020_PSM_ENABLE */  
 
   ptr = at_radioconn->output_data_ptr;
   remain = at_radioconn->output_data_len;
@@ -772,7 +771,7 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
     if (at != &wait_sendprompt) {
       goto disconnect;
     }
-#ifdef AT_RADIO_DEBUG
+#ifdef AT_RADIO_DEBUG_PRINTSEND
     {
       int i;
       printf("\n");
@@ -780,7 +779,7 @@ PT_THREAD(at_radio_send_pt(struct pt *pt, struct at_radio_connection * at_radioc
         printf("%02x ", ptr[at_radioconn->output_data_len-remain+i]);
       printf("\n");
     }
-#endif /* AT_RADIO_DEBUG */
+#endif /* AT_RADIO_DEBUG_PRINTSEND */
     PT_ATBUF2(&ptr[at_radioconn->output_data_len-remain], len);
     PT_ATWAIT2(30, &wait_ok, &wait_error, &wait_dataaccept);
     /* Should goto disconnect here ? */

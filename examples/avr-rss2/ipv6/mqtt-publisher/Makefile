@@ -3,7 +3,7 @@ CONTIKI=../../../..
 
 all: mqtt-publisher
 
-#MQTT=false
+MQTT=false
 MQTT=true
 
 CONTIKI_WITH_IPV6 = 1
@@ -22,7 +22,7 @@ RADIO_MODULE=sim7020
 #RADIO_MODULE=a6
 
 # Set to true for sockets with TCP/IPv4 stack on radio module
-#RADIO_SOCKETS=false
+RADIO_SOCKETS=false
 RADIO_SOCKETS=true
 
 # Set to true for IPv6 tunnel over TCP/IPv4 (experimental)
@@ -34,6 +34,10 @@ RADIO_6TO4=false
 # Set to true for 6to4 with IPv4/PPP/cellular
 RADIO_PPP=false
 #RADIO_PPP=true
+
+# Set to true to enable power save mode on radio module
+RADIO_PSM_ENABLE=false
+RADIO_PSM_ENABLE=true
 
 # Set to true for RPL root with uplink
 RPL_BORDER_ROUTER=false
@@ -86,6 +90,9 @@ ifeq ($(RADIO_MODULE),sim7020)
 PROJECT_OBJECTFILES +=  nbiot-sim7020.o nbiot-sim7020-arch.o
 MODULES += dev/nbiot-sim7020
 CFLAGS += -DNBIOT
+ifeq ($(RADIO_PSM_ENABLE),true)
+CFLAGS += -DSIM7020_PSM_ENABLE
+endif #RADIO_PSM_ENABLE
 
 else ifeq ($(RADIO_MODULE),a6)
 PROJECT_OBJECTFILES +=  gprs-a6.o gprs-a6-arch.o sc16is-common.o 
@@ -103,6 +110,13 @@ CFLAGS += -DMQTT_AT_RADIO
 endif # RADIO_MODULE
 CFLAGS += -DMQTT_CLIENT
 MODULES += apps/mqtt
+ifeq ($(RADIO_PSM_ENABLE),true)
+# Disconnect TCP after each publish
+CFLAGS += -DMQTT_PUBLISH_DISCONNECT
+# QOS = 1 to receive PUBACK confirmation 
+CFLAGS += -DMQTT_QOS_LEVEL=MQTT_QOS_LEVEL_1
+endif #RADIO_PSM_ENABLE
+
 else
 PROJECT_OBJECTFILES += tcpdummy.o
 endif
@@ -123,5 +137,10 @@ MODULES += dev/sc16is
 CUSTOM_RULE_LINK = 1
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 
 	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ $(CLIBS)
+
+DATESTR:=${shell date "+%y-%m-%d% %H:%M"}
+BRANCHSTR:=${shell git symbolic-ref --short HEAD}
+buildstring.h:
+	echo \#define BUILDSTRING \"$(TARGET)/$(BRANCHSTR)/$(RELSTR)/$(DATESTR) >$@
 
 include $(CONTIKI)/Makefile.include

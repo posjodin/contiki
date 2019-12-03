@@ -272,30 +272,7 @@ tcp_socket_at_radio_connect(struct tcp_socket_at_radio *s,
                    const uip_ipaddr_t *ipaddr,
                    uint16_t port)
 {
-  char hoststr[sizeof("255.255.255.255")];
-  uint8_t *hip4;
-  
-  hip4 = ((uint8_t *) ipaddr)+12;
-  snprintf(hoststr, sizeof(hoststr), "%u.%u.%u.%u", hip4[0], hip4[1], hip4[2], hip4[3]); 
   return at_radio_connection(s->g_c, "TCP", ipaddr, uip_htons(port)) != NULL;
-  return tcp_socket_at_radio_connect_strhost(s, hoststr, port);
-  return -1;  /* Not supported for hprs */
-  /* Convert ipaddr to string and call tcp_socket_at_radio_connect_strhost() */
-  if(s == NULL) {
-    return -1;
-  }
-#if 0
-  if(s->c != NULL) {
-    tcp_markconn(s->c, NULL);
-  }
-#endif
-
-  s->c = tcp_connect(ipaddr, uip_htons(port), s);
-  if(s->c == NULL) {
-    return -1;
-  } else {
-    return 1;
-  }
 }
 /*---------------------------------------------------------------------------*/
 int
