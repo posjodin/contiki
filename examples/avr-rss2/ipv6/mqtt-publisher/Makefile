@@ -133,6 +133,7 @@ CONTIKI=../../../..
 MODULES += dev/bme280
 MODULES += dev/pms5003
 MODULES += dev/sc16is
+MODULES += dev/sht2x
 
 CUSTOM_RULE_LINK = 1
 %.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a buildstring.h

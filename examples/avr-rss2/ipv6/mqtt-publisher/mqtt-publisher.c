@@ -65,6 +65,7 @@
 #include "dev/pms5003/pms5003-sensor.h"
 #include "i2c.h"
 #include "dev/bme280/bme280-sensor.h"
+#include "dev/sht2x/sht2x.h"
 #include "dev/serial-line.h"
 #include "watchdog.h"
 #ifndef RF230_DEBUG
@@ -238,6 +239,9 @@ PROCESS_THREAD(mqtt_demo_process, ev, data)
   SENSORS_ACTIVATE(pms5003_sensor);
   if( i2c_probed & I2C_BME280 ) {
     SENSORS_ACTIVATE(bme280_sensor);
+  }
+  if( i2c_probed & I2C_SHT2X ) {
+    SENSORS_ACTIVATE(sht2x_sensor);
   }
 
 #if RF230_DEBUG

@@ -69,6 +69,7 @@
 #include "dev/pms5003/pms5003-sensor.h"
 #include "i2c.h"
 #include "dev/bme280/bme280-sensor.h"
+#include "dev/sht2x/sht2x.h"
 #include "dev/serial-line.h"
 #include "watchdog.h"
 #ifndef RF230_DEBUG
@@ -721,6 +722,11 @@ publish_sensors(void)
 #else
     PUTFMT(",{\"n\":\"bme280;pressure\",\"u\":\"hPa\",\"v\":%4.2f}", (double)bme280_mea.p);
 #endif
+  }
+
+  if( i2c_probed & I2C_SHT2X ) {
+    PUTFMT(",{\"n\":\"sht2x;temp\",\"u\":\"Cel\",\"v\":%d}", sht2x_sensor.value(0));
+    PUTFMT(",{\"n\":\"sht2x;humidity\",\"u\":\"%%RH\",\"v\":%d}", sht2x_sensor.value(1));
   }
 
 #ifdef MQTT_AT_RADIO
