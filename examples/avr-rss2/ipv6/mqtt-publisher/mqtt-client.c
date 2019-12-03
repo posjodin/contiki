@@ -964,11 +964,43 @@ publish_cca_test(void)
                strlen(app_buffer), MQTT_QOS_LEVEL, MQTT_RETAIN_OFF);
 }
 
+#include "buildstring.h"
+static void
+publish_build(void)
+{
+
+  int len;
+  int remaining = APP_BUFFER_SIZE;
+  char *topic;
+  
+  buf_ptr = app_buffer;
+
+  seq_nr_value++;
+
+  topic = construct_topic("build");
+  /* Use device URN as base name -- draft-arkko-core-dev-urn-03 */
+  PUTFMT("[{\"bn\":\"urn:dev:mac:%s;\"", node_id);
+  PUTFMT(",\"bu\":\"count\"");
+  PUTFMT(",\"bt\":%lu}", clock_seconds());
+  PUTFMT(",{\"n\":\"build\",\"vs\":\"%s\"}", BUILDSTRING);
+  PUTFMT("]");
+  printf("Publish builid\n");
+  printf("%s\n", app_buffer);
+  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
+               strlen(app_buffer), MQTT_QOS_LEVEL, MQTT_RETAIN_OFF);
+}
+
 static void
 publish(void)
 {
+  static uint8_t did_once = 0;
+  
   if (pub_now_message)
     publish_now();
+  else if (did_once == 0) {
+    publish_build();
+    did_once = 1;
+  }
   else if ((seq_nr_value % PUBLISH_STATS_INTERVAL) == 2)
     publish_stats();
   else if (((seq_nr_value % PUBLISH_STATS_INTERVAL) == 6) && (lc.cca_test)) {

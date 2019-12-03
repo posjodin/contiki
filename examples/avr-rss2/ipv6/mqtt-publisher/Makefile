@@ -37,7 +37,7 @@ RADIO_PPP=false
 
 # Set to true to enable power save mode on radio module
 RADIO_PSM_ENABLE=false
-RADIO_PSM_ENABLE=true
+#RADIO_PSM_ENABLE=true
 
 # Set to true for RPL root with uplink
 RPL_BORDER_ROUTER=false
@@ -135,12 +135,14 @@ MODULES += dev/pms5003
 MODULES += dev/sc16is
 
 CUSTOM_RULE_LINK = 1
-%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a 
+%.$(TARGET): %.co $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) contiki-$(TARGET).a buildstring.h
 	$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} ${filter %.a,$^} $(TARGET_LIBFILES) -o $@ $(CLIBS)
 
 DATESTR:=${shell date "+%y-%m-%d% %H:%M"}
 BRANCHSTR:=${shell git symbolic-ref --short HEAD}
-buildstring.h:
-	echo \#define BUILDSTRING \"$(TARGET)/$(BRANCHSTR)/$(RELSTR)/$(DATESTR) >$@
+buildstring.h: ALWAYS
+	echo \#define BUILDSTRING \"$(TARGET)/$(BRANCHSTR)/$(RELSTR)/$(DATESTR)\" >$@
+.PHONY: ALWAYS
+ALWAYS:
 
 include $(CONTIKI)/Makefile.include
