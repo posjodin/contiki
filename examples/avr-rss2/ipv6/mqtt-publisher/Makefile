@@ -36,8 +36,8 @@ RADIO_PPP=false
 #RADIO_PPP=true
 
 # Set to true to enable power save mode on radio module
-RADIO_PSM_ENABLE=false
-#RADIO_PSM_ENABLE=true
+#RADIO_PSM_ENABLE=false
+RADIO_PSM_ENABLE=true
 
 # Set to true for RPL root with uplink
 RPL_BORDER_ROUTER=false
