@@ -396,6 +396,9 @@ advance_cycle_start(void)
   cycle_start += CYCLE_TIME;
 }
 /*---------------------------------------------------------------------------*/
+
+uint8_t mcu_sleep_disable; 
+
 static char
 powercycle(struct rtimer *t, void *ptr)
 {
@@ -502,8 +505,8 @@ powercycle(struct rtimer *t, void *ptr)
 #if RDC_CONF_MCU_SLEEP
 
       static uint8_t sleepcycle;
-      if((sleepcycle++ < 16) && !we_are_sending && !radio_is_on) {
-        rtimer_arch_sleep(RTIMER_NOW() - cycle_start);
+      if( !mcu_sleep_disable && (sleepcycle++ < 16) && !we_are_sending && !radio_is_on) {
+       rtimer_arch_sleep(RTIMER_NOW() - cycle_start);
       } else {
         sleepcycle = 0;
         schedule_powercycle_fixed(t, cycle_start);

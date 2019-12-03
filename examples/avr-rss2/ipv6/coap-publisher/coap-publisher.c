@@ -55,6 +55,9 @@
 #include "dev/pms5003/pms5003.h"
 #include "dev/pms5003/pms5003-sensor.h"
 #include "dev/light-sensor.h"
+#include "mcu_sleep.h"
+#include "apps/no2/no2.h"
+#include "no2-arch.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -80,8 +83,12 @@
 PROCESS(coap_client, "CoAP publisher client");
 AUTOSTART_PROCESSES(&coap_client);
 
+extern struct process mcu_sleep_process;
+
 static broker_t broker;
-static client_topic_t topic_dir, topic_bme, topic_pm, topic_light;
+static client_topic_t topic_dir, topic_bme, topic_pm, topic_light, topic_seconds;
+static client_topic_t topic_mcu_sleep, topic_bootcause, topic_no2;
+
 static uint8_t content_buffer[128];
 static struct etimer publish_timer;
 static char *buf_ptr;
@@ -93,6 +100,8 @@ PROCESS_THREAD(coap_client, ev, data)
   int i, len, remaining = 0;
 
   PROCESS_BEGIN();
+
+  process_start(&mcu_sleep_process, NULL);
 
   if(i2c_probed & I2C_BME280 ) {
     SENSORS_ACTIVATE(bme280_sensor);
@@ -109,6 +118,10 @@ PROCESS_THREAD(coap_client, ev, data)
   topic_bme.broker = &broker;
   topic_pm.broker = &broker;
   topic_light.broker = &broker;
+  topic_mcu_sleep.broker = &broker;
+  topic_seconds.broker = &broker;
+  topic_bootcause.broker = &broker;
+  topic_no2.broker = &broker;
 
   broker.port = UIP_HTONS(COAP_DEFAULT_PORT);
 
@@ -121,15 +134,35 @@ PROCESS_THREAD(coap_client, ev, data)
 
   topic_bme.content_type = 0;
   topic_bme.content = (uint8_t *)&content_buffer;
-  topic_bme.max_age = COAP_MAX_AGE;
+  topic_bme.max_age = COAP_MAX_AGE*4;
 
   topic_pm.content_type = 0;
   topic_pm.content = (uint8_t *)&content_buffer;
-  topic_pm.max_age = COAP_MAX_AGE;
+  topic_pm.max_age = COAP_MAX_AGE*4;
 
   topic_light.content_type = 0;
   topic_light.content = (uint8_t *)&content_buffer;
-  topic_light.max_age = COAP_MAX_AGE;
+  topic_light.max_age = COAP_MAX_AGE*4;
+
+  topic_mcu_sleep.content_type = 0;
+  topic_mcu_sleep.content = (uint8_t *)&content_buffer;
+  topic_mcu_sleep.max_age = COAP_MAX_AGE*4;
+
+  topic_seconds.content_type = 0;
+  topic_seconds.content = (uint8_t *)&content_buffer;
+  topic_seconds.max_age = COAP_MAX_AGE*4;
+
+  topic_bootcause.content_type = 0;
+  topic_bootcause.content = (uint8_t *)&content_buffer;
+  topic_bootcause.max_age = COAP_MAX_AGE*4;
+
+  topic_no2.content_type = 0;
+  topic_no2.content = (uint8_t *)&content_buffer;
+  topic_no2.max_age = COAP_MAX_AGE*4;
+
+  topic_light.content_type = 0;
+  topic_light.content = (uint8_t *)&content_buffer;
+  topic_light.max_age = COAP_MAX_AGE/2;
 
   for(i = 0; i < 8; i++) {
     sprintf(((char *)&topic_dir.url) + 2 * i * sizeof(char), "%02x", uip_lladdr.addr[i]);
@@ -137,10 +170,27 @@ PROCESS_THREAD(coap_client, ev, data)
   strncat((char *)&topic_dir.url, "/", 1);
   PRINTF("Node-ID=%s\n", topic_dir.url);
 
+  strcpy(topic_seconds.url, topic_dir.url);
+  sprintf(((char *)&topic_seconds.url) + strlen(topic_dir.url) * sizeof(char), "seconds/");
+  PRINTF("seconds topic url = %s\n", topic_seconds.url);
+
   strcpy(topic_light.url, topic_dir.url);
   sprintf(((char *)&topic_light.url) + strlen(topic_dir.url) * sizeof(char), "light/");
   PRINTF("light topic url = %s\n", topic_light.url);
 
+  strcpy(topic_mcu_sleep.url, topic_dir.url);
+  sprintf(((char *)&topic_mcu_sleep.url) + strlen(topic_dir.url) * sizeof(char), "mcu_sleep/");
+  PRINTF("mcu_sleep topic url = %s\n", topic_mcu_sleep.url);
+
+  strcpy(topic_bootcause.url, topic_dir.url);
+  sprintf(((char *)&topic_bootcause.url) + strlen(topic_dir.url) * sizeof(char), "bootcause/");
+  PRINTF("bootcause topic url = %s\n", topic_bootcause.url);
+
+  strcpy(topic_no2.url, topic_dir.url);
+  sprintf(((char *)&topic_no2.url) + strlen(topic_dir.url) * sizeof(char), "no2/");
+  PRINTF("no2 topic url = %s\n", topic_no2.url);
+
+  
   if(i2c_probed & I2C_BME280 ) {
     strcpy(topic_bme.url, topic_dir.url);
     sprintf(((char *)&topic_bme.url) + strlen(topic_dir.url) * sizeof(char), "T_RH_P/");
@@ -188,10 +238,39 @@ PROCESS_THREAD(coap_client, ev, data)
 	  if(topic_dir.last_response_code == CREATED_2_01 
 	     || topic_dir.last_response_code == FORBIDDEN_4_03){
 	    
+	    COAP_PUBSUB_CREATE(&topic_seconds);
+	    PRINTF("CREATE %s, return code %d\n", topic_seconds.url, topic_seconds.last_response_code);
+	    if(topic_seconds.last_response_code == CREATED_2_01 
+	       || topic_seconds.last_response_code == FORBIDDEN_4_03){
+	      found_broker = 1;
+	    }
+
 	    COAP_PUBSUB_CREATE(&topic_light);
 	    PRINTF("CREATE %s, return code %d\n", topic_light.url, topic_light.last_response_code);
 	    if(topic_light.last_response_code == CREATED_2_01 
 	       || topic_light.last_response_code == FORBIDDEN_4_03){
+
+	      found_broker = 1;
+	    }
+
+	    COAP_PUBSUB_CREATE(&topic_mcu_sleep);
+	    PRINTF("CREATE %s, return code %d\n", topic_mcu_sleep.url, topic_mcu_sleep.last_response_code);
+	    if(topic_mcu_sleep.last_response_code == CREATED_2_01 
+	       || topic_mcu_sleep.last_response_code == FORBIDDEN_4_03){
+	      found_broker = 1;
+	    }
+
+	    COAP_PUBSUB_CREATE(&topic_bootcause);
+	    PRINTF("CREATE %s, return code %d\n", topic_bootcause.url, topic_bootcause.last_response_code);
+	    if(topic_bootcause.last_response_code == CREATED_2_01 
+	       || topic_bootcause.last_response_code == FORBIDDEN_4_03){
+	      found_broker = 1;
+	    }
+	    
+	    COAP_PUBSUB_CREATE(&topic_no2);
+	    PRINTF("CREATE %s, return code %d\n", topic_no2.url, topic_no2.last_response_code);
+	    if(topic_no2.last_response_code == CREATED_2_01 
+	       || topic_no2.last_response_code == FORBIDDEN_4_03){
 	      found_broker = 1;
 	    }
 
@@ -217,16 +296,67 @@ PROCESS_THREAD(coap_client, ev, data)
       }
 
       else {
+
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_seconds.content;
+	PUTFMT("%-lu ",  clock_seconds())
+	topic_seconds.content_len = strlen((char *)topic_seconds.content); 
+	PRINTF("PUBLISH SECONDS value %s, len %u\n", topic_seconds.content, topic_seconds.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_seconds);
+	PRINTF("PUBLISH finished, return code %d\n", topic_seconds.last_response_code );
+	if(topic_seconds.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic SECONDS!\n");
+	  found_broker = 0;
+	}
+
 	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
 	buf_ptr = (char *) topic_light.content;
 	PUTFMT("%-u ",  light_sensor.value(0));
-
 	topic_light.content_len = strlen((char *)topic_light.content); 
 	PRINTF("PUBLISH LIGHT value %s, len %u\n", topic_light.content, topic_light.content_len);
 	COAP_PUBSUB_PUBLISH(&topic_light);
 	PRINTF("PUBLISH finished, return code %d\n", topic_light.last_response_code );
 	if(topic_light.last_response_code == NOT_FOUND_4_04){
 	  PRINTF("No topic LIGHT!\n");
+	  found_broker = 0;
+	}
+
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_mcu_sleep.content;
+	PUTFMT("%lu ",  mcu_sleep);
+	topic_mcu_sleep.content_len = strlen((char *)topic_mcu_sleep.content); 
+	PRINTF("PUBLISH MCU_SLEEP value %s, len %u\n", topic_mcu_sleep.content, topic_mcu_sleep.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_mcu_sleep);
+	PRINTF("PUBLISH finished, return code %d\n", topic_mcu_sleep.last_response_code );
+	if(topic_mcu_sleep.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic MCU_SLEEP!\n");
+	  found_broker = 0;
+	}
+
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_bootcause.content;
+	PUTFMT("%u ",  GPIOR0);
+	topic_bootcause.content_len = strlen((char *)topic_bootcause.content); 
+	PRINTF("PUBLISH BOOTCAUSE value %s, len %u\n", topic_bootcause.content, topic_bootcause.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_bootcause);
+	PRINTF("PUBLISH finished, return code %d\n", topic_bootcause.last_response_code );
+	if(topic_bootcause.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic BOOTCAUSE!\n");
+	  found_broker = 0;
+	}
+
+	remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
+	buf_ptr = (char *) topic_no2.content;
+	{
+	  double ppb =  no2(no2_sen_2);
+	  PUTFMT("%-5.0f %-5.0f", ppb, ppb2ugm3(ppb, NO2_MW, no2_temp()));
+	}
+	topic_no2.content_len = strlen((char *)topic_no2.content); 
+	PRINTF("PUBLISH NO2 value %s, len %u\n", topic_no2.content, topic_no2.content_len);
+	COAP_PUBSUB_PUBLISH(&topic_no2);
+	PRINTF("PUBLISH finished, return code %d\n", topic_no2.last_response_code );
+	if(topic_no2.last_response_code == NOT_FOUND_4_04){
+	  PRINTF("No topic NO2!\n");
 	  found_broker = 0;
 	}
 
@@ -249,10 +379,16 @@ PROCESS_THREAD(coap_client, ev, data)
 	  }
 	}
 	else if (i2c_probed & I2C_BME280) {
+
+
 	  remaining = COAP_PUBSUB_MAX_CREATE_MESSAGE_LEN;
 	  buf_ptr = (char *) topic_bme.content;
 	  /* Trigger burst read */
+
+	  MCU_SLEEP_DISABLE();
 	  bme280_sensor.value(BME280_SENSOR_TEMP);
+	  MCU_SLEEP_ENABLE();
+	  
 	  PUTFMT("%-5.2f ", (double)bme280_mea.t_overscale100 / 100.);
 	  PUTFMT("%-5.2f ", (double)bme280_mea.h_overscale1024 / 1024.);
 	  PUTFMT("%-5.0f ", (double)bme280_mea.p_overscale256 / 256.);

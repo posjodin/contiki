@@ -45,6 +45,8 @@
 /* #define BME280_32BIT */
 /* #define BME280_CONF_ADDR              (0x77 << 1)  Alternative 0x76 */
 
+#define BME280_CONF_ADDR              (0x76 << 1) 
+
 #define NETSTACK_CONF_RDC nullrdc_driver
 #define NETSTACK_CONF_MAC nullmac_driver
 

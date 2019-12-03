@@ -1585,6 +1585,7 @@ rf230_on(void)
     return 1;
   }
 
+  rf230_set_rpc(0xFF); /* Enable all RPC features. Only XRFR2 radios */
   radio_on();
   return 1;
 }
@@ -2302,7 +2303,7 @@ extern unsigned char tmp[16];
   Note! Radio must be on to use the HW crypto engine. --ro
 */
 
-static void
+void
 rf230_aes_write_key(unsigned char *key)
 {
   uint8_t i;
@@ -2367,7 +2368,8 @@ rf230_aes_encrypt_cbc(unsigned char *key, unsigned char *plain, int len, unsigne
 
   sreg = SREG;
   cli();
-  rf230_aes_write_key(key);
+  if(key)
+    rf230_aes_write_key(key);
   hal_subregister_write(SR_AES_CNTRL_MODE, 0); /* AES_MODE=0 -> ECB  for 1:st block*/
   hal_subregister_write(SR_AES_CNTRL_DIR, 0); /* AES_DIR=0 -> encryption */
 
@@ -2402,14 +2404,15 @@ out:
 
 /* Electonic Code Block */
 int
-rf230_aes_encrypt_ebc(unsigned char *key, unsigned char *plain, unsigned char *cipher)
+rf230_aes_encrypt_ecb(unsigned char *key, unsigned char *plain, unsigned char *cipher)
 {
   int res;
   uint8_t sreg;
 
   sreg = SREG;
   cli();
-  rf230_aes_write_key(key);
+  if(key)
+    rf230_aes_write_key(key);
   hal_subregister_write(SR_AES_CNTRL_MODE, 0); /* AES_MODE=0 -> ECB  for 1:st block*/
   hal_subregister_write(SR_AES_CNTRL_DIR, 0); /* AES_DIR=0 -> encryption */
   rf230_aes_write_state(plain);   /* write string to encrypt into buffer */
@@ -2424,7 +2427,7 @@ out:
 }
 
 int
-rf230_aes_decrypt_ebc(unsigned char *key, unsigned char *cipher, unsigned char *plain)
+rf230_aes_decrypt_ecb(unsigned char *key, unsigned char *plain, unsigned char *cipher)
 {
   int res;
   uint8_t sreg;
@@ -2436,7 +2439,8 @@ rf230_aes_decrypt_ebc(unsigned char *key, unsigned char *cipher, unsigned char *
   sreg = SREG;
   cli();
 
-  rf230_aes_write_key(key);
+  if(key)
+    rf230_aes_write_key(key);
   hal_subregister_write(SR_AES_CNTRL_MODE, 0); /* AES_MODE=0 -> ECB  for 1:st block*/
   hal_subregister_write(SR_AES_CNTRL_DIR, 0); /* AES_DIR=0 -> encryption */
   memset(tmp, 0, sizeof(tmp)); /* Setup for last round */

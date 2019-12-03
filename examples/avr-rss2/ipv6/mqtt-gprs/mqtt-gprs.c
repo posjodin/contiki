@@ -70,6 +70,7 @@
 #include "dev/pms5003/pms5003-sensor.h"
 #include "i2c.h"
 #include "dev/bme280/bme280-sensor.h"
+#include "dev/sht2x/sht2x.h"
 #include "dev/serial-line.h"
 #include "watchdog.h"
 #ifndef RF230_DEBUG
@@ -780,14 +781,17 @@ publish_sensors(void)
   if( i2c_probed & I2C_BME280 ) {
     bme280_sensor.value(BME280_SENSOR_TEMP);
     PUTFMT(",{\"n\":\"bme280;temp\",\"u\":\"Cel\",\"v\":%4.2f}", (double)bme280_mea.t_overscale100/100.0);
-    PUTFMT(",{\"n\":\"bme280;humidity\",\"u\":\"%%RH\",\"v\":%4.2f}", (double)bme280_mea.h_overscale1024 / 1024.0);
+    //    PUTFMT(",{\"n\":\"bme280;humidity\",\"u\":\"%%RH\",\"v\":%4.2f}", (double)bme280_mea.h_overscale1024 / 1024.0);
 #ifdef BME280_64BIT
     PUTFMT(",{\"n\":\"bme280;pressure\",\"u\":\"hPa\",\"v\":%4.2f}", (double)bme280_mea.p_overscale256/ (256.0*100));
 #else
     PUTFMT(",{\"n\":\"bme280;pressure\",\"u\":\"hPa\",\"v\":%4.2f}", (double)bme280_mea.p);
 #endif
   }
-
+  if( i2c_probed & I2C_SHT2X ) {
+    PUTFMT(",{\"n\":\"sht25;temp\",\"u\":\"Cel\",\"v\":%4.2f}", ((double)sht2x_sensor.value(0))/100);
+    PUTFMT(",{\"n\":\"sht25;humidity\",\"u\":\"%%RH\",\"v\":%4.2f}", ((double)sht2x_sensor.value(1))/10);
+  }
 #ifdef MQTT_GPRS
   {
     struct gprs_status *status;

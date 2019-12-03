@@ -6,12 +6,16 @@ CONTIKI_TARGET_SOURCEFILES += contiki-main.c params.c battery-sensor.c i2c.c
 
 CONTIKI_TARGET_SOURCEFILES += button-sensor.c slip_uart0.c slip.c leds.c temp_mcu-sensor.c light-sensor.c adc.c cfs-eeprom.c eeprom.c pulse-sensor.c
 
+
+CONTIKI_TARGET_SOURCEFILES += mbus-arch.c
+
 CONTIKI_TARGET_SOURCEFILES += temp-sensor.c
 
 CONTIKI_TARGET_SOURCEFILES += enc28j60_avr.c
 CONTIKI_TARGET_SOURCEFILES += co2_sa_kxx-sensor.c
 CONTIKI_TARGET_SOURCEFILES += bme280-arch.c
 CONTIKI_TARGET_SOURCEFILES += bme680-arch.c
+CONTIKI_TARGET_SOURCEFILES += sht2x-arch.c
 
 #CONTIKI_TARGET_SOURCEFILES += pms5003.c pms5003-sensor.c
 CONTIKI_TARGET_SOURCEFILES += pms5003-arch.c
@@ -66,7 +70,4 @@ include $(CONTIKIAVR)/radio/Makefile.radio
 
 #MODULES += core/net/mac core/net core/net/mac/sicslowmac core/net/mac/contikimac core/net/llsec core/net/rime
 
-MODULES += core/net/mac core/net core/net/mac/sicslowmac core/net/mac/contikimac core/net/llsec 
-
-
-
+MODULES += core/net/mac core/net core/net/mac/sicslowmac core/net/mac/contikimac core/net/llsec
