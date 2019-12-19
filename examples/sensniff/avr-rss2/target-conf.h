@@ -33,7 +33,7 @@
 #define TARGET_CONF_H_
 /*---------------------------------------------------------------------------*/
 #define SENSNIFF_IO_DRIVER_H "avr-rss2/avr-rss2-io.h"
-#define RS232_BAUDRATE USART_BAUD_500000
+#define USART0_CONF_BAUD_RATE USART_BAUD_500000
 #define PERIODICPRINTS 0
 /*---------------------------------------------------------------------------*/
 #endif /* TARGET_CONF_H_ */
