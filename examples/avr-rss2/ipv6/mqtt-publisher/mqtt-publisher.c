@@ -97,14 +97,14 @@ PROCESS_NAME(mqtt_client_process);
 #endif /* MQTT_CLIENT */
 
 PROCESS_NAME(tcp_dummy_process);
-
+PROCESS_NAME(eestats);
 PROCESS(serial_in, "cli input process");
 PROCESS(mqtt_demo_process, "MQTT Demo");
 
 #if defined(MQTT) && defined(MQTT_WATCHDOG)
-AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process, &serial_in);
+AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process, &serial_in, &eestats);
 #else
-AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process);
+AUTOSTART_PROCESSES(&mqtt_demo_process, &sensors_process, &eestats);
 #endif
 //SENSORS(&button_sensor, &pms5003_sensor);
 

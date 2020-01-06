@@ -631,6 +631,8 @@ init_config()
 #else
   conf.pub_interval = DEFAULT_PUBLISH_INTERVAL;
 #endif /* MQTT_CONF_PUBLISH_INTERVAL */
+  conf.pub_interval = 10*CLOCK_SECOND;
+
 #ifdef MQTT_CONF_KEEP_ALIVE_TIMER
   conf.keep_alive_timer = MQTT_CONF_KEEP_ALIVE_TIMER;
 #else
@@ -738,11 +740,12 @@ publish_sensors(void)
       lb += (status->rssi)*2;  /* In dBm acording to A6/A7 datasheet */
     PUTFMT(",{\"n\":\"at_radio;linkbudget\",\"v\":%d}", lb);
   }
-#endif
-
   {
     PUTFMT(",{\"n\":\"at_radio;linkbudget\",\"u\":\"dBm\",\"v\":%d}", sim7020_rssi_to_dbm(status.rssi));
   }
+
+#endif
+
   
   PUTFMT("]");
 
@@ -971,6 +974,7 @@ publish_cca_test(void)
 }
 
 #include "buildstring.h"
+extern uint16_t bootcount;
 static void
 publish_build(void)
 {
@@ -989,6 +993,8 @@ publish_build(void)
   PUTFMT(",\"bu\":\"count\"");
   PUTFMT(",\"bt\":%lu}", clock_seconds());
   PUTFMT(",{\"n\":\"build\",\"vs\":\"%s\"}", BUILDSTRING);
+  PUTFMT(",{\"n\":\"bootcount\",\"v\":%u}", bootcount);
+  PUTFMT(",{\"n\":\"bootcause\",\"v\":\"%02x\"}", GPIOR0);
   PUTFMT("]");
   printf("Publish builid\n");
   printf("%s\n", app_buffer);
@@ -1017,6 +1023,9 @@ publish(void)
     //publish_stats();
     publish_sensors();
   mqtt_stats.published++;
+  if (conf.pub_interval < 600L*CLOCK_SECOND) {
+    conf.pub_interval = conf.pub_interval << 1;
+  }
 }
 /*---------------------------------------------------------------------------*/
 static void
