@@ -510,13 +510,13 @@ main(void)
         leds_off(LEDS_RED);
       }
     }
+    else leds_off(LEDS_RED);
+
     if(ledtimer_yellow) {
       if(--ledtimer_yellow == 0) {
         leds_off(LEDS_YELLOW);
       }
-    }
-    leds_off(LEDS_RED);
-    leds_off(LEDS_YELLOW);
+    } else leds_off(LEDS_YELLOW);
 
 #if 0
 /* Various entry points for debugging in the AVR Studio simulator.
