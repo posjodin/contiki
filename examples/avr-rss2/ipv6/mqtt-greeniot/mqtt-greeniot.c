@@ -743,6 +743,12 @@ publish_sensors(void)
   PUTFMT(",\"bt\":%lu}", clock_seconds());
   PUTFMT(",{\"n\":\"seq_no\",\"u\":\"count\",\"v\":%d}", seq_nr_value);
 
+#ifdef RD3024
+  /* Pulse count */
+  PUTFMT(",{\"n\":\"gamma-cnt\",\"u\":\"count\",\"v\":%d}",  pulse_sensor.value(0));
+  PUTFMT(",{\"n\":\"gamma-radiation\",\"u\":\"uSv/h\",\"v\":%-5.2f}", ((double) ppm[0])/6.);
+#endif
+
 #ifdef CO2
   PUTFMT(",{\"n\":\"co2\",\"u\":\"ppm\",\"v\":%d}", co2_sa_kxx_sensor.value(CO2_SA_KXX_CO2));
 #endif
