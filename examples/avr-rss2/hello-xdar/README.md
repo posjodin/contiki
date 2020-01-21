@@ -14,6 +14,19 @@ setup and trigger. Reads need timeout.
 Seems like the HW needs power-cycle despite the
 RESET.
 
+Exampel:
+
+Dist=   27 Signal= 2612 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2611 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2619 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2616 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2615 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2615 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2611 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2619 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2616 Temp=31 ext_trigger=0
+Dist=   27 Signal= 2612 Temp=31 ext_trigger=0
+
 
 Build
 -----

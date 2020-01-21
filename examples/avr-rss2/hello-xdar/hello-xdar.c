@@ -51,9 +51,9 @@ AUTOSTART_PROCESSES(&hello_xdar_process);
 
 #define DEBUG 0
 
-static struct etimer et, ez;
+static struct etimer et;
 
-int ext_trigger = 1;
+int ext_trigger = 0;
 
 unsigned char
 csum(unsigned char *in, unsigned char len) 
@@ -144,7 +144,6 @@ static void
 trigger(void)
 {
   uint8_t buf[9];
-  int i;
 
   buf[0] = 0x42;
   buf[1] = 0x57;
@@ -154,7 +153,7 @@ trigger(void)
   buf[5] = 0x00;
   buf[6] = 0x00;
   buf[7] = 0x41;
-  i = usart1_tx(buf, 8);
+  usart1_tx(buf, 8);
   clock_delay_usec(10000);
 }
 
@@ -162,7 +161,7 @@ static void
 read_values(void)
 {
   uint8_t crc, mode, buf[9];
-  uint16_t signal = 0, dist = 0;
+  uint16_t signal = 0, dist = 0, temp = 0;
   int i;
 
   if(ext_trigger) {
@@ -178,9 +177,9 @@ read_values(void)
     if( usart1_rx(&buf[i], 1) != 1)
       return;
 
-    if(i == 0 && buf[i] != 0x59)
+    if((i == 0) && buf[i] != 0x59)
       return;
-    if(i == 1 && buf[i] != 0x59)
+    if((i == 1) && buf[i] != 0x59)
       return;
   }
   
@@ -191,11 +190,18 @@ read_values(void)
 
   if(crc != csum((uint8_t *)&buf, 8))
     return;
-    
-  printf("Dist=%-5u Signal=%-5u Mode=%-2u ext_trigger=%-d\n",
-	 dist, signal, mode, ext_trigger);
-}
 
+
+  if(buf[7] == 0) {
+    mode = buf[6];
+    printf("Dist=%5u Signal=%5u Mode=%-2u ext_trigger=%-d\n", dist, signal, mode, ext_trigger);
+  }
+  else {
+    temp = buf[6] + buf[7]*256;
+    temp = temp/8 -256;
+    printf("Dist=%5u Signal=%5u Temp=%-d ext_trigger=%-d\n", dist, signal, temp, ext_trigger);
+  }
+}
 
 PROCESS_THREAD(hello_xdar_process, ev, data)
 {
