@@ -88,7 +88,16 @@ You might also consider Instant Contiki.
 
 Toolchain Windows
 -----------------
-Goes here
+MIT has an updated instruction. You need to be root.
+http://fab.cba.mit.edu/classes/863.16/doc/projects/ftsmin/windows_avr.html
+
+Microchip repo:
+---------------
+https://www.microchip.com/mplab/avr-support/avr-and-arm-toolchains-c-compilers
+
+avrdude programming tool
+------------------------
+http://download.savannah.gnu.org/releases/avrdude/
 
 
 Contiki platform
