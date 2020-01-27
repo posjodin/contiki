@@ -199,7 +199,32 @@ i2c_at24mac_read(char *buf, uint8_t eui64)
     i2c_read_mem(I2C_AT24MAC_ADDR, 0x80, (uint8_t *)buf, 16);
   }
 }
-
+void
+i2c_write_mem_buf(uint8_t addr, uint8_t buf[], uint8_t bytes)
+{
+  uint8_t i = 0;
+  i2c_start(addr | I2C_WRITE);
+  i2c_readAck();
+  for(i = 0; i < bytes; i++) {
+      i2c_write(buf[i]);
+      i2c_readAck();
+  }
+  i2c_stop();
+}
+void
+i2c_read_mem_buf(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes)
+{
+  uint8_t i = 0;
+  i2c_start(addr | I2C_READ);
+  for(i = 0; i < bytes; i++) {
+    if(i == bytes - 1) {
+      buf[i] = i2c_readNak();
+    } else {
+      buf[i] = i2c_readAck();
+    }
+  }
+  i2c_stop();
+}
 uint16_t
 i2c_probe(void)
 {
@@ -261,6 +286,10 @@ i2c_probe(void)
     probed |= I2C_ATECC608A;
     print_delim(p++, "ATECC608A", del);
   }
-
+  if(!i2c_start(I2C_PM2105_ADDR)) {
+     i2c_stop();
+     probed |= I2C_PM2105;
+     print_delim(p++, "PM2105", del);
+  }
   return probed;
 }

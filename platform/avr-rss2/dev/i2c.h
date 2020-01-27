@@ -46,6 +46,7 @@
 #define I2C_BME280_ADDR   BME280_ADDR
 #define I2C_BME680_ADDR   I2C_BME280_ADDR
 #define I2C_PMS5003_ADDR  (0x12 << 1) /* PM sensor */
+#define I2C_PM2105_ADDR   (0x28<<1) /* PM2105 sensor */
 #define I2C_MCP342X_ADDR  (0x68<<1)
 //#define I2C_SC16IS_ADDR    (0x9A) /* A0 & A1 to GND */
 /* Here we define a enumration for devices */
@@ -58,6 +59,7 @@
 #define I2C_SC16IS        (uint16_t) ((uint16_t) 1<<6)
 #define I2C_MCP342X       (uint16_t) ((uint16_t) 1<<7)
 #define I2C_ATECC608A     (uint16_t) ((uint16_t) 1<<8)
+#define I2C_PM2105        (uint16_t) ((uint16_t) 1<<9)
 
 #define I2C_READ    1
 #define I2C_WRITE   0
@@ -74,5 +76,7 @@ uint16_t i2c_probe(void);
 void i2c_read_mem(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes);
 void i2c_write_mem(uint8_t addr, uint8_t reg, uint8_t value);
 void i2c_at24mac_read(char *buf, uint8_t eui64);
+void i2c_write_mem_buf(uint8_t addr, uint8_t buf[], uint8_t bytes);
+void i2c_read_mem_buf(uint8_t addr, uint8_t reg, uint8_t buf[], uint8_t bytes);
 extern uint16_t i2c_probed; /* i2c devices we have probed */
 
