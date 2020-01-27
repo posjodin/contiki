@@ -47,8 +47,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-SENSORS(&button_sensor);
-
 /*---------------------------------------------------------------------------*/
 #define DEBUG 1
 #if DEBUG
