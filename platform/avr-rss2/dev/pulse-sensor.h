@@ -36,8 +36,13 @@
 #ifndef PULSE_SENSOR_H_
 #define PULSE_SENSOR_H_
 
+#define NP 2
+
 #include "lib/sensors.h"
 
 extern const struct sensors_sensor pulse_sensor;
+extern uint32_t volatile pc[NP], lastpc[NP];
+extern uint16_t ppm[NP];
+
 
 #endif /* PULSE-SENSOR_H_ */

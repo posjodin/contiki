@@ -743,10 +743,14 @@ publish_sensors(void)
   PUTFMT(",\"bt\":%lu}", clock_seconds());
   PUTFMT(",{\"n\":\"seq_no\",\"u\":\"count\",\"v\":%d}", seq_nr_value);
 
+#define RADIATION_FACTOR_RD3024 6.
+#define RADIATION_FACTOR 1  
 #ifdef RD3024
   /* Pulse count */
-  PUTFMT(",{\"n\":\"gamma-cnt\",\"u\":\"count\",\"v\":%d}",  pulse_sensor.value(0));
-  PUTFMT(",{\"n\":\"gamma-radiation\",\"u\":\"uSv/h\",\"v\":%-5.2f}", ((double) ppm[0])/6.);
+  PUTFMT(",{\"n\":\"gamma-cnt0\",\"u\":\"count\",\"v\":%d}",  pulse_sensor.value(0));
+  PUTFMT(",{\"n\":\"gamma-cnt1\",\"u\":\"count\",\"v\":%d}",  pulse_sensor.value(1));
+  PUTFMT(",{\"n\":\"gamma-radiation0\",\"u\":\"uSv/h\",\"v\":%-5.2f}", ((double) ppm[0])/RADIATION_FACTOR);
+  PUTFMT(",{\"n\":\"gamma-radiation1\",\"u\":\"uSv/h\",\"v\":%-5.2f}", ((double) ppm[1])/RADIATION_FACTOR);
 #endif
 
 #ifdef CO2

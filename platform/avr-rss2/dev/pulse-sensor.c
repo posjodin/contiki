@@ -40,9 +40,8 @@
 
 const struct sensors_sensor pulse_sensor;
 
-#define NP 2
-
-uint32_t volatile pc[NP];
+uint32_t volatile pc[NP], lastpc[NP];
+uint16_t ppm[NP];
 
 /*
  * Note interrupt sources can be woken up from sleep mode PWR_SAVE

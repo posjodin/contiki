@@ -360,6 +360,26 @@ ISR(TIMER2_OVF_vect)
 #endif
     seconds++;
 
+#ifdef CONTIKI_TARGET_AVR_RSS2
+#include "dev/pulse-sensor.h"
+    {
+      int i;
+      for(i=0; i < NP; i++) {
+
+	if(! (seconds % 60)) {
+
+	  if(pc[i] >= lastpc[i]) {
+	    ppm[0] = pc[0] - lastpc[0];
+	  }
+	  else {
+	    ppm[i] = lastpc[i] - pc[i];
+	  }
+	  lastpc[i] = pc[i];
+	}
+      }
+    }
+#endif
+
 #if RADIO_CONF_CALIBRATE_INTERVAL
    /* Force a radio PLL frequency calibration every 256 seconds */
     if (++calibrate_interval==0) {
