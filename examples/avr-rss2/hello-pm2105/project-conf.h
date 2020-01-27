@@ -42,18 +42,11 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
-/* #define BME280_32BIT */
-
 #define NETSTACK_CONF_RDC nullrdc_driver
 #define NETSTACK_CONF_MAC nullmac_driver
-
 
 /* PMSx003 sensors -- I2C and/or UART*/
 #define PMS5003_CONF_SERIAL_I2C 1
 #define PMS5003_CONF_SERIAL_UART 0
-
-
-//#define NETSTACK_CONF_MAC         csma_driver
-//#define NETSTACK_CONF_RDC         contikimac_driver
 
 #endif /* PROJECT_CONF_H_ */
