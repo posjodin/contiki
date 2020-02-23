@@ -87,131 +87,46 @@
 
 #define EEUPSTATSSIZE 8
 #define EEUPSTATSMAGIC 0xacdc
-struct upbuf {
-  uint16_t magic;
-  uint8_t put;
-  uint8_t length;
-  uint8_t size;
-};
 
-struct upstat {
-    uint8_t bootcause;
-    uint32_t upsecs;
-};
+static uint16_t bootcount;
 
-struct upbuf EEMEM ee_upbuf;
-struct upbuf upbuf;
-struct upstat EEMEM ee_stats[EEUPSTATSSIZE];
-struct upstat upstat;
-uint16_t EEMEM ee_bootcount;
+static uint16_t EEMEM ee_magic;
+static uint16_t EEMEM ee_bootcount;
 
 uint32_t EEMEM ee_debug;
 PROCESS(eestats, "Boot stats in eeprom");
 
 static void init_upstats() {
-  uint16_t bootcount;
-
-  upbuf.magic = EEUPSTATSMAGIC;
-  upbuf.put = 0;
-  upbuf.length = 0;
-  upbuf.size = EEUPSTATSSIZE;
-  eeprom_write_block((void*)&upbuf, (void *)&ee_upbuf, sizeof(struct upbuf));
-  bootcount = 0;
-  eeprom_write_block((void*)&ee_bootcount, (void *)&bootcount, sizeof(uint16_t));
-}
-
-static struct upstat *alloc_upstat() {
-  struct upstat *put;
+  uint16_t magic;
   
-  put = &ee_stats[upbuf.put];
-  upbuf.put = (upbuf.put + 1) % upbuf.size;
-  if (upbuf.length < upbuf.size) {
-    upbuf.length += 1;
-  }
-  eeprom_write_block((void*)&upbuf, (void *)&ee_upbuf, sizeof(struct upbuf));  
-  return put;
-}
-
-static void read_ee_upbuf() {
- again:
-  eeprom_read_block((void*)&upbuf, (void *)&ee_upbuf, sizeof(struct upbuf));  
-  if (upbuf.magic != EEUPSTATSMAGIC) {
-    printf("New upstat block\n");
-    init_upstats();
-    goto again;
-  }
-  else {
-    printf("There was an upstat block\n");
+  /* Check magic number to make sure there is valid stats in eeprom */
+  eeprom_read_block((void*)&magic, (void *)&ee_magic, sizeof(magic));  
+  if (magic != EEUPSTATSMAGIC) {
+    magic = EEUPSTATSMAGIC;
+    eeprom_write_block((void*)&magic, (void *)&ee_magic, sizeof(magic));
+    bootcount = 0;
+    eeprom_write_block((void*)&ee_bootcount, (void *)&bootcount, sizeof(uint16_t));
   }
 }
-
-uint16_t bootcount;
 
 static void update_bootcount() {
-  eeprom_read_block((void*)&bootcount, (void *)&ee_bootcount, sizeof(uint16_t));
+  
+  eeprom_read_block((void*)&bootcount, (void *)&ee_bootcount, sizeof(bootcount));
   bootcount += 1;
   eeprom_write_block((void*)(void *)&bootcount, &ee_bootcount, sizeof(ee_bootcount));
   printf("Boot count: %d\n", bootcount);
 
 }
 
-static void upstats_update_bootcause(struct upstat *ee_upstatp, uint8_t bootcause) {
-  upstat.bootcause = bootcause;
-  eeprom_write_block(&upstat.bootcause, &ee_upstatp->bootcause, sizeof(ee_upstatp->bootcause));
-}  
-
-static void upstats_update_uptime(struct upstat *ee_upstatp, uint32_t upsecs) {
-  upstat.upsecs = upsecs;
-  eeprom_write_block(&upstat.upsecs, &ee_upstatp->upsecs, sizeof(ee_upstatp->upsecs));
-}  
-
-static void put_upstatsbuf() {
-  struct upbuf upbuf;
-  upbuf.magic = EEUPSTATSMAGIC;
-  upbuf.put = 0;
-  upbuf.length = 0;
-  upbuf.size = EEUPSTATSSIZE;
-  eeprom_write_block((void*)&upbuf, (void *)&ee_upbuf, sizeof(struct upbuf));
+uint16_t eestats_get_bootcount() {
+  return bootcount;
 }
 
-static struct update_intervals {
-  uint16_t update_interval; /* Time between updates (minutes) */
-  uint16_t update_count; /* How many updates to do with this interval - 0 is infinite */
-} update_intervals[] = {{5, 6}, {30, 47}, {360, 0}};
-
 PROCESS_THREAD(eestats, ev, data) {
-  static uint32_t uptime = 0; /* minutes */
-  static uint8_t cur_interval = 0;
-  static uint8_t cur_count = 0;
-  static struct upstat *ee_upstatp;
-  static struct etimer et;
-  uint32_t update_interval;
   
   PROCESS_BEGIN();
   printf("Here is eestats process\n");
-  read_ee_upbuf();
-  printf("upbuf: put %d length %d size %d\n", upbuf.put, upbuf.length, upbuf.size);
+  init_upstats();
   update_bootcount();
-
-  ee_upstatp = alloc_upstat();
-  upstats_update_bootcause(ee_upstatp, GPIOR0);
-  cur_count = 0;
-  while (1) {
-    update_interval = update_intervals[cur_interval].update_interval;
-    printf("Sleep %lu\n", update_interval);
-    etimer_set(&et, update_interval*60L*CLOCK_SECOND);
-    while (!etimer_expired(&et)) {
-      PROCESS_PAUSE();
-    } 
-    uptime += update_interval;
-    printf("Time to update %lu\n", uptime);
-    if (update_intervals[cur_interval].update_count > 0) {
-      if (++cur_count >= update_intervals[cur_interval].update_count) {
-        cur_interval++;
-        cur_count = 0;
-      }
-    }
-  }
-
   PROCESS_END();
 }
