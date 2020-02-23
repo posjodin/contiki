@@ -538,6 +538,22 @@ PT_THREAD(get_moduleinfo(struct pt *pt)) {
 
   PT_BEGIN(pt);
 
+  PT_ATSTR2("AT+CIMI\r");
+  atwait_record_on();
+  PT_ATWAIT2(10, &wait_ok);
+  atwait_record_off();
+  if (at != NULL) {
+    sscanf(at_line, "%*[^0-9]%16[0-9]", status.imsi);
+  }
+  /* Get IMEI */
+  PT_ATSTR2("AT+GSN\r");
+  atwait_record_on();
+  PT_ATWAIT2(10, &wait_ok);
+  atwait_record_off();
+  if (at != NULL) {
+    sscanf(at_line, "%*[^0-9]%16[0-9]", status.imei);
+  }
+
   status.module = AT_RADIO_MODULE_UNNKOWN;
   PT_ATSTR2("ATI\r");
   atwait_record_on();
@@ -674,6 +690,8 @@ PT_THREAD(at_radio_connect_pt(struct pt *pt, struct at_radio_connection * at_rad
     PT_ATSTR2(str);
     PT_ATWAIT2(60, &wait_connectok, &wait_cmeerror, &wait_commandnoresponse);
     if (at == &wait_connectok) {
+      at_radioconn->connectionid = AT_RADIO_CONNID;
+
       at_radio_statistics.connections += 1;
       at_radio_call_event(at_radioconn, AT_RADIO_CONN_CONNECTED);
       break;
