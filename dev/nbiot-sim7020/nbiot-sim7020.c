@@ -575,6 +575,23 @@ PT_THREAD(get_moduleinfo(struct pt *pt)) {
       printf("No module version in '%s'\n", at_line);
     }
   }
+  /* Get IMSI */
+  PT_ATSTR2("AT+CIMI\r");
+  atwait_record_on();
+  PT_ATWAIT2(10, &wait_ok);
+  atwait_record_off();
+  if (at != NULL) {
+    sscanf(at_line, "%*[^0-9]%16[0-9]", status.imsi);
+  }
+  /* Get IMEI */
+  PT_ATSTR2("AT+GSN\r");
+  atwait_record_on();
+  PT_ATWAIT2(10, &wait_ok);
+  atwait_record_off();
+  if (at != NULL) {
+    sscanf(at_line, "%*[^0-9]%16[0-9]", status.imei);
+  }
+  
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/

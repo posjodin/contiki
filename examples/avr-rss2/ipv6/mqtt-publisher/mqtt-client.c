@@ -79,6 +79,10 @@
 #include "radio/rf230bb/rf230bb.h"
 #endif /* #if RF230_DEBUG */
 #endif /* #ifndef RF230_DEBUG */
+#ifdef CONTIKI_TARGET_AVR_RSS2
+#include "buildstring.h"
+#include "eestats.h"
+#endif  /* #ifdef CONTIKI_TARGET_AVR_RSS2 */
 
 
 /*---------------------------------------------------------------------------*/
@@ -842,6 +846,8 @@ publish_stats(void)
     /* Send bootcause 3 times after reboot (in the first 20 min after reboot) */
     if (seq_nr_value < 40) {
       PUTFMT(",{\"n\":\"bootcause\",\"v\":\"%02x\"}", GPIOR0);
+      PUTFMT(",{\"n\":\"build\",\"vs\":\"%s\"}", BUILDSTRING);
+      PUTFMT(",{\"n\":\"bootcount\",\"v\":%u}", eestats_get_bootcount());
     }
 #endif
 
@@ -908,6 +914,8 @@ publish_stats(void)
       }
       if (status->state == AT_RADIO_STATE_ACTIVE) {
         PUTFMT(",{\"n\":\"at_radio;local_ip\",\"vs\":\"%s\"}", status->ipaddr); 
+        PUTFMT(",{\"n\":\"at_radio;imsi\",\"vs\":\"%s\"}", status->imsi); 
+        PUTFMT(",{\"n\":\"at_radio;imei\",\"vs\":\"%s\"}", status->imei); 
       }
       PUTFMT(",{\"n\":\"at_radio;rssi\",\"v\":%u}", status->rssi);
       PUTFMT(",{\"n\":\"at_radio;gps_longi\",\"v\":%f}", status->longi);
@@ -973,46 +981,12 @@ publish_cca_test(void)
                strlen(app_buffer), MQTT_QOS_LEVEL, MQTT_RETAIN_OFF);
 }
 
-#include "buildstring.h"
-extern uint16_t bootcount;
-static void
-publish_build(void)
-{
-
-  int len;
-  int remaining = APP_BUFFER_SIZE;
-  char *topic;
-  
-  buf_ptr = app_buffer;
-
-  seq_nr_value++;
-
-  topic = construct_topic("build");
-  /* Use device URN as base name -- draft-arkko-core-dev-urn-03 */
-  PUTFMT("[{\"bn\":\"urn:dev:mac:%s;\"", node_id);
-  PUTFMT(",\"bu\":\"count\"");
-  PUTFMT(",\"bt\":%lu}", clock_seconds());
-  PUTFMT(",{\"n\":\"build\",\"vs\":\"%s\"}", BUILDSTRING);
-  PUTFMT(",{\"n\":\"bootcount\",\"v\":%u}", bootcount);
-  PUTFMT(",{\"n\":\"bootcause\",\"v\":\"%02x\"}", GPIOR0);
-  PUTFMT("]");
-  printf("Publish builid\n");
-  printf("%s\n", app_buffer);
-  mqtt_publish(&conn, NULL, topic, (uint8_t *)app_buffer,
-               strlen(app_buffer), MQTT_QOS_LEVEL, MQTT_RETAIN_OFF);
-}
-
 static void
 publish(void)
 {
-  static uint8_t did_once = 0;
   
   if (pub_now_message)
     publish_now();
-  else if (did_once == 0) {
-    publish_build();
-    did_once = 1;
-  }
   else if ((seq_nr_value % PUBLISH_STATS_INTERVAL) == 2)
     publish_stats();
   else if (((seq_nr_value % PUBLISH_STATS_INTERVAL) == 6) && (lc.cca_test)) {
@@ -1023,9 +997,6 @@ publish(void)
     //publish_stats();
     publish_sensors();
   mqtt_stats.published++;
-  if (conf.pub_interval < 600L*CLOCK_SECOND) {
-    conf.pub_interval = conf.pub_interval << 1;
-  }
 }
 /*---------------------------------------------------------------------------*/
 static void

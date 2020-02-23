@@ -97,6 +97,8 @@ struct at_radio_status {
     AT_RADIO_MODULE_SIM7020E
   } module;
 
+  char imsi[16]; /* International mobile subscriber identity */
+  char imei[18]; /* International mobile equipment identity */
   double longi;
   double lat;
   double speed;
