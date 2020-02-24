@@ -635,7 +635,6 @@ init_config()
 #else
   conf.pub_interval = DEFAULT_PUBLISH_INTERVAL;
 #endif /* MQTT_CONF_PUBLISH_INTERVAL */
-  conf.pub_interval = 10*CLOCK_SECOND;
 
 #ifdef MQTT_CONF_KEEP_ALIVE_TIMER
   conf.keep_alive_timer = MQTT_CONF_KEEP_ALIVE_TIMER;
