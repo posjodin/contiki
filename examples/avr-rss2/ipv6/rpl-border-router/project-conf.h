@@ -36,8 +36,10 @@
 #define NETSTACK_CONF_FRAMER  framer_802154
 
 #ifndef UIP_FALLBACK_INTERFACE
-#define UIP_FALLBACK_INTERFACE rpl_interface
+#define UIP_FALLBACK_INTERFACE ip64_eth_interface
 #endif
+
+//#define UIP_CONF_IP_FORWARD 1
 
 #ifndef QUEUEBUF_CONF_NUM
 #define QUEUEBUF_CONF_NUM          4
@@ -61,6 +63,16 @@
 #define IEEE802154_CONF_PANID 0xFEED
 #define CHANNEL_CONF_802_15_4 25
 #define RPL_CONF_DEFAULT_INSTANCE 0x1d
+
+#ifdef RIOT_COMPAT
+/* RIOT supports OF0 only */
+#define RPL_CONF_OF_OCP RPL_OCP_OF0
+/* We can do both OF0 and MRHOF */
+#define RPL_CONF_SUPPORTED_OFS {&rpl_of0, &rpl_mrhof}
+/* Lifetime for address prefixes advertized in DIOs -- 7 days */
+#define RPL_PREFIX_LIFETIME 604800
+#endif
+
 #define NULLRDC_CONF_802154_AUTOACK_HW	1
 
 /* cli config */

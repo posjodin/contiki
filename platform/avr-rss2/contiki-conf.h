@@ -302,7 +302,9 @@ typedef unsigned short uip_stats_t;
 /* Use this to prevent 6LowPAN fragmentation (whether or not fragmentation is enabled) */
 /* #define UIP_CONF_TCP_MSS       48 */
 
+#ifndef UIP_CONF_IP_FORWARD
 #define UIP_CONF_IP_FORWARD      0
+#endif
 #define UIP_CONF_FWCACHE_SIZE    0
 
 #define UIP_CONF_IPV6_CHECKS     1
